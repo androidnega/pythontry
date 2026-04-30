@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Calculator</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --display-bg: #020617;
+      --display-fg: #f8fafc;
+      --num-bg: #1e293b;
+      --num-bg-hover: #334155;
+      --num-fg: #94a3b8;
+      --op-bg: #2563eb;
+      --op-bg-hover: #3b82f6;
+      --op-fg: #ffffff;
+      --eq-bg: #059669;
+      --eq-bg-hover: #10b981;
+      --eq-fg: #ecfdf5;
+      --clear-bg: #be123c;
+      --clear-bg-hover: #e11d48;
+      --clear-fg: #fff1f2;
+      --back-bg: #475569;
+      --back-bg-hover: #64748b;
+      --back-fg: #e2e8f0;
+      --radius: 12px;
+      --gap: 8px;
+      --font: system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      font-family: var(--font);
+      padding: 16px;
+    }
+    .calc {
+      width: min(100%, 320px);
+      padding: 12px;
+      border-radius: 16px;
+    }
+    .display {
+      background: var(--display-bg);
+      color: var(--display-fg);
+      font-size: clamp(1.75rem, 8vw, 2rem);
+      font-weight: 500;
+      text-align: right;
+      padding: 1.1rem 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      min-height: 3.25rem;
+      letter-spacing: 0.02em;
+      word-break: break-all;
+    }
+    .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); }
+    .keys button {
+      font: inherit;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius);
+      padding: 1rem 0.4rem;
+      cursor: pointer;
+      transition: background 0.12s ease, transform 0.08s ease;
+    }
+    .keys button:active { transform: scale(0.97); }
+    .keys button.num { background: var(--num-bg); color: var(--num-fg); }
+    .keys button.num:hover { background: var(--num-bg-hover); }
+    .keys button.op { background: var(--op-bg); color: var(--op-fg); }
+    .keys button.op:hover { background: var(--op-bg-hover); }
+    .keys button.eq { background: var(--eq-bg); color: var(--eq-fg); }
+    .keys button.eq:hover { background: var(--eq-bg-hover); }
+    .keys button.clear { background: var(--clear-bg); color: var(--clear-fg); }
+    .keys button.clear:hover { background: var(--clear-bg-hover); }
+    .keys button.back { background: var(--back-bg); color: var(--back-fg); }
+    .keys button.back:hover { background: var(--back-bg-hover); }
+    .span2 { grid-column: span 2; }
+  </style>
+</head>
+<body>
+  <div class="calc" role="application" aria-label="Calculator">
+    <form method="post" action="{{ url_for('calculator') }}" id="f">
+      <div class="display" aria-live="polite">{{ state.display }}</div>
+      <input type="hidden" name="display" value="{{ state.display }}" />
+      <input type="hidden" name="stored" value="{{ state.stored if state.stored is not none else '' }}" />
+      <input type="hidden" name="pending_op" value="{{ state.pending_op or '' }}" />
+      <input type="hidden" name="fresh" value="{{ '1' if state.fresh else '0' }}" />
+
+      <div class="keys">
+        <button type="submit" class="clear span2" name="act" value="clear:C">C</button>
+        <button type="submit" class="back span2" name="act" value="back:⌫">⌫</button>
+
+        <button type="submit" class="num" name="act" value="num:7">7</button>
+        <button type="submit" class="num" name="act" value="num:8">8</button>
+        <button type="submit" class="num" name="act" value="num:9">9</button>
+        <button type="submit" class="op" name="act" value="op:÷">÷</button>
+
+        <button type="submit" class="num" name="act" value="num:4">4</button>
+        <button type="submit" class="num" name="act" value="num:5">5</button>
+        <button type="submit" class="num" name="act" value="num:6">6</button>
+        <button type="submit" class="op" name="act" value="op:×">×</button>
+
+        <button type="submit" class="num" name="act" value="num:1">1</button>
+        <button type="submit" class="num" name="act" value="num:2">2</button>
+        <button type="submit" class="num" name="act" value="num:3">3</button>
+        <button type="submit" class="op" name="act" value="op:−">−</button>
+
+        <button type="submit" class="num" name="act" value="num:0">0</button>
+        <button type="submit" class="num" name="act" value="num:.">.</button>
+        <button type="submit" class="eq" name="act" value="eq:=">=</button>
+        <button type="submit" class="op" name="act" value="op:+">+</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>
