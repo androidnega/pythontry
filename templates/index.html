@@ -12,7 +12,15 @@
       clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
       background: linear-gradient(to bottom, rgba(253, 224, 71, 0.32), rgba(253, 224, 71, 0));
     }
-    /* Cord: no focus/tap stroke while pulling */
+    @keyframes lamp-blink {
+      0%, 41%, 49%, 100% { transform: scaleY(1); opacity: 1; }
+      45%, 47% { transform: scaleY(0.12); opacity: 0.7; }
+    }
+    .lamp-eye {
+      transform-origin: center;
+      animation: lamp-blink 3.2s ease-in-out infinite;
+    }
+    .lamp-eye-delay { animation-delay: 0.14s; }
     #cord-root {
       -webkit-tap-highlight-color: transparent;
       touch-action: none;
@@ -32,51 +40,50 @@
       border-radius: 9999px;
       background: linear-gradient(to bottom, #94a3b8, #cbd5e1);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
-      transform-origin: top center;
+      flex-shrink: 0;
     }
   </style>
 </head>
 <body id="page-root" class="min-h-full text-slate-100 antialiased overflow-x-hidden">
 
-  <!-- Lit ambience (opacity only — avoids body bg swap flash) -->
   <div id="ambient" class="pointer-events-none fixed inset-0 z-0 bg-gradient-to-b from-slate-600/25 via-slate-900/40 to-[#020617] opacity-0 transition-opacity duration-500 ease-out" aria-hidden="true"></div>
 
-  <div class="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 pb-16 pt-8">
+  <div class="relative z-10 flex min-h-screen w-full flex-col items-center justify-center px-4 py-10">
 
-    <!-- Shown only when lamp is OFF -->
-    <p id="hint-pull" class="show-when-dark mb-6 text-center text-sm tracking-wide text-slate-500 transition-opacity duration-300">
-      Pull down
-    </p>
-
-    <!-- Shown when lamp is ON -->
-    <header id="page-header" class="show-when-lit mb-8 max-w-lg text-center opacity-0 invisible transition-all duration-500 ease-out">
+    <header id="page-header" class="mb-8 max-w-lg px-2 text-center opacity-0 invisible transition-all duration-500 ease-out">
       <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">Ahanta</p>
       <h1 class="text-xl font-bold tracking-tight text-white sm:text-2xl">AhantaPulse Freelance Hub</h1>
       <p class="mt-2 text-sm text-slate-400">Get launch updates when freelancers and clients can join.</p>
     </header>
 
-    <div class="flex w-full max-w-4xl flex-col items-center justify-center gap-10 md:flex-row md:items-start md:gap-14">
-
-      <!-- Lamp (smaller) -->
-      <div id="lamp-wrap" class="relative flex shrink-0 flex-col items-center">
+    <!-- Lamp centered alone when dark; when lit, row shifts lamp aside + shows card -->
+    <div id="scene-row"
+      class="flex w-full max-w-5xl flex-col items-center justify-center gap-10 transition-[gap] duration-700 ease-out md:flex-row md:items-start md:justify-center md:gap-12">
+      <div id="lamp-wrap" class="relative flex shrink-0 flex-col items-center transition-transform duration-700 ease-out">
         <div id="lamp-shade"
           class="relative z-20 flex h-24 w-32 flex-col items-center justify-center rounded-t-3xl bg-slate-800 shadow-xl ring-1 ring-white/5 transition-[background-color,box-shadow] duration-500 ease-out">
           <div class="mb-1.5 flex gap-6">
-            <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-900"></span>
-            <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-900" style="animation-delay:0.12s"></span>
+            <span class="lamp-eye h-1.5 w-1.5 rounded-full bg-slate-900"></span>
+            <span class="lamp-eye lamp-eye-delay h-1.5 w-1.5 rounded-full bg-slate-900"></span>
           </div>
           <div id="lamp-mouth" class="h-2.5 w-5 rounded-full border-b-[3px] border-slate-900 transition-all duration-300"></div>
         </div>
         <div class="-mt-1 h-20 w-3 bg-slate-700 shadow-inner ring-1 ring-black/20"></div>
         <div class="-mt-1 h-3 w-16 rounded-full bg-slate-700 shadow-lg ring-1 ring-black/25"></div>
 
-        <!-- Pull cord: hold & drag down -->
-        <div id="cord-assembly" class="absolute left-7 top-[6.25rem] z-30 flex flex-col items-center" style="will-change: transform;">
-          <div id="cord-line" class="h-14"></div>
-          <button type="button" id="cord-root" aria-label="Pull cord to turn lamp on or off"
-            class="relative flex flex-col items-center">
-            <span id="cord-knob" class="block h-4 w-4 rounded-full bg-gradient-to-b from-slate-200 to-slate-400 shadow-md ring-1 ring-white/20"></span>
-          </button>
+        <!-- Cord: top fixed to lamp; only length changes — never moves whole rope down -->
+        <div id="cord-rig" class="absolute left-7 top-[6.25rem] z-30 flex items-start gap-3">
+          <div class="flex flex-col items-center">
+            <div id="cord-line" class="h-14"></div>
+            <button type="button" id="cord-root" aria-label="Pull cord to turn lamp on or off"
+              class="relative mt-0 flex flex-col items-center">
+              <span id="cord-knob" class="block h-4 w-4 rounded-full bg-gradient-to-b from-slate-200 to-slate-400 shadow-md ring-1 ring-white/20"></span>
+            </button>
+          </div>
+          <div id="hint-pull" class="pointer-events-none max-w-[7.5rem] select-none pt-4">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Pull</p>
+            <p class="mt-0.5 text-xs leading-snug text-slate-600">Hold the bead &amp; drag <span class="text-slate-500">↓</span></p>
+          </div>
         </div>
 
         <div id="light-beam"
@@ -84,9 +91,8 @@
         </div>
       </div>
 
-      <!-- Get notified -->
       <div id="notify-card"
-        class="show-when-lit relative z-30 w-full max-w-md rounded-2xl border border-slate-700/90 bg-slate-900/90 p-7 opacity-0 shadow-2xl backdrop-blur-md transition-all duration-700 ease-out invisible md:mt-0 translate-y-3 scale-[0.98] pointer-events-none">
+        class="relative z-30 hidden w-full max-w-md rounded-2xl border border-slate-700/90 bg-slate-900/90 p-7 opacity-0 shadow-2xl backdrop-blur-md transition-all duration-700 ease-out invisible pointer-events-none translate-y-3 scale-[0.98] md:mt-0">
         <h2 class="mb-1 text-lg font-bold text-white">Get notified</h2>
         <p class="mb-5 text-sm text-slate-400">We’ll email you when the hub opens.</p>
         <form id="notify-form" class="space-y-4">
@@ -114,10 +120,10 @@
   <script>
 (function () {
   var ambient = document.getElementById('ambient');
-  var cordAsm = document.getElementById('cord-assembly');
-  var cordBtn = document.getElementById('cord-root');
   var cordLine = document.getElementById('cord-line');
+  var cordBtn = document.getElementById('cord-root');
   var card = document.getElementById('notify-card');
+  var sceneRow = document.getElementById('scene-row');
   var header = document.getElementById('page-header');
   var hint = document.getElementById('hint-pull');
   var shade = document.getElementById('lamp-shade');
@@ -136,8 +142,9 @@
   var maxPull = 64;
   var threshold = 28;
   var pullPx = 0;
+  var BASE_H = 56;
 
-  var elasticOut = 'transform 620ms cubic-bezier(0.34, 1.55, 0.42, 1.05)';
+  var elasticHeight = 'height 620ms cubic-bezier(0.34, 1.55, 0.42, 1.05)';
 
   function setUiLit(on) {
     isLightOn = on;
@@ -149,14 +156,19 @@
       beam.classList.replace('opacity-0', 'opacity-100');
       mouth.className = mouthOn;
 
-      hint.classList.add('opacity-0', 'pointer-events-none');
-      window.setTimeout(function () { hint.classList.add('hidden'); }, 280);
+      hint.classList.add('opacity-0');
+      window.setTimeout(function () {
+        hint.classList.add('hidden');
+      }, 260);
 
       header.classList.remove('invisible', 'opacity-0');
       header.classList.add('opacity-100', 'visible');
 
-      card.classList.remove('invisible', 'opacity-0', 'pointer-events-none', 'translate-y-3', 'scale-[0.98]');
-      card.classList.add('opacity-100', 'visible', 'translate-y-0', 'scale-100');
+      card.classList.remove('hidden');
+      window.requestAnimationFrame(function () {
+        card.classList.remove('invisible', 'opacity-0', 'translate-y-3', 'scale-[0.98]', 'pointer-events-none');
+        card.classList.add('opacity-100', 'visible', 'translate-y-0', 'scale-100');
+      });
     } else {
       beam.classList.replace('opacity-100', 'opacity-0');
       ambient.classList.remove('opacity-100');
@@ -171,34 +183,33 @@
       header.classList.add('invisible', 'opacity-0');
       header.classList.remove('visible', 'opacity-100');
 
-      card.classList.add('invisible', 'opacity-0', 'pointer-events-none', 'translate-y-3', 'scale-[0.98]');
+      card.classList.add('pointer-events-none', 'invisible', 'opacity-0', 'translate-y-3', 'scale-[0.98]');
       card.classList.remove('visible', 'opacity-100', 'translate-y-0', 'scale-100');
 
-      hint.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+      window.setTimeout(function () {
+        card.classList.add('hidden');
+      }, 520);
+
+      hint.classList.remove('hidden', 'opacity-0');
 
       msgOk.classList.add('hidden');
       msgErr.classList.add('hidden');
     }
   }
 
+  /** Stretch rope from lamp downward—never translate the rig (avoids “broken” cord). */
   function applyPullVisual(px) {
     pullPx = px;
-    cordAsm.style.transition = 'none';
+    cordLine.style.transition = 'none';
     var stretch = Math.min(px, maxPull);
     var extra = px > maxPull ? (px - maxPull) * 0.22 : 0;
-    var y = stretch + extra;
-    cordAsm.style.transform = 'translateY(' + y + 'px)';
-    var baseH = 56;
-    cordLine.style.height = baseH + Math.min(px, maxPull) * 0.35 + 'px';
+    cordLine.style.height = BASE_H + stretch + extra + 'px';
   }
 
   function snapCordBack() {
-    cordAsm.style.transition = elasticOut;
-    cordLine.style.transition = 'height 620ms cubic-bezier(0.34, 1.55, 0.42, 1.05)';
-    cordAsm.style.transform = 'translateY(0)';
+    cordLine.style.transition = elasticHeight;
     cordLine.style.height = '';
     window.setTimeout(function () {
-      cordAsm.style.transition = '';
       cordLine.style.transition = '';
     }, 640);
   }
@@ -207,9 +218,10 @@
     if (e.button !== undefined && e.button !== 0) return;
     dragging = true;
     startY = e.clientY;
-    cordAsm.style.transition = 'none';
     cordLine.style.transition = 'none';
-    try { cordBtn.setPointerCapture(e.pointerId); } catch (err) {}
+    try {
+      cordBtn.setPointerCapture(e.pointerId);
+    } catch (err) {}
     e.preventDefault();
   });
 
@@ -223,7 +235,9 @@
   function end(e) {
     if (!dragging) return;
     dragging = false;
-    try { cordBtn.releasePointerCapture(e.pointerId); } catch (err2) {}
+    try {
+      cordBtn.releasePointerCapture(e.pointerId);
+    } catch (err2) {}
     var fired = pullPx >= threshold;
     pullPx = 0;
     if (fired) setUiLit(!isLightOn);
