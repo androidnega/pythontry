@@ -35,6 +35,19 @@
     .cord-idle.paused {
       animation: none;
     }
+    /* Idle mouth — gentle smile wiggle */
+    @keyframes mouth-idle {
+      0%, 100% { transform: translateY(0) scaleX(1); }
+      45% { transform: translateY(1px) scaleX(1.06); }
+      55% { transform: translateY(0) scaleX(1); }
+    }
+    #lamp-mouth.mouth-idle {
+      transform-origin: center;
+      animation: mouth-idle 3s ease-in-out infinite;
+    }
+    #lamp-mouth.paused {
+      animation: none !important;
+    }
     #cord-root {
       -webkit-tap-highlight-color: transparent;
       touch-action: none;
@@ -84,8 +97,8 @@
     <div id="scene-row"
       class="flex w-full max-w-5xl flex-col items-center justify-center gap-10 transition-[gap] duration-700 ease-out md:flex-row md:items-center md:justify-center md:gap-12">
 
-      <div id="lamp-wrap" class="relative flex shrink-0 flex-col items-center transition-transform duration-700 ease-out">
-        <!-- Lamp body only (shade → pole → base) -->
+      <div id="lamp-wrap" class="relative flex shrink-0 flex-col items-center pb-24 transition-transform duration-700 ease-out">
+        <!-- Lamp body (shade → pole → base) -->
         <div id="lamp-body" class="relative flex flex-col items-center">
           <div id="lamp-shade"
             class="relative z-20 flex h-24 w-32 flex-col items-center justify-center rounded-t-3xl bg-slate-800 shadow-xl ring-1 ring-white/5 transition-[background-color,box-shadow] duration-500 ease-out">
@@ -93,7 +106,7 @@
               <span class="lamp-eye h-2 w-2 rounded-full bg-white"></span>
               <span class="lamp-eye lamp-eye-delay h-2 w-2 rounded-full bg-white"></span>
             </div>
-            <div id="lamp-mouth" class="h-2.5 w-5 rounded-full border-b-[3px] border-slate-900 transition-all duration-300"></div>
+            <div id="lamp-mouth" class="mouth-idle h-2.5 w-5 rounded-full border-b-[3px] border-slate-900 transition-all duration-300"></div>
           </div>
           <div class="-mt-1 h-20 w-3 bg-slate-700 shadow-inner ring-1 ring-black/20"></div>
           <div class="-mt-1 h-3 w-16 rounded-full bg-slate-700 shadow-lg ring-1 ring-black/25"></div>
@@ -103,8 +116,9 @@
           </div>
         </div>
 
-        <!-- Cord below base — never crosses the leg; centered under lamp -->
-        <div id="cord-dangle-wrap" class="cord-idle relative z-30 mt-4 flex flex-col items-center">
+        <!-- Cord: original side hang + same idle sway (top anchor = shade; line stretches on pull) -->
+        <div id="cord-dangle-wrap" class="cord-idle absolute left-7 top-[6.25rem] z-30 flex flex-col items-center"
+          style="transform-origin: top center;">
           <div id="cord-line" class="h-14"></div>
           <button type="button" id="cord-root" aria-label="Pull cord to turn lamp on or off"
             class="relative mt-0 flex flex-col items-center">
@@ -155,7 +169,7 @@
   var msgOk = document.getElementById('notify-msg');
   var msgErr = document.getElementById('notify-err');
 
-  var mouthOff = 'h-2.5 w-5 rounded-full border-b-[3px] border-slate-900 transition-all duration-300';
+  var mouthOff = 'mouth-idle h-2.5 w-5 rounded-full border-b-[3px] border-slate-900 transition-all duration-300';
   var mouthOn = 'h-3 w-5 rounded-b-full bg-red-400 transition-all duration-300';
 
   var isLightOn = false;
@@ -178,6 +192,15 @@
     }
   }
 
+  function setMouthMotion(animate) {
+    if (!mouth) return;
+    if (animate) {
+      mouth.classList.remove('paused');
+    } else {
+      mouth.classList.add('paused');
+    }
+  }
+
   function setUiLit(on) {
     isLightOn = on;
     if (on) {
@@ -188,6 +211,7 @@
       shade.style.boxShadow = '0 0 36px rgba(253,224,71,0.5)';
       beam.classList.replace('opacity-0', 'opacity-100');
       mouth.className = mouthOn;
+      setMouthMotion(false);
 
       header.classList.remove('invisible', 'opacity-0');
       header.classList.add('opacity-100', 'visible');
@@ -211,6 +235,7 @@
         shade.classList.replace('bg-yellow-300', 'bg-slate-800');
         shade.style.boxShadow = '';
         mouth.className = mouthOff;
+        setMouthMotion(true);
       }, 120);
 
       header.classList.add('invisible', 'opacity-0');
@@ -254,6 +279,7 @@
     startY = e.clientY;
     cordLine.style.transition = 'none';
     setCordMotion(false);
+    setMouthMotion(false);
     try {
       cordBtn.setPointerCapture(e.pointerId);
     } catch (err) {}
@@ -279,8 +305,13 @@
     if (fired) {
       setUiLit(!wasOn);
     } else {
-      if (wasOn) setCordMotion(false);
-      else setCordMotion(true);
+      if (wasOn) {
+        setCordMotion(false);
+        setMouthMotion(false);
+      } else {
+        setCordMotion(true);
+        setMouthMotion(true);
+      }
     }
     snapCordBack();
   }
