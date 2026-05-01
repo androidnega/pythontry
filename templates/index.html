@@ -48,6 +48,9 @@
     #lamp-mouth.paused {
       animation: none !important;
     }
+    .notify-icon svg {
+      opacity: 0.92;
+    }
     #cord-root {
       -webkit-tap-highlight-color: transparent;
       touch-action: none;
@@ -70,11 +73,11 @@
       flex-shrink: 0;
     }
     body.lamp-lit #main-stage {
-      padding-top: 6.5rem;
+      padding-top: 7.25rem;
     }
     @media (min-width: 768px) {
       body.lamp-lit #main-stage {
-        padding-top: 7rem;
+        padding-top: 7.75rem;
       }
     }
   </style>
@@ -83,12 +86,12 @@
 
   <div id="ambient" class="pointer-events-none fixed inset-0 z-0 bg-gradient-to-b from-slate-600/25 via-slate-900/40 to-[#020617] opacity-0 transition-opacity duration-500 ease-out" aria-hidden="true"></div>
 
-  <!-- Title only when lamp is on — pinned to top -->
+  <!-- Title only when lamp is on — pinned below top inset -->
   <header id="page-header"
-    class="fixed inset-x-0 top-0 z-50 border-b border-transparent bg-[#020617]/92 px-4 py-4 text-center backdrop-blur-[6px] transition-all duration-500 ease-out invisible opacity-0">
-    <p class="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-400/90">Ahanta</p>
+    class="fixed inset-x-0 top-3 z-50 border-b border-transparent bg-[#020617]/92 px-4 pb-3 pt-2 text-center backdrop-blur-[6px] transition-all duration-500 ease-out invisible opacity-0 md:top-4 md:pb-3.5 md:pt-2.5">
+    <p class="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-400/90">Ahanta</p>
     <h1 class="text-lg font-bold tracking-tight text-white sm:text-xl md:text-2xl">AhantaPulse Freelance Hub</h1>
-    <p class="mx-auto mt-1 max-w-md text-xs text-slate-400 md:text-sm">Get launch updates when freelancers and clients can join.</p>
+    <p class="mx-auto mt-0.5 max-w-md text-xs text-slate-400 md:text-sm">Get launch updates when freelancers and clients can join.</p>
   </header>
 
   <!-- Vertically + horizontally centers lamp (and row when lit) -->
@@ -128,23 +131,33 @@
       </div>
 
       <div id="notify-card"
-        class="relative z-30 hidden w-full max-w-[17.5rem] rounded-xl border border-slate-800 bg-slate-950/80 p-4 opacity-0 transition-all duration-700 ease-out invisible pointer-events-none translate-y-3 scale-[0.98] md:mt-0">
-        <h2 class="mb-0.5 text-base font-semibold tracking-tight text-white">Get notified</h2>
-        <p class="mb-3 text-xs leading-relaxed text-slate-500">Launch updates only.</p>
-        <form id="notify-form" class="space-y-3">
+        class="relative z-30 hidden w-full max-w-[16.5rem] rounded-lg border border-slate-800/90 bg-slate-950/85 p-3 opacity-0 transition-all duration-700 ease-out invisible pointer-events-none translate-y-3 scale-[0.98] md:mt-0">
+        <div class="flex gap-2.5">
+          <span class="notify-icon mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-800 bg-[#020617] text-sky-400/85" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <path d="m22 6-10 7L2 6" />
+            </svg>
+          </span>
+          <div class="min-w-0 flex-1">
+            <h2 class="text-sm font-semibold leading-tight tracking-tight text-white">Get notified</h2>
+            <p class="mt-0.5 text-[11px] leading-snug text-slate-500">Launch updates only.</p>
+          </div>
+        </div>
+        <form id="notify-form" class="mt-2.5 space-y-2">
           <div>
             <label for="notify-email" class="sr-only">Email</label>
             <input id="notify-email" name="email" type="email" autocomplete="email" required
-              class="w-full rounded-md border border-slate-800 bg-[#020617] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-slate-600 focus:ring-1 focus:ring-sky-500/40"
+              class="w-full rounded-md border border-slate-800 bg-[#020617] px-2.5 py-1.5 text-xs text-white outline-none transition-colors placeholder:text-slate-600 focus:border-slate-600 focus:ring-1 focus:ring-sky-500/35"
               placeholder="Email" />
           </div>
           <button type="submit"
-            class="w-full rounded-md bg-sky-600 py-2 text-sm font-medium text-white transition hover:bg-sky-500 active:bg-sky-600">
+            class="w-full rounded-md bg-sky-600 py-1.5 text-xs font-medium text-white transition hover:bg-sky-500 active:bg-sky-600">
             Notify me
           </button>
         </form>
-        <p id="notify-msg" class="mt-3 hidden text-center text-xs text-emerald-400/90" role="status"></p>
-        <p id="notify-err" class="mt-2 hidden text-center text-xs text-red-400/90" role="alert"></p>
+        <p id="notify-msg" class="mt-2 hidden text-center text-[11px] text-emerald-400/90" role="status"></p>
+        <p id="notify-err" class="mt-1.5 hidden text-center text-[11px] text-red-400/90" role="alert"></p>
       </div>
     </div>
   </div>
