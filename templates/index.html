@@ -5,59 +5,106 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AhantaPulse Freelance Hub</title>
   <style>
-    :root { --fg:#e8eef5; --muted:#94a3b8; --accent:#38bdf8; --bg:#0c1220; }
+    :root { --fg:#e8eef5; --bg:#0c1220; --accent:#38bdf8; }
     * { box-sizing: border-box; }
     body { margin:0; min-height:100dvh; background:var(--bg); color:var(--fg);
       display:flex; align-items:center; justify-content:center; padding:1.5rem; }
-    #overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:10; transition:opacity .4s; }
-    #overlay.done { opacity:0; pointer-events:none; }
+    #overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:10; transition:opacity .35s ease; }
+    #overlay.done { opacity:0; pointer-events:none; visibility:hidden; }
     .spin { width:48px; height:48px; border:3px solid #334155; border-top-color:var(--accent); border-radius:50%; animation:rot .8s linear infinite; }
     @keyframes rot { to { transform:rotate(360deg); } }
     @keyframes blink { 50% { opacity:0; } }
-    main { max-width:22rem; }
-    .tw-line { margin:0 0 .85rem; min-height:1.4em; line-height:1.45; }
-    .tw-mono { font-family:ui-monospace, "Cascadia Code", monospace; font-size:1.05rem; letter-spacing:0; }
+    main { position:relative; z-index:1; max-width:22rem; width:100%; }
+    .tw-line { margin:0 0 .85rem; min-height:1.45em; line-height:1.45; word-break:break-word; }
+    .tw-mono { font-family:ui-monospace, "Courier New", Courier, monospace; font-size:1.05rem; letter-spacing:0; }
     .tw-serif { font-family:Georgia, "Times New Roman", serif; font-size:1rem; font-style:italic; }
-    .tw-telex { font-family:ui-monospace, monospace; font-size:.72rem; letter-spacing:.28em; text-transform:uppercase; }
-    .tw-caret { display:inline-block; margin-left:1px; font-weight:400; animation:blink 1s step-end infinite; }
-    .btn { margin-top:1.25rem; padding:.55rem 1.1rem; border:1px solid #334155; border-radius:999px; background:#111827; color:var(--fg); font:inherit; cursor:default; }
+    .tw-telex { font-family:"Courier New", Courier, monospace; font-size:.78rem; letter-spacing:.22em; text-transform:uppercase; }
+    .tw-caret { display:inline-block; margin-left:1px; animation:blink 1s step-end infinite; }
+    .tw-caret[hidden] { display:none; }
+    .btn { margin-top:1.1rem; padding:.55rem 1.1rem; border:1px solid #334155; border-radius:999px; background:#111827; color:var(--fg); font:inherit; cursor:default; }
+    .noscript-fallback { display:none; }
   </style>
 </head>
 <body>
-  <div id="overlay" aria-busy="true"><div class="spin" role="status" aria-label="Loading"></div></div>
-  <main>
-    <p class="tw-line tw-mono" aria-live="polite"><span class="tw-text"></span><span class="tw-caret">|</span></p>
-    <p class="tw-line tw-serif"><span class="tw-text"></span><span class="tw-caret" hidden>_</span></p>
-    <p class="tw-line tw-telex"><span class="tw-text"></span><span class="tw-caret" hidden>▌</span></p>
+  <div id="overlay"><div class="spin" role="status" aria-label="Loading"></div></div>
+  <main id="main">
+    <p class="tw-line tw-mono" aria-live="polite"><span class="tw-text"></span><span class="tw-caret" id="caret">|</span></p>
+    <p class="tw-line tw-serif"><span class="tw-text"></span></p>
+    <p class="tw-line tw-telex"><span class="tw-text"></span></p>
     <button type="button" class="btn" disabled>Coming Soon</button>
   </main>
+  <noscript>
+    <style>.noscript-fallback{display:block;padding:1.5rem;color:#e8eef5;background:#0c1220;font-family:Georgia,serif;}</style>
+    <div class="noscript-fallback">
+      <p>AhantaPulse Freelance Hub</p>
+      <p><em>Clients meet freelancers in Ahanta.</em></p>
+      <p>Launching soon.</p>
+    </div>
+  </noscript>
   <script>
-(function(){
-  var lines = [
-    { root: document.querySelector('.tw-mono'), text: 'AhantaPulse Freelance Hub', ms: 52 },
-    { root: document.querySelector('.tw-serif'), text: 'Clients meet freelancers in Ahanta.', ms: 38 },
-    { root: document.querySelector('.tw-telex'), text: 'Launching soon.', ms: 68 }
-  ];
-  function typeLine(i, done) {
-    if (i >= lines.length) { done(); return; }
-    var L = lines[i], root = L.root, textEl = root.querySelector('.tw-text'),
-      carets = document.querySelectorAll('.tw-caret');
-    carets.forEach(function(c, j) { c.hidden = (root.querySelector('.tw-caret') !== c); });
-    root.querySelector('.tw-caret').hidden = false;
-    var n = 0, t = setInterval(function() {
-      textEl.textContent += L.text[n++];
-      if (n >= L.text.length) {
-        clearInterval(t);
-        root.querySelector('.tw-caret').hidden = true;
-        typeLine(i + 1, done);
+(function () {
+  function run() {
+    var overlay = document.getElementById('overlay');
+    var lineEls = [
+      document.querySelector('.tw-mono .tw-text'),
+      document.querySelector('.tw-serif .tw-text'),
+      document.querySelector('.tw-telex .tw-text')
+    ];
+    if (!overlay || lineEls.some(function (el) { return !el; })) return;
+
+    var parts = [
+      'AhantaPulse Freelance Hub',
+      'Clients meet freelancers in Ahanta.',
+      'Launching soon.'
+    ];
+    var speeds = [48, 36, 60];
+    var caret = document.getElementById('caret');
+
+    function placeCaretAfter(span) {
+      if (!caret || !span || !span.parentNode) return;
+      var p = span.parentNode;
+      if (span.nextSibling !== caret) {
+        p.insertBefore(caret, span.nextSibling);
       }
-    }, L.ms);
+    }
+    function hideCaret() {
+      if (caret) caret.hidden = true;
+    }
+
+    function typeLine(idx) {
+      if (idx >= parts.length) {
+        hideCaret();
+        return;
+      }
+      var el = lineEls[idx];
+      var s = parts[idx];
+      var ms = speeds[idx];
+      var pos = 0;
+      placeCaretAfter(el);
+      caret.hidden = false;
+      el.textContent = '';
+      var id = window.setInterval(function () {
+        if (pos < s.length) {
+          el.textContent += s.charAt(pos);
+          pos += 1;
+        } else {
+          window.clearInterval(id);
+          typeLine(idx + 1);
+        }
+      }, ms);
+    }
+
+    window.setTimeout(function () {
+      overlay.classList.add('done');
+      typeLine(0);
+    }, 2000);
   }
-  setTimeout(function() {
-    document.getElementById('overlay').classList.add('done');
-    lines.forEach(function(L) { L.root.querySelector('.tw-caret').hidden = true; });
-    typeLine(0, function() {});
-  }, 2000);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run);
+  } else {
+    run();
+  }
 })();
   </script>
 </body>
