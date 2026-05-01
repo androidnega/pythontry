@@ -12,40 +12,31 @@
       clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
       transform-origin: 50% 0%;
     }
-    /* Beam base: straight down (mobile + default); desktop lit overrides below */
+    /* Beam: always default — straight down from shade (all breakpoints when lit) */
     #light-beam {
       left: 50%;
       top: 4.5rem;
       width: min(88vw, 400px);
       height: min(50vh, 380px);
       transform: translateX(-50%);
-      transition: transform 0.7s ease, opacity 0.5s ease, width 0.7s ease, height 0.7s ease, top 0.7s ease;
+      transition: opacity 0.5s ease;
       background: linear-gradient(to bottom, rgba(253, 224, 71, 0.32), rgba(253, 224, 71, 0));
     }
-    /* Lamp off: beam unused (opacity 0); layout = lamp dead-center in viewport */
+    /* Lamp off: solo lamp perfectly centered (H + V) in viewport */
     body:not(.lamp-lit) #main-stage {
+      display: grid !important;
+      place-items: center;
       min-height: 100dvh;
-      padding-top: 0 !important;
-      padding-bottom: 0;
-      justify-content: center;
-      align-items: center;
+      width: 100%;
+      padding: 0 !important;
+      margin: 0;
     }
     body:not(.lamp-lit) #scene-row {
       width: 100%;
+      display: flex;
       justify-content: center;
       align-items: center;
       min-height: 0;
-    }
-    /* Desktop + lamp on: beam sweeps toward the form on the right */
-    @media (min-width: 768px) {
-      body.lamp-lit #light-beam {
-        top: 3.25rem;
-        left: 50%;
-        width: min(58vw, 520px);
-        height: min(42vh, 320px);
-        transform: translateX(calc(-50% + 18px)) rotate(48deg);
-        background: linear-gradient(125deg, rgba(253, 224, 71, 0.4), rgba(253, 224, 71, 0));
-      }
     }
     @keyframes lamp-blink {
       0%, 41%, 49%, 100% { transform: scaleY(1); opacity: 1; }
@@ -113,10 +104,13 @@
       flex-shrink: 0;
     }
     body.lamp-lit #main-stage {
+      display: flex !important;
+      flex-direction: column;
       padding-top: 11rem;
       justify-content: center;
       align-items: center;
       min-height: 100dvh;
+      width: 100%;
     }
     @media (min-width: 768px) {
       body.lamp-lit #main-stage {
