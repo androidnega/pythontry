@@ -1,42 +1,48 @@
-"""Flask WSGI application for cPanel / Phusion Passenger."""
+"""AhantaPulse Freelance Hub — Flask entry (WSGI: application)."""
 
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 
-from flask import Flask, render_template, request
-
-from calculator_core import CalculatorState
+import mysql.connector
+from flask import Flask, jsonify, render_template
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me-in-production")
-
-# Passenger and many WSGI servers look for `application`
 application = app
 
 
-def _parse_act(raw: str | None) -> tuple[str, str] | None:
-    if not raw or ":" not in raw:
-        return None
-    kind, _, key = raw.partition(":")
-    if kind not in ("num", "op", "eq", "clear", "back"):
-        return None
-    return kind, key
+def get_mysql_connection():
+    """Open a MySQL connection from env (optional until you add a database)."""
+    return mysql.connector.connect(
+        host=os.environ.get("MYSQL_HOST", "localhost"),
+        user=os.environ.get("MYSQL_USER", "root"),
+        password=os.environ.get("MYSQL_PASSWORD", ""),
+        database=os.environ.get("MYSQL_DATABASE", "ahantapulse"),
+    )
 
 
-@app.route("/", methods=["GET", "POST"])
-def calculator() -> str:
-    if request.method == "POST":
-        state = CalculatorState.from_form({k: (v or "") for k, v in request.form.items()})
-        act = _parse_act(request.form.get("act"))
-        if act:
-            kind, key = act
-            state.dispatch(key, kind)
-    else:
-        state = CalculatorState()
-    return render_template("calculator.html", state=state)
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.get("/api/info")
+def api_info():
+    return jsonify(
+        name="AhantaPulse Freelance Hub",
+        region="Ahanta, Ghana",
+        status="preview",
+        message="Simple endpoints work without MySQL; connect DB when ready.",
+    )
+
+
+@app.get("/api/time")
+def api_time():
+    return jsonify(utc=datetime.now(timezone.utc).isoformat())
 
 
 @app.get("/health")
-def health() -> tuple[str, int]:
+def health():
     return "ok", 200

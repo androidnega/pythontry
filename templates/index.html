@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AhantaPulse Freelance Hub</title>
+  <style>
+    :root { --fg:#e8eef5; --muted:#94a3b8; --accent:#38bdf8; --bg:#0c1220; }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100dvh; font-family:system-ui,sans-serif; background:var(--bg); color:var(--fg);
+      display:flex; align-items:center; justify-content:center; padding:1.5rem; }
+    #overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:10; transition:opacity .4s; }
+    #overlay.done { opacity:0; pointer-events:none; }
+    .spin { width:48px; height:48px; border:3px solid #334155; border-top-color:var(--accent); border-radius:50%;
+      animation:rot .8s linear infinite; }
+    @keyframes rot { to { transform:rotate(360deg); } }
+    main { text-align:center; max-width:28rem; }
+    h1 { font-size:1.5rem; font-weight:700; letter-spacing:-.02em; margin:0 0 .75rem; }
+    p { color:var(--muted); line-height:1.6; margin:0 0 1.5rem; font-size:.95rem; }
+    .btn { display:inline-block; padding:.65rem 1.25rem; border:1px solid #334155; border-radius:999px;
+      color:var(--fg); background:#111827; font:inherit; cursor:default; }
+  </style>
+</head>
+<body>
+  <div id="overlay" aria-busy="true"><div class="spin" role="status" aria-label="Loading"></div></div>
+  <main>
+    <h1>AhantaPulse Freelance Hub</h1>
+    <p>We connect clients with trusted freelancers across Ahanta—projects, skills, and local talent in one place. Launching soon.</p>
+    <button type="button" class="btn" disabled>Coming Soon</button>
+  </main>
+  <script>
+    setTimeout(function(){ document.getElementById('overlay').classList.add('done'); }, 2000);
+  </script>
+</body>
+</html>
