@@ -7,29 +7,58 @@
   <style>
     :root { --fg:#e8eef5; --muted:#94a3b8; --accent:#38bdf8; --bg:#0c1220; }
     * { box-sizing: border-box; }
-    body { margin:0; min-height:100dvh; font-family:system-ui,sans-serif; background:var(--bg); color:var(--fg);
+    body { margin:0; min-height:100dvh; background:var(--bg); color:var(--fg);
       display:flex; align-items:center; justify-content:center; padding:1.5rem; }
     #overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:10; transition:opacity .4s; }
     #overlay.done { opacity:0; pointer-events:none; }
-    .spin { width:48px; height:48px; border:3px solid #334155; border-top-color:var(--accent); border-radius:50%;
-      animation:rot .8s linear infinite; }
+    .spin { width:48px; height:48px; border:3px solid #334155; border-top-color:var(--accent); border-radius:50%; animation:rot .8s linear infinite; }
     @keyframes rot { to { transform:rotate(360deg); } }
-    main { text-align:center; max-width:28rem; }
-    h1 { font-size:1.5rem; font-weight:700; letter-spacing:-.02em; margin:0 0 .75rem; }
-    p { color:var(--muted); line-height:1.6; margin:0 0 1.5rem; font-size:.95rem; }
-    .btn { display:inline-block; padding:.65rem 1.25rem; border:1px solid #334155; border-radius:999px;
-      color:var(--fg); background:#111827; font:inherit; cursor:default; }
+    @keyframes blink { 50% { opacity:0; } }
+    main { max-width:22rem; }
+    .tw-line { margin:0 0 .85rem; min-height:1.4em; line-height:1.45; }
+    .tw-mono { font-family:ui-monospace, "Cascadia Code", monospace; font-size:1.05rem; letter-spacing:0; }
+    .tw-serif { font-family:Georgia, "Times New Roman", serif; font-size:1rem; font-style:italic; }
+    .tw-telex { font-family:ui-monospace, monospace; font-size:.72rem; letter-spacing:.28em; text-transform:uppercase; }
+    .tw-caret { display:inline-block; margin-left:1px; font-weight:400; animation:blink 1s step-end infinite; }
+    .btn { margin-top:1.25rem; padding:.55rem 1.1rem; border:1px solid #334155; border-radius:999px; background:#111827; color:var(--fg); font:inherit; cursor:default; }
   </style>
 </head>
 <body>
   <div id="overlay" aria-busy="true"><div class="spin" role="status" aria-label="Loading"></div></div>
   <main>
-    <h1>AhantaPulse Freelance Hub</h1>
-    <p>We connect clients with trusted freelancers across Ahanta—projects, skills, and local talent in one place. Launching soon.</p>
+    <p class="tw-line tw-mono" aria-live="polite"><span class="tw-text"></span><span class="tw-caret">|</span></p>
+    <p class="tw-line tw-serif"><span class="tw-text"></span><span class="tw-caret" hidden>_</span></p>
+    <p class="tw-line tw-telex"><span class="tw-text"></span><span class="tw-caret" hidden>▌</span></p>
     <button type="button" class="btn" disabled>Coming Soon</button>
   </main>
   <script>
-    setTimeout(function(){ document.getElementById('overlay').classList.add('done'); }, 2000);
+(function(){
+  var lines = [
+    { root: document.querySelector('.tw-mono'), text: 'AhantaPulse Freelance Hub', ms: 52 },
+    { root: document.querySelector('.tw-serif'), text: 'Clients meet freelancers in Ahanta.', ms: 38 },
+    { root: document.querySelector('.tw-telex'), text: 'Launching soon.', ms: 68 }
+  ];
+  function typeLine(i, done) {
+    if (i >= lines.length) { done(); return; }
+    var L = lines[i], root = L.root, textEl = root.querySelector('.tw-text'),
+      carets = document.querySelectorAll('.tw-caret');
+    carets.forEach(function(c, j) { c.hidden = (root.querySelector('.tw-caret') !== c); });
+    root.querySelector('.tw-caret').hidden = false;
+    var n = 0, t = setInterval(function() {
+      textEl.textContent += L.text[n++];
+      if (n >= L.text.length) {
+        clearInterval(t);
+        root.querySelector('.tw-caret').hidden = true;
+        typeLine(i + 1, done);
+      }
+    }, L.ms);
+  }
+  setTimeout(function() {
+    document.getElementById('overlay').classList.add('done');
+    lines.forEach(function(L) { L.root.querySelector('.tw-caret').hidden = true; });
+    typeLine(0, function() {});
+  }, 2000);
+})();
   </script>
 </body>
 </html>
