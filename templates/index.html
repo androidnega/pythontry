@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AhantaPulse Freelance Hub</title>
   <style>
-    :root { --fg:#e8eef5; --bg:#0c1220; --accent:#38bdf8; }
+    :root { --fg:#e8eef5; --muted:#94a3b8; --bg:#0c1220; --accent:#38bdf8; }
     * { box-sizing: border-box; }
     body { margin:0; min-height:100dvh; background:var(--bg); color:var(--fg);
       display:flex; align-items:center; justify-content:center; padding:1.5rem; }
@@ -14,89 +14,112 @@
     .spin { width:48px; height:48px; border:3px solid #334155; border-top-color:var(--accent); border-radius:50%; animation:rot .8s linear infinite; }
     @keyframes rot { to { transform:rotate(360deg); } }
     @keyframes blink { 50% { opacity:0; } }
-    main { position:relative; z-index:1; max-width:22rem; width:100%; }
-    .tw-line { margin:0 0 .85rem; min-height:1.45em; line-height:1.45; word-break:break-word; }
-    .tw-mono { font-family:ui-monospace, "Courier New", Courier, monospace; font-size:1.05rem; letter-spacing:0; }
+    main { position:relative; z-index:1; max-width:24rem; width:100%; text-align:center; }
+    h1 { margin:0 0 1rem; font-size:clamp(1.15rem, 4vw, 1.45rem); font-weight:700; letter-spacing:-.02em; line-height:1.25; }
+    .sub { text-align:left; }
+    .bar-row { display:flex; align-items:center; gap:.6rem; margin-bottom:.6rem; }
+    .bar-track { flex:1; height:8px; background:#1e293b; border-radius:4px; overflow:hidden; }
+    .bar-fill { height:100%; width:0%; background:var(--accent); border-radius:4px; }
+    .bar-pct { flex:0 0 2.75rem; font-variant-numeric:tabular-nums; font-size:.8rem; color:var(--muted);
+      font-family:ui-monospace, "Courier New", monospace; text-align:right; }
+    .tw-box { min-height:2.5rem; margin:0 0 1rem; }
+    .tw { margin:0; min-height:1.5em; line-height:1.45; word-break:break-word; }
+    .tw-mono { font-family:ui-monospace, "Courier New", monospace; font-size:1rem; letter-spacing:0; }
     .tw-serif { font-family:Georgia, "Times New Roman", serif; font-size:1rem; font-style:italic; }
-    .tw-telex { font-family:"Courier New", Courier, monospace; font-size:.78rem; letter-spacing:.22em; text-transform:uppercase; }
-    .tw-caret { display:inline-block; margin-left:1px; animation:blink 1s step-end infinite; }
-    .tw-caret[hidden] { display:none; }
-    .btn { margin-top:1.1rem; padding:.55rem 1.1rem; border:1px solid #334155; border-radius:999px; background:#111827; color:var(--fg); font:inherit; cursor:default; }
-    .noscript-fallback { display:none; }
+    .tw-telex { font-family:"Courier New", monospace; font-size:.82rem; letter-spacing:.2em; text-transform:uppercase; }
+    .caret { display:inline-block; margin-left:1px; animation:blink 1s step-end infinite; }
+    .btn { padding:.55rem 1.1rem; border:1px solid #334155; border-radius:999px; background:#111827; color:var(--fg); font:inherit; cursor:default; }
   </style>
 </head>
 <body>
   <div id="overlay"><div class="spin" role="status" aria-label="Loading"></div></div>
-  <main id="main">
-    <p class="tw-line tw-mono" aria-live="polite"><span class="tw-text"></span><span class="tw-caret" id="caret">|</span></p>
-    <p class="tw-line tw-serif"><span class="tw-text"></span></p>
-    <p class="tw-line tw-telex"><span class="tw-text"></span></p>
+  <main>
+    <h1>AhantaPulse Freelance Hub</h1>
+    <div class="sub">
+      <div class="bar-row" aria-hidden="true">
+        <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+        <span class="bar-pct" id="barPct">0%</span>
+      </div>
+      <div class="tw-box">
+        <p class="tw tw-mono" id="twLine" aria-live="polite"><span id="twText"></span><span class="caret">|</span></p>
+      </div>
+    </div>
     <button type="button" class="btn" disabled>Coming Soon</button>
   </main>
   <noscript>
-    <style>.noscript-fallback{display:block;padding:1.5rem;color:#e8eef5;background:#0c1220;font-family:Georgia,serif;}</style>
-    <div class="noscript-fallback">
-      <p>AhantaPulse Freelance Hub</p>
-      <p><em>Clients meet freelancers in Ahanta.</em></p>
-      <p>Launching soon.</p>
-    </div>
+    <style>body{display:block;padding:1.5rem;background:#0c1220;color:#e8eef5;}</style>
+    <p>AhantaPulse Freelance Hub</p>
+    <p>Coming soon.</p>
   </noscript>
   <script>
 (function () {
+  var PHRASES = ['Soon.', 'Local talent.', 'Hire & work.', 'Ahanta.', 'Your projects.'];
+  var STYLES = ['tw-mono', 'tw-serif', 'tw-telex'];
+  var TYPE_MS = 52;
+  var DEL_MS = 34;
+  var HOLD_MS = 900;
+
   function run() {
     var overlay = document.getElementById('overlay');
-    var lineEls = [
-      document.querySelector('.tw-mono .tw-text'),
-      document.querySelector('.tw-serif .tw-text'),
-      document.querySelector('.tw-telex .tw-text')
-    ];
-    if (!overlay || lineEls.some(function (el) { return !el; })) return;
+    var barFill = document.getElementById('barFill');
+    var barPct = document.getElementById('barPct');
+    var twText = document.getElementById('twText');
+    var twLine = document.getElementById('twLine');
+    if (!overlay || !barFill || !barPct || !twText || !twLine) return;
 
-    var parts = [
-      'AhantaPulse Freelance Hub',
-      'Clients meet freelancers in Ahanta.',
-      'Launching soon.'
-    ];
-    var speeds = [48, 36, 60];
-    var caret = document.getElementById('caret');
-
-    function placeCaretAfter(span) {
-      if (!caret || !span || !span.parentNode) return;
-      var p = span.parentNode;
-      if (span.nextSibling !== caret) {
-        p.insertBefore(caret, span.nextSibling);
-      }
-    }
-    function hideCaret() {
-      if (caret) caret.hidden = true;
+    function setBar(p) {
+      p = Math.max(0, Math.min(100, Math.round(p)));
+      barFill.style.width = p + '%';
+      barPct.textContent = p + '%';
     }
 
-    function typeLine(idx) {
-      if (idx >= parts.length) {
-        hideCaret();
-        return;
-      }
-      var el = lineEls[idx];
-      var s = parts[idx];
-      var ms = speeds[idx];
+    var pi = 0;
+    function applyStyle() {
+      twLine.className = 'tw ' + STYLES[pi % STYLES.length];
+    }
+
+    function sleep(ms, fn) {
+      window.setTimeout(fn, ms);
+    }
+
+    function runPhrase() {
+      var text = PHRASES[pi % PHRASES.length];
+      applyStyle();
+      twText.textContent = '';
+      setBar(0);
       var pos = 0;
-      placeCaretAfter(el);
-      caret.hidden = false;
-      el.textContent = '';
-      var id = window.setInterval(function () {
-        if (pos < s.length) {
-          el.textContent += s.charAt(pos);
+      var len = text.length;
+
+      function tickType() {
+        if (pos < len) {
+          twText.textContent += text.charAt(pos);
           pos += 1;
+          setBar((pos / len) * 100);
+          sleep(TYPE_MS, tickType);
         } else {
-          window.clearInterval(id);
-          typeLine(idx + 1);
+          sleep(HOLD_MS, tickDel);
         }
-      }, ms);
+      }
+
+      function tickDel() {
+        if (twText.textContent.length > 0) {
+          twText.textContent = twText.textContent.slice(0, -1);
+          var left = twText.textContent.length;
+          setBar(len ? (left / len) * 100 : 0);
+          sleep(DEL_MS, tickDel);
+        } else {
+          setBar(0);
+          pi += 1;
+          sleep(280, runPhrase);
+        }
+      }
+
+      tickType();
     }
 
     window.setTimeout(function () {
       overlay.classList.add('done');
-      typeLine(0);
+      runPhrase();
     }, 2000);
   }
 
