@@ -2,132 +2,150 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AhantaPulse Freelance Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root { --fg:#e8eef5; --muted:#94a3b8; --bg:#0c1220; --accent:#38bdf8; }
-    * { box-sizing: border-box; }
-    body { margin:0; min-height:100dvh; background:var(--bg); color:var(--fg);
-      display:flex; align-items:center; justify-content:center; padding:1.5rem; }
-    #overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:10; transition:opacity .35s ease; }
-    #overlay.done { opacity:0; pointer-events:none; visibility:hidden; }
-    .spin { width:48px; height:48px; border:3px solid #334155; border-top-color:var(--accent); border-radius:50%; animation:rot .8s linear infinite; }
-    @keyframes rot { to { transform:rotate(360deg); } }
-    @keyframes blink { 50% { opacity:0; } }
-    main { position:relative; z-index:1; max-width:24rem; width:100%; text-align:center; }
-    h1 { margin:0 0 1rem; font-size:clamp(1.15rem, 4vw, 1.45rem); font-weight:700; letter-spacing:-.02em; line-height:1.25; }
-    .sub { text-align:left; }
-    .bar-row { display:flex; align-items:center; gap:.6rem; margin-bottom:.6rem; }
-    .bar-track { flex:1; height:8px; background:#1e293b; border-radius:4px; overflow:hidden; }
-    .bar-fill { height:100%; width:0%; background:var(--accent); border-radius:4px; }
-    .bar-pct { flex:0 0 2.75rem; font-variant-numeric:tabular-nums; font-size:.8rem; color:var(--muted);
-      font-family:ui-monospace, "Courier New", monospace; text-align:right; }
-    .tw-box { min-height:2.5rem; margin:0 0 1rem; }
-    .tw { margin:0; min-height:1.5em; line-height:1.45; word-break:break-word; }
-    .tw-mono { font-family:ui-monospace, "Courier New", monospace; font-size:1rem; letter-spacing:0; }
-    .tw-serif { font-family:Georgia, "Times New Roman", serif; font-size:1rem; font-style:italic; }
-    .tw-telex { font-family:"Courier New", monospace; font-size:.82rem; letter-spacing:.2em; text-transform:uppercase; }
-    .caret { display:inline-block; margin-left:1px; animation:blink 1s step-end infinite; }
-    .btn { padding:.55rem 1.1rem; border:1px solid #334155; border-radius:999px; background:#111827; color:var(--fg); font:inherit; cursor:default; }
+    .light-cone {
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+      background: linear-gradient(to bottom, rgba(253, 224, 71, 0.35), rgba(253, 224, 71, 0));
+    }
+    body.page-lit {
+      background: linear-gradient(to bottom, rgb(30 41 59), rgb(15 23 42));
+    }
+    #pull-cord.pulling {
+      transform: translateY(12px);
+    }
   </style>
 </head>
-<body>
-  <div id="overlay"><div class="spin" role="status" aria-label="Loading"></div></div>
-  <main>
-    <h1>AhantaPulse Freelance Hub</h1>
-    <div class="sub">
-      <div class="bar-row" aria-hidden="true">
-        <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
-        <span class="bar-pct" id="barPct">0%</span>
+<body id="page-root" class="bg-slate-950 flex flex-col items-center justify-center min-h-screen overflow-x-hidden font-sans transition-colors duration-500">
+
+  <header class="relative z-40 text-center px-4 mb-8 md:mb-10">
+    <p class="text-sky-400 text-xs font-semibold uppercase tracking-widest mb-2">Ahanta</p>
+    <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">AhantaPulse Freelance Hub</h1>
+    <p class="text-slate-500 text-sm mt-2 max-w-md mx-auto">Pull the lamp cord to light the room and get launch updates.</p>
+  </header>
+
+  <div class="relative flex flex-col md:flex-row items-center justify-center w-full max-w-4xl gap-12 md:gap-20 px-4 pb-12">
+
+    <!-- Lamp -->
+    <div class="relative flex flex-col items-center shrink-0">
+      <div id="lamp-shade" class="relative z-20 w-48 h-36 bg-slate-800 rounded-t-3xl transition-all duration-500 flex flex-col items-center justify-center shadow-2xl">
+        <div class="flex gap-8 mb-2">
+          <div class="w-2 h-2 bg-slate-900 rounded-full animate-bounce"></div>
+          <div class="w-2 h-2 bg-slate-900 rounded-full animate-bounce" style="animation-delay:0.15s"></div>
+        </div>
+        <div id="lamp-mouth" class="w-6 h-3 border-b-4 border-slate-900 rounded-full transition-all duration-300"></div>
       </div>
-      <div class="tw-box">
-        <p class="tw tw-mono" id="twLine" aria-live="polite"><span id="twText"></span><span class="caret">|</span></p>
-      </div>
+      <div class="w-4 h-32 bg-slate-700 -mt-2 shadow-inner"></div>
+      <div class="w-24 h-4 bg-slate-700 rounded-full -mt-1 shadow-lg"></div>
+
+      <button type="button" id="pull-cord" aria-label="Pull cord to toggle lamp"
+        class="absolute top-36 left-12 w-1 bg-slate-400 h-24 cursor-pointer transition-all duration-150 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-950">
+        <span class="absolute -bottom-2 -left-2 w-5 h-5 bg-slate-300 rounded-full shadow-md hover:scale-110 transition-transform pointer-events-none"></span>
+      </button>
+
+      <div id="light-beam" class="absolute top-32 w-[min(90vw,600px)] h-[500px] light-cone opacity-0 transition-opacity duration-500 pointer-events-none z-10"></div>
     </div>
-    <button type="button" class="btn" disabled>Coming Soon</button>
-  </main>
+
+    <!-- Get notified (hidden until lamp on) -->
+    <div id="notify-card"
+      class="relative z-30 w-full max-w-md p-8 bg-slate-900/85 backdrop-blur-md border border-slate-700 rounded-2xl shadow-2xl opacity-0 translate-x-8 scale-95 transition-all duration-700 pointer-events-none">
+      <h2 class="text-xl font-bold text-white mb-1">Get notified</h2>
+      <p class="text-slate-400 text-sm mb-6">Leave your email and we’ll ping you when freelancers and clients can join.</p>
+
+      <form id="notify-form" class="space-y-4">
+        <div>
+          <label for="notify-email" class="block text-xs font-semibold text-slate-500 uppercase mb-1">Email</label>
+          <input id="notify-email" name="email" type="email" autocomplete="email" required
+            class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-sky-500 transition-colors placeholder:text-slate-600"
+            placeholder="you@example.com" />
+        </div>
+        <button type="submit"
+          class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg mt-1 transform active:scale-[0.98] transition-all shadow-lg shadow-sky-900/30">
+          Notify me
+        </button>
+      </form>
+      <p id="notify-msg" class="hidden text-center text-sm mt-4 text-emerald-400" role="status"></p>
+      <p id="notify-err" class="hidden text-center text-sm mt-2 text-red-400" role="alert"></p>
+    </div>
+  </div>
+
   <noscript>
-    <style>body{display:block;padding:1.5rem;background:#0c1220;color:#e8eef5;}</style>
-    <p>AhantaPulse Freelance Hub</p>
-    <p>Coming soon.</p>
+    <div class="fixed bottom-4 left-0 right-0 text-center text-slate-500 text-sm px-4">
+      Enable JavaScript to use the lamp. Email <a class="text-sky-400 underline" href="mailto:hello@ahantapulse.online">hello@ahantapulse.online</a> to get updates.
+    </div>
   </noscript>
+
   <script>
 (function () {
-  var PHRASES = ['Soon.', 'Local talent.', 'Hire & work.', 'Ahanta.', 'Your projects.'];
-  var STYLES = ['tw-mono', 'tw-serif', 'tw-telex'];
-  var TYPE_MS = 52;
-  var DEL_MS = 34;
-  var HOLD_MS = 900;
+  var root = document.getElementById('page-root');
+  var cord = document.getElementById('pull-cord');
+  var card = document.getElementById('notify-card');
+  var shade = document.getElementById('lamp-shade');
+  var beam = document.getElementById('light-beam');
+  var mouth = document.getElementById('lamp-mouth');
+  var form = document.getElementById('notify-form');
+  var msgOk = document.getElementById('notify-msg');
+  var msgErr = document.getElementById('notify-err');
 
-  function run() {
-    var overlay = document.getElementById('overlay');
-    var barFill = document.getElementById('barFill');
-    var barPct = document.getElementById('barPct');
-    var twText = document.getElementById('twText');
-    var twLine = document.getElementById('twLine');
-    if (!overlay || !barFill || !barPct || !twText || !twLine) return;
+  var mouthOff = 'w-6 h-3 border-b-4 border-slate-900 rounded-full transition-all duration-300';
+  var mouthOn = 'w-6 h-4 bg-red-400 rounded-b-full transition-all duration-300';
+  var isLightOn = false;
 
-    function setBar(p) {
-      p = Math.max(0, Math.min(100, Math.round(p)));
-      barFill.style.width = p + '%';
-      barPct.textContent = p + '%';
+  function setLit(on) {
+    isLightOn = on;
+    if (on) {
+      root.classList.add('page-lit');
+      shade.classList.replace('bg-slate-800', 'bg-yellow-300');
+      shade.style.boxShadow = '0 0 50px rgba(253,224,71,0.55)';
+      beam.classList.replace('opacity-0', 'opacity-100');
+      mouth.className = mouthOn;
+      card.classList.remove('opacity-0', 'translate-x-8', 'scale-95', 'pointer-events-none');
+    } else {
+      root.classList.remove('page-lit');
+      shade.classList.replace('bg-yellow-300', 'bg-slate-800');
+      shade.style.boxShadow = '';
+      beam.classList.replace('opacity-100', 'opacity-0');
+      mouth.className = mouthOff;
+      card.classList.add('opacity-0', 'translate-x-8', 'scale-95', 'pointer-events-none');
+      msgOk.classList.add('hidden');
+      msgErr.classList.add('hidden');
     }
-
-    var pi = 0;
-    function applyStyle() {
-      twLine.className = 'tw ' + STYLES[pi % STYLES.length];
-    }
-
-    function sleep(ms, fn) {
-      window.setTimeout(fn, ms);
-    }
-
-    function runPhrase() {
-      var text = PHRASES[pi % PHRASES.length];
-      applyStyle();
-      twText.textContent = '';
-      setBar(0);
-      var pos = 0;
-      var len = text.length;
-
-      function tickType() {
-        if (pos < len) {
-          twText.textContent += text.charAt(pos);
-          pos += 1;
-          setBar((pos / len) * 100);
-          sleep(TYPE_MS, tickType);
-        } else {
-          sleep(HOLD_MS, tickDel);
-        }
-      }
-
-      function tickDel() {
-        if (twText.textContent.length > 0) {
-          twText.textContent = twText.textContent.slice(0, -1);
-          var left = twText.textContent.length;
-          setBar(len ? (left / len) * 100 : 0);
-          sleep(DEL_MS, tickDel);
-        } else {
-          setBar(0);
-          pi += 1;
-          sleep(280, runPhrase);
-        }
-      }
-
-      tickType();
-    }
-
-    window.setTimeout(function () {
-      overlay.classList.add('done');
-      runPhrase();
-    }, 2000);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run);
-  } else {
-    run();
-  }
+  cord.addEventListener('click', function () {
+    cord.classList.add('pulling');
+    window.setTimeout(function () { cord.classList.remove('pulling'); }, 220);
+    setLit(!isLightOn);
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    msgOk.classList.add('hidden');
+    msgErr.classList.add('hidden');
+    var email = (document.getElementById('notify-email').value || '').trim();
+    fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email: email })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+      .then(function (res) {
+        if (res.ok && res.body.ok) {
+          msgOk.textContent = res.body.message || "You're on the list.";
+          msgOk.classList.remove('hidden');
+          form.reset();
+        } else {
+          msgErr.textContent = (res.body && res.body.error) ? res.body.error : 'Something went wrong. Try again.';
+          msgErr.classList.remove('hidden');
+        }
+      })
+      .catch(function () {
+        msgErr.textContent = 'Network error. Try again.';
+        msgErr.classList.remove('hidden');
+      });
+  });
 })();
   </script>
 </body>

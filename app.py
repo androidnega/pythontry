@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me-in-production")
@@ -47,3 +47,13 @@ def api_time():
 @app.get("/health")
 def health():
     return "ok", 200
+
+
+@app.post("/api/notify")
+def api_notify():
+    """Collect notify-me signups (no DB yet — extend to MySQL when ready)."""
+    payload = request.get_json(silent=True) or {}
+    email = (payload.get("email") or request.form.get("email") or "").strip()
+    if not email or "@" not in email or "." not in email.split("@", 1)[-1]:
+        return jsonify(error="Please enter a valid email address."), 400
+    return jsonify(ok=True, message="You're on the list. We'll let you know when we launch.")
