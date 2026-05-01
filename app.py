@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone
 
-import mysql.connector
 from flask import Flask, jsonify, render_template
 
 app = Flask(__name__)
@@ -15,6 +14,8 @@ application = app
 
 def get_mysql_connection():
     """Open a MySQL connection from env (optional until you add a database)."""
+    import mysql.connector  # lazy: app loads even if package not installed yet
+
     return mysql.connector.connect(
         host=os.environ.get("MYSQL_HOST", "localhost"),
         user=os.environ.get("MYSQL_USER", "root"),
