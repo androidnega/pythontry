@@ -10,7 +10,42 @@
     body { background-color: #020617; }
     .light-cone {
       clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+      transform-origin: 50% 0%;
+    }
+    /* Beam base: straight down (mobile + default); desktop lit overrides below */
+    #light-beam {
+      left: 50%;
+      top: 4.5rem;
+      width: min(88vw, 400px);
+      height: min(50vh, 380px);
+      transform: translateX(-50%);
+      transition: transform 0.7s ease, opacity 0.5s ease, width 0.7s ease, height 0.7s ease, top 0.7s ease;
       background: linear-gradient(to bottom, rgba(253, 224, 71, 0.32), rgba(253, 224, 71, 0));
+    }
+    /* Lamp off: beam unused (opacity 0); layout = lamp dead-center in viewport */
+    body:not(.lamp-lit) #main-stage {
+      min-height: 100dvh;
+      padding-top: 0 !important;
+      padding-bottom: 0;
+      justify-content: center;
+      align-items: center;
+    }
+    body:not(.lamp-lit) #scene-row {
+      width: 100%;
+      justify-content: center;
+      align-items: center;
+      min-height: 0;
+    }
+    /* Desktop + lamp on: beam sweeps toward the form on the right */
+    @media (min-width: 768px) {
+      body.lamp-lit #light-beam {
+        top: 3.25rem;
+        left: 50%;
+        width: min(58vw, 520px);
+        height: min(42vh, 320px);
+        transform: translateX(calc(-50% + 18px)) rotate(48deg);
+        background: linear-gradient(125deg, rgba(253, 224, 71, 0.4), rgba(253, 224, 71, 0));
+      }
     }
     @keyframes lamp-blink {
       0%, 41%, 49%, 100% { transform: scaleY(1); opacity: 1; }
@@ -79,6 +114,9 @@
     }
     body.lamp-lit #main-stage {
       padding-top: 11rem;
+      justify-content: center;
+      align-items: center;
+      min-height: 100dvh;
     }
     @media (min-width: 768px) {
       body.lamp-lit #main-stage {
@@ -99,11 +137,11 @@
     <p class="mx-auto mt-0.5 max-w-md text-xs text-slate-400 md:text-sm">Get launch updates when freelancers and clients can join.</p>
   </header>
 
-  <!-- Vertically + horizontally centers lamp (and row when lit) -->
+  <!-- Lamp solo = perfect center; lit = row shifts lamp + shows form -->
   <div id="main-stage" class="flex min-h-screen w-full flex-col items-center justify-center px-4 pb-12 pt-8 transition-[padding] duration-500">
 
     <div id="scene-row"
-      class="flex w-full max-w-5xl flex-col items-center justify-center gap-10 transition-[gap] duration-700 ease-out md:flex-row md:items-stretch md:justify-center md:gap-12">
+      class="flex w-full max-w-5xl flex-col items-center justify-center gap-10 transition-[justify-content,gap] duration-700 ease-out md:flex-row md:items-stretch md:justify-center md:gap-12">
 
       <div id="lamp-wrap" class="relative flex shrink-0 flex-col items-center pb-24 transition-transform duration-700 ease-out md:h-full md:min-h-0">
         <!-- Lamp body (shade → pole → base) -->
@@ -120,7 +158,7 @@
           <div class="-mt-1 h-3 w-16 rounded-full bg-slate-700 shadow-lg ring-1 ring-black/25"></div>
 
           <div id="light-beam"
-            class="pointer-events-none absolute left-1/2 top-[4.5rem] z-10 h-[min(50vh,380px)] w-[min(88vw,400px)] -translate-x-1/2 light-cone opacity-0 transition-opacity duration-500 ease-out">
+            class="light-cone pointer-events-none absolute z-10 opacity-0 transition-opacity duration-500 ease-out">
           </div>
         </div>
 
