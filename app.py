@@ -27,6 +27,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object(config_object)
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    os.makedirs(app.config["ORIGINALS_FOLDER"], exist_ok=True)
 
     db.init_app(app)
     login_manager.init_app(app)

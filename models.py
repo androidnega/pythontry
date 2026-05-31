@@ -249,3 +249,98 @@ class NotifySignup(db.Model):
 
     def __repr__(self) -> str:
         return f"<NotifySignup {self.email}>"
+
+
+class Portrait(db.Model):
+    """A digital portrait/photo sold via Paystack.
+
+    `original_path` is relative to the app's ORIGINALS_FOLDER (never served as
+    a static asset). `preview_path` is relative to the static folder and is the
+    watermarked file served publicly.
+    """
+
+    __tablename__ = "portraits"
+
+    STATUS_DRAFT = "draft"
+    STATUS_PUBLISHED = "published"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    slug = db.Column(db.String(280), unique=True, nullable=False, index=True)
+    description = db.Column(db.Text)
+    preview_path = db.Column(db.String(512))
+    original_path = db.Column(db.String(512))
+    original_filename = db.Column(db.String(255))
+    width = db.Column(db.Integer)
+    height = db.Column(db.Integer)
+    file_size_bytes = db.Column(db.Integer)
+    price_pesewas = db.Column(db.Integer, nullable=False, default=0)
+    currency = db.Column(db.String(8), nullable=False, default="GHS")
+    status = db.Column(db.String(16), nullable=False, default=STATUS_PUBLISHED)
+    is_featured = db.Column(db.Boolean, default=False, nullable=False)
+    view_count = db.Column(db.Integer, default=0, nullable=False)
+    sales_count = db.Column(db.Integer, default=0, nullable=False)
+
+    author_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    author = db.relationship("User")
+    orders = db.relationship("Order", back_populates="portrait", lazy="dynamic")
+
+    @property
+    def is_published(self) -> bool:
+        return self.status == self.STATUS_PUBLISHED
+
+    @property
+    def price_display(self) -> str:
+        whole, frac = divmod(int(self.price_pesewas or 0), 100)
+        return f"{whole}.{frac:02d}"
+
+    def __repr__(self) -> str:
+        return f"<Portrait {self.slug!r}>"
+
+
+class Order(db.Model):
+    """A payment record for a portrait, tied to a Paystack reference."""
+
+    __tablename__ = "orders"
+
+    STATUS_PENDING = "pending"
+    STATUS_PAID = "paid"
+    STATUS_FAILED = "failed"
+    STATUS_ABANDONED = "abandoned"
+
+    id = db.Column(db.Integer, primary_key=True)
+    portrait_id = db.Column(db.Integer, db.ForeignKey("portraits.id"), nullable=False)
+
+    buyer_email = db.Column(db.String(255), nullable=False, index=True)
+    buyer_name = db.Column(db.String(120))
+
+    amount_pesewas = db.Column(db.Integer, nullable=False)
+    currency = db.Column(db.String(8), nullable=False, default="GHS")
+
+    paystack_reference = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    paystack_status = db.Column(db.String(32))
+    status = db.Column(db.String(16), nullable=False, default=STATUS_PENDING)
+
+    download_token = db.Column(db.String(80), unique=True, index=True)
+    download_count = db.Column(db.Integer, default=0, nullable=False)
+    download_limit = db.Column(db.Integer, default=5, nullable=False)
+    token_expires_at = db.Column(db.DateTime)
+
+    paid_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    portrait = db.relationship("Portrait", back_populates="orders")
+
+    @property
+    def is_paid(self) -> bool:
+        return self.status == self.STATUS_PAID
+
+    def __repr__(self) -> str:
+        return f"<Order {self.paystack_reference} {self.status}>"
+
+

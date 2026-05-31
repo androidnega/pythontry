@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment not completed &middot; {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-xl py-12 text-center">
+  <span class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-red-500/15 text-red-300">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+  </span>
+  <h1 class="font-serif-news mt-5 text-3xl font-semibold text-white">Payment didn't go through</h1>
+  <p class="mt-2 text-slate-400">
+    Your order for <span class="text-slate-200">{{ portrait.title if portrait else 'this portrait' }}</span> is marked as <span class="text-slate-200">{{ order.status }}</span>.
+    No charge has been completed.
+  </p>
+  <div class="mt-6 flex flex-wrap justify-center gap-2">
+    {% if portrait %}
+      <a href="{{ url_for('public.portrait_detail', slug=portrait.slug) }}" class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500">Try again</a>
+    {% endif %}
+    <a href="{{ url_for('public.portraits_list') }}" class="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-500 hover:text-white">All portraits</a>
+  </div>
+  <p class="mt-6 text-xs text-slate-500">If money was deducted from your account, please contact support with reference <code class="rounded bg-slate-900 px-1.5 py-0.5">{{ order.paystack_reference }}</code>.</p>
+</div>
+{% endblock %}

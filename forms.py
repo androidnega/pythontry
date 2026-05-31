@@ -6,6 +6,7 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField
 from wtforms import (
     BooleanField,
+    DecimalField,
     PasswordField,
     SelectField,
     StringField,
@@ -18,6 +19,7 @@ from wtforms.validators import (
     Email,
     EqualTo,
     Length,
+    NumberRange,
     Optional,
     ValidationError,
 )
@@ -242,3 +244,45 @@ class UserCreateForm(FlaskForm):
 class DeleteForm(FlaskForm):
     """Empty form used only to render a CSRF-protected delete button."""
     submit = SubmitField("Delete")
+
+
+class PortraitForm(FlaskForm):
+    title = StringField("Title", validators=[DataRequired(), Length(max=255)])
+    description = TextAreaField(
+        "Description (Markdown supported)", validators=[Optional()]
+    )
+    price = DecimalField(
+        "Price (GHS)",
+        places=2,
+        validators=[DataRequired(), NumberRange(min=1, message="Minimum price is GHS 1.")],
+        description="Buyers pay this amount via Paystack to unlock the high-res file.",
+    )
+    image = FileField(
+        "High-resolution image",
+        validators=[
+            Optional(),
+            FileAllowed(
+                Config.ALLOWED_PORTRAIT_EXT,
+                "Allowed: " + ", ".join(sorted(Config.ALLOWED_PORTRAIT_EXT)),
+            ),
+        ],
+        description="JPG, PNG or WebP. The original is stored privately; a watermarked preview is generated automatically.",
+    )
+    is_featured = BooleanField("Feature on homepage")
+    status = SelectField(
+        "Status",
+        choices=[("draft", "Draft"), ("published", "Published")],
+        default="published",
+    )
+    submit = SubmitField("Save portrait")
+
+
+class CheckoutForm(FlaskForm):
+    buyer_email = StringField(
+        "Email (where we'll send the download link)",
+        validators=[DataRequired(), Email(), Length(max=255)],
+    )
+    buyer_name = StringField(
+        "Your name (optional)", validators=[Optional(), Length(max=120)]
+    )
+    submit = SubmitField("Continue to payment")

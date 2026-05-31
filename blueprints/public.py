@@ -1,13 +1,37 @@
-"""Public-facing routes: homepage, news, videos, audio, ads, search, about."""
+"""Public-facing routes: homepage, news, videos, ads, portraits, search, about."""
 
 from __future__ import annotations
 
-from flask import Blueprint, abort, jsonify, render_template, request
+import os
+from datetime import datetime, timedelta, timezone
+
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
 from sqlalchemy import or_
 
 from extensions import csrf, db
-from models import Ad, Article, Category, MediaItem, NotifySignup, Tag
-from utils import detect_embed, reading_time_minutes
+from forms import CheckoutForm
+from models import Ad, Article, Category, MediaItem, NotifySignup, Order, Portrait, Tag
+from utils import (
+    detect_embed,
+    new_download_token,
+    new_payment_reference,
+    paystack_configured,
+    paystack_initialize,
+    paystack_verify,
+    reading_time_minutes,
+    verify_paystack_signature,
+)
 
 bp = Blueprint("public", __name__)
 
@@ -88,12 +112,19 @@ def home():
     featured = _featured_articles(limit=3)
     exclude = [a.id for a in featured]
     latest = _latest_articles(limit=8, exclude_ids=exclude)
+    portraits = (
+        Portrait.query.filter_by(status=Portrait.STATUS_PUBLISHED)
+        .order_by(Portrait.is_featured.desc(), Portrait.created_at.desc())
+        .limit(3)
+        .all()
+    )
     return render_template(
         "home.html",
         featured=featured,
         latest=latest,
         videos=_latest_media(kind=MediaItem.KIND_VIDEO, limit=4),
         ads=_latest_ads(limit=4),
+        portraits=portraits,
         categories=_categories(kind="news"),
     )
 
@@ -276,6 +307,230 @@ def ad_detail(slug: str):
     ad.view_count = (ad.view_count or 0) + 1
     db.session.commit()
     return render_template("ad_detail.html", ad=ad)
+
+
+# -------------------------------------------------- Portraits + Paystack ---
+
+
+@bp.route("/portraits")
+def portraits_list():
+    page = request.args.get("page", 1, type=int)
+    q = Portrait.query.filter_by(status=Portrait.STATUS_PUBLISHED).order_by(
+        Portrait.is_featured.desc(), Portrait.created_at.desc()
+    )
+    pagination = _paginate(q, page)
+    return render_template(
+        "portraits_list.html",
+        pagination=pagination,
+        portraits=pagination.items,
+    )
+
+
+@bp.route("/portraits/<slug>")
+def portrait_detail(slug: str):
+    portrait = Portrait.query.filter_by(slug=slug).first_or_404()
+    if not portrait.is_published:
+        abort(404)
+    portrait.view_count = (portrait.view_count or 0) + 1
+    db.session.commit()
+    form = CheckoutForm()
+    return render_template(
+        "portrait_detail.html",
+        portrait=portrait,
+        form=form,
+        paystack_ready=paystack_configured(),
+    )
+
+
+@bp.post("/portraits/<slug>/buy")
+def portrait_buy(slug: str):
+    portrait = Portrait.query.filter_by(slug=slug).first_or_404()
+    if not portrait.is_published:
+        abort(404)
+    if not paystack_configured():
+        flash("Payments are not set up yet. Please contact us to buy this portrait.", "error")
+        return redirect(url_for("public.portrait_detail", slug=slug))
+    if (portrait.price_pesewas or 0) <= 0:
+        flash("This portrait can't be purchased right now.", "error")
+        return redirect(url_for("public.portrait_detail", slug=slug))
+
+    form = CheckoutForm()
+    if not form.validate_on_submit():
+        return render_template(
+            "portrait_detail.html",
+            portrait=portrait,
+            form=form,
+            paystack_ready=True,
+        )
+
+    reference = new_payment_reference("AP")
+    order = Order(
+        portrait_id=portrait.id,
+        buyer_email=form.buyer_email.data.strip().lower(),
+        buyer_name=(form.buyer_name.data or "").strip() or None,
+        amount_pesewas=int(portrait.price_pesewas),
+        currency=portrait.currency or current_app.config.get("PAYSTACK_CURRENCY", "GHS"),
+        paystack_reference=reference,
+        download_limit=current_app.config["PORTRAIT_MAX_DOWNLOADS"],
+    )
+    db.session.add(order)
+    db.session.commit()
+
+    try:
+        result = paystack_initialize(
+            amount_pesewas=order.amount_pesewas,
+            email=order.buyer_email,
+            callback_url=url_for("public.portrait_callback", _external=True),
+            reference=reference,
+            currency=order.currency,
+            metadata={
+                "portrait_id": portrait.id,
+                "portrait_title": portrait.title,
+            },
+        )
+    except Exception as exc:  # network/API failure
+        order.status = Order.STATUS_FAILED
+        order.paystack_status = "init_failed"
+        db.session.commit()
+        current_app.logger.exception("Paystack init failed: %s", exc)
+        flash("We couldn't start the payment. Please try again.", "error")
+        return redirect(url_for("public.portrait_detail", slug=slug))
+
+    data = result.get("data") or {}
+    auth_url = data.get("authorization_url")
+    if not auth_url:
+        order.status = Order.STATUS_FAILED
+        order.paystack_status = "no_auth_url"
+        db.session.commit()
+        flash("Payment provider didn't return a checkout URL. Please try again.", "error")
+        return redirect(url_for("public.portrait_detail", slug=slug))
+
+    return redirect(auth_url)
+
+
+@bp.get("/portraits/checkout/callback")
+@csrf.exempt
+def portrait_callback():
+    reference = (request.args.get("reference") or request.args.get("trxref") or "").strip()
+    if not reference:
+        abort(400)
+    order = Order.query.filter_by(paystack_reference=reference).first()
+    if order is None:
+        abort(404)
+
+    portrait = order.portrait
+    if order.is_paid:
+        return redirect(url_for("public.portrait_download_ready", token=order.download_token))
+
+    try:
+        result = paystack_verify(reference)
+    except Exception as exc:
+        current_app.logger.exception("Paystack verify failed: %s", exc)
+        return render_template("portrait_failed.html", portrait=portrait, order=order)
+
+    data = (result.get("data") or {})
+    status = (data.get("status") or "").lower()
+    order.paystack_status = status or "unknown"
+    paid_pesewas = int(data.get("amount") or 0)
+
+    if status == "success" and paid_pesewas >= order.amount_pesewas:
+        _mark_order_paid(order)
+        db.session.commit()
+        return redirect(url_for("public.portrait_download_ready", token=order.download_token))
+
+    if status == "abandoned":
+        order.status = Order.STATUS_ABANDONED
+    else:
+        order.status = Order.STATUS_FAILED
+    db.session.commit()
+    return render_template("portrait_failed.html", portrait=portrait, order=order)
+
+
+def _mark_order_paid(order: Order) -> None:
+    """Idempotently mark an order as paid and issue a download token."""
+    if order.is_paid:
+        return
+    order.status = Order.STATUS_PAID
+    order.paid_at = datetime.now(timezone.utc)
+    if not order.download_token:
+        order.download_token = new_download_token()
+    hours = current_app.config["PORTRAIT_DOWNLOAD_TTL_HOURS"]
+    order.token_expires_at = order.paid_at + timedelta(hours=hours)
+    if order.portrait:
+        order.portrait.sales_count = (order.portrait.sales_count or 0) + 1
+
+
+@bp.get("/portraits/download/<token>")
+def portrait_download_ready(token: str):
+    order = Order.query.filter_by(download_token=token).first_or_404()
+    if not order.is_paid:
+        abort(403)
+    return render_template("portrait_download.html", order=order, portrait=order.portrait)
+
+
+@bp.get("/portraits/download/<token>/file")
+def portrait_download_file(token: str):
+    order = Order.query.filter_by(download_token=token).first_or_404()
+    if not order.is_paid:
+        abort(403)
+    now = datetime.now(timezone.utc)
+    expires = order.token_expires_at
+    if expires is not None and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires is not None and expires < now:
+        abort(410)  # Gone
+    if (order.download_count or 0) >= (order.download_limit or 5):
+        abort(429)  # Too Many
+
+    portrait = order.portrait
+    if portrait is None or not portrait.original_path:
+        abort(404)
+
+    abs_path = os.path.join(
+        str(current_app.config["ORIGINALS_DIR"]),
+        portrait.original_path,
+    )
+    if not os.path.isfile(abs_path):
+        abort(404)
+
+    order.download_count = (order.download_count or 0) + 1
+    db.session.commit()
+
+    download_name = portrait.original_filename or os.path.basename(abs_path)
+    return send_file(abs_path, as_attachment=True, download_name=download_name)
+
+
+@bp.post("/webhooks/paystack")
+@csrf.exempt
+def paystack_webhook():
+    signature = request.headers.get("x-paystack-signature")
+    body = request.get_data()
+    if not verify_paystack_signature(body, signature):
+        abort(400)
+
+    import json as _json
+    try:
+        payload = _json.loads(body.decode("utf-8")) if body else {}
+    except (ValueError, UnicodeDecodeError):
+        payload = {}
+    event = payload.get("event")
+    data = payload.get("data") or {}
+    reference = data.get("reference")
+    if not reference:
+        return jsonify(ok=True)
+
+    order = Order.query.filter_by(paystack_reference=reference).first()
+    if order is None:
+        return jsonify(ok=True)
+
+    status = (data.get("status") or "").lower()
+    order.paystack_status = status or event or "unknown"
+    if event == "charge.success" and status == "success":
+        paid = int(data.get("amount") or 0)
+        if paid >= order.amount_pesewas:
+            _mark_order_paid(order)
+    db.session.commit()
+    return jsonify(ok=True)
 
 
 @bp.route("/search")

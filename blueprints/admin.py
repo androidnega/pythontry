@@ -5,6 +5,7 @@ Writers can manage their own content. Admins can manage everything plus users.
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 
 from flask import (
@@ -27,15 +28,19 @@ from forms import (
     CategoryForm,
     DeleteForm,
     MediaForm,
+    PortraitForm,
     UserAdminForm,
     UserCreateForm,
 )
-from models import Ad, Article, Category, MediaItem, Tag, User
+from models import Ad, Article, Category, MediaItem, Order, Portrait, Tag, User
 from utils import (
     admin_required,
     can_edit,
+    delete_original,
     delete_upload,
+    make_watermarked_preview,
     parse_tags,
+    save_original_image,
     save_upload,
     slugify,
     unique_slug,
@@ -99,6 +104,7 @@ def dashboard():
         "articles": _scope(Article).count(),
         "videos": _scope(MediaItem).filter_by(kind=MediaItem.KIND_VIDEO).count(),
         "ads": _scope(Ad).count(),
+        "portraits": _scope(Portrait).count(),
     }
     recent_articles = (
         _scope(Article).order_by(Article.created_at.desc()).limit(5).all()
@@ -394,6 +400,121 @@ def ad_delete(ad_id: int):
         db.session.commit()
         flash("Ad deleted.", "success")
     return redirect(url_for("admin.ads_list"))
+
+
+# ------------------------------------------------------------ Portraits ---
+
+
+@bp.route("/portraits")
+def portraits_list():
+    q = Portrait.query
+    if not current_user.is_admin:
+        q = q.filter_by(author_id=current_user.id)
+    rows = q.order_by(Portrait.created_at.desc()).all()
+    return render_template(
+        "admin/portraits_list.html", portraits=rows, delete_form=DeleteForm()
+    )
+
+
+@bp.route("/portraits/new", methods=["GET", "POST"])
+@bp.route("/portraits/<int:portrait_id>/edit", methods=["GET", "POST"])
+def portrait_edit(portrait_id: int | None = None):
+    portrait = db.session.get(Portrait, portrait_id) if portrait_id else None
+    if portrait:
+        _ensure_can_edit(portrait)
+
+    form = PortraitForm(obj=portrait if portrait else None)
+    if request.method == "GET" and portrait and portrait.price_pesewas:
+        from decimal import Decimal
+
+        form.price.data = Decimal(portrait.price_pesewas) / Decimal(100)
+
+    if form.validate_on_submit():
+        is_new = portrait is None
+        if is_new:
+            portrait = Portrait(author_id=current_user.id)
+            db.session.add(portrait)
+
+        portrait.title = form.title.data.strip()
+        portrait.description = (form.description.data or "").strip() or None
+        portrait.price_pesewas = int((form.price.data or 0) * 100)
+        portrait.currency = current_app.config.get("PAYSTACK_CURRENCY", "GHS")
+        portrait.is_featured = bool(form.is_featured.data)
+        portrait.status = form.status.data
+
+        if not portrait.slug:
+            base = slugify(portrait.title)
+            with db.session.no_autoflush:
+                portrait.slug = unique_slug(
+                    base, lambda s: Portrait.query.filter_by(slug=s).first()
+                )
+
+        if form.image.data and form.image.data.filename:
+            try:
+                rel_original, original_filename, width, height = save_original_image(
+                    form.image.data, subdir="portraits"
+                )
+            except ValueError as exc:
+                form.image.errors.append(str(exc))
+                return render_template("admin/portrait_form.html", form=form, portrait=portrait)
+            originals_root = str(current_app.config["ORIGINALS_DIR"])
+            src_abs = os.path.join(originals_root, rel_original)
+            try:
+                preview_rel = make_watermarked_preview(
+                    src_abs,
+                    subdir="portraits",
+                    max_width=current_app.config["PORTRAIT_PREVIEW_MAX_WIDTH"],
+                    watermark_text=current_app.config["WATERMARK_TEXT"],
+                )
+            except Exception as exc:
+                # If preview gen fails we still keep the original around.
+                form.image.errors.append(f"Could not generate preview: {exc}")
+                delete_original(rel_original)
+                return render_template("admin/portrait_form.html", form=form, portrait=portrait)
+
+            # Swap files, deleting the old ones
+            delete_original(portrait.original_path)
+            delete_upload(portrait.preview_path)
+            portrait.original_path = rel_original
+            portrait.original_filename = original_filename
+            portrait.preview_path = preview_rel
+            portrait.width = width
+            portrait.height = height
+            try:
+                portrait.file_size_bytes = os.path.getsize(src_abs)
+            except OSError:
+                portrait.file_size_bytes = None
+        elif is_new:
+            form.image.errors.append("Please upload the high-resolution image.")
+            db.session.rollback()
+            return render_template("admin/portrait_form.html", form=form, portrait=None)
+
+        db.session.commit()
+        flash("Portrait saved.", "success")
+        return redirect(url_for("admin.portraits_list"))
+
+    return render_template("admin/portrait_form.html", form=form, portrait=portrait)
+
+
+@bp.post("/portraits/<int:portrait_id>/delete")
+def portrait_delete(portrait_id: int):
+    portrait = db.session.get(Portrait, portrait_id) or abort(404)
+    _ensure_can_edit(portrait)
+    form = DeleteForm()
+    if form.validate_on_submit():
+        delete_upload(portrait.preview_path)
+        delete_original(portrait.original_path)
+        db.session.delete(portrait)
+        db.session.commit()
+        flash("Portrait deleted.", "success")
+    return redirect(url_for("admin.portraits_list"))
+
+
+@bp.route("/orders")
+@admin_required
+def orders_list():
+    rows = Order.query.order_by(Order.created_at.desc()).limit(200).all()
+    return render_template("admin/orders_list.html", orders=rows)
 
 
 # ----------------------------------------------------- Categories (admin) ---

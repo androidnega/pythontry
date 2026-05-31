@@ -11,11 +11,12 @@
     <a href="{{ url_for('admin.article_edit') }}" class="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500">+ New article</a>
     <a href="{{ url_for('admin.media_edit') }}" class="rounded-md border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 hover:border-slate-500">+ Video / audio</a>
     <a href="{{ url_for('admin.ad_edit') }}" class="rounded-md border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 hover:border-slate-500">+ Ad</a>
+    <a href="{{ url_for('admin.portrait_edit') }}" class="rounded-md border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 hover:border-slate-500">+ Portrait</a>
   </div>
 </div>
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-  {% set tiles = [('articles','Articles','admin.articles'),('videos','Videos','admin.media_list'),('ads','Ads','admin.ads_list')] %}
+  {% set tiles = [('articles','Articles','admin.articles'),('videos','Videos','admin.media_list'),('ads','Ads','admin.ads_list'),('portraits','Portraits','admin.portraits_list')] %}
   {% for key, label, endpoint in tiles %}
     <a href="{{ url_for(endpoint) }}" class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 transition hover:border-slate-700 hover:bg-slate-900/40">
       <p class="text-xs uppercase tracking-[0.18em] text-slate-500">{{ label }}</p>

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import pagination_nav %}
+
+{% block title %}Portraits &middot; {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<header class="mb-6">
+  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">Portraits</p>
+  <h1 class="font-serif-news mt-1 text-3xl font-semibold text-white sm:text-4xl">Buy original photography</h1>
+  <p class="mt-2 max-w-2xl text-slate-400">
+    Beautiful images from the Ahanta and beyond. Pay securely via Paystack, then download the
+    high-resolution original — watermark-free.
+  </p>
+</header>
+
+{% if portraits %}
+  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {% for p in portraits %}
+      <article class="group flex flex-col overflow-hidden rounded-xl border border-slate-800/80 bg-slate-950/60 transition hover:border-slate-700 hover:shadow-[0_8px_30px_-12px_rgba(56,189,248,0.18)]">
+        <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="relative block aspect-[4/3] overflow-hidden bg-slate-900">
+          {% if p.preview_path %}
+            <img src="{{ url_for('static', filename=p.preview_path) }}" alt="" loading="lazy"
+              class="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+          {% else %}
+            <div class="flex h-full w-full items-center justify-center text-slate-700">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+            </div>
+          {% endif %}
+          {% if p.is_featured %}
+            <span class="absolute left-3 top-3 rounded-full bg-amber-500/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-900">Featured</span>
+          {% endif %}
+        </a>
+        <div class="flex flex-1 flex-col gap-1.5 p-4">
+          <div class="flex items-baseline justify-between gap-2">
+            <h3 class="text-base font-semibold leading-snug text-white">
+              <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="hover:text-sky-300">{{ p.title }}</a>
+            </h3>
+            <span class="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-300">{{ p.currency }} {{ p.price_display }}</span>
+          </div>
+          {% if p.description %}
+            <p class="clamp-2 text-sm text-slate-400">{{ p.description|excerpt(140) }}</p>
+          {% endif %}
+          <div class="mt-auto flex items-center justify-between gap-2 pt-2 text-xs text-slate-500">
+            <span>{{ p.width }} × {{ p.height }} px</span>
+            <span>{{ p.author.name if p.author else 'Studio' }}</span>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+  {{ pagination_nav(pagination, 'public.portraits_list') }}
+{% else %}
+  <div class="rounded-xl border border-dashed border-slate-800 bg-slate-950/50 p-8 text-center text-slate-400">
+    No portraits on sale yet.
+  </div>
+{% endif %}
+{% endblock %}

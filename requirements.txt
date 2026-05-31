@@ -9,3 +9,5 @@ markdown>=3.6,<4
 bleach>=6.1,<7
 pillow>=10.3,<12
 python-dotenv>=1.0,<2
+requests>=2.32,<3
+requests>=2.31,<3

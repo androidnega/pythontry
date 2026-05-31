@@ -7,8 +7,11 @@ upload sanitisation, and a role-based access decorator.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
 import re
+import secrets
 import uuid
 from datetime import datetime, timezone
 from functools import wraps
@@ -17,8 +20,10 @@ from urllib.parse import quote, urlparse
 
 import bleach
 import markdown as md_lib
+import requests
 from flask import abort, current_app
 from flask_login import current_user
+from PIL import Image, ImageDraw, ImageFont
 from slugify import slugify as _slugify
 from werkzeug.utils import secure_filename
 
@@ -257,6 +262,204 @@ def reading_time_minutes(text: str | None, wpm: int = 220) -> int:
         return 1
     minutes = (word_count + wpm - 1) // wpm
     return max(1, minutes)
+
+
+_FONT_CANDIDATES = (
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+    "/Library/Fonts/Arial.ttf",
+    "C:/Windows/Fonts/arialbd.ttf",
+)
+
+
+def _load_watermark_font(size: int):
+    for path in _FONT_CANDIDATES:
+        try:
+            return ImageFont.truetype(path, size=size)
+        except (OSError, IOError):
+            continue
+    return ImageFont.load_default()
+
+
+def save_original_image(file_storage, *, subdir: str) -> tuple[str, str, int, int]:
+    """Save the uploaded image as the *original* under instance/originals/<subdir>.
+
+    Returns (relative_path, original_filename, width, height). The relative
+    path is rooted at instance/originals/ — callers must combine it with the
+    configured ORIGINALS_DIR to get an absolute path.
+    """
+    if file_storage is None or not getattr(file_storage, "filename", ""):
+        raise ValueError("No file supplied.")
+    if not is_allowed(file_storage.filename, current_app.config["ALLOWED_IMAGE_EXT"]):
+        raise ValueError(f"File type not allowed: {file_storage.filename}")
+
+    originals_root = current_app.config.get("ORIGINALS_DIR")
+    if not originals_root:
+        raise RuntimeError("ORIGINALS_DIR is not configured.")
+    originals_root = str(originals_root)
+
+    now = datetime.now(timezone.utc)
+    rel_dir = os.path.join(subdir, f"{now.year:04d}", f"{now.month:02d}")
+    abs_dir = os.path.join(originals_root, rel_dir)
+    os.makedirs(abs_dir, exist_ok=True)
+
+    safe_name = secure_filename(file_storage.filename) or "image"
+    unique = f"{uuid.uuid4().hex[:12]}-{safe_name}"
+    abs_path = os.path.join(abs_dir, unique)
+    file_storage.save(abs_path)
+
+    with Image.open(abs_path) as probe:
+        width, height = probe.size
+
+    rel_path = os.path.join(rel_dir, unique).replace(os.sep, "/")
+    return rel_path, safe_name, width, height
+
+
+def delete_original(rel_path: str | None) -> None:
+    """Delete a private original file given its path relative to ORIGINALS_DIR."""
+    if not rel_path:
+        return
+    originals_root = current_app.config.get("ORIGINALS_DIR")
+    if not originals_root:
+        return
+    abs_path = os.path.join(str(originals_root), rel_path)
+    try:
+        if os.path.isfile(abs_path):
+            os.remove(abs_path)
+    except OSError:
+        pass
+
+
+def make_watermarked_preview(
+    src_abs_path: str,
+    *,
+    subdir: str = "portraits",
+    max_width: int = 1600,
+    watermark_text: str = "AhantaPulse — preview",
+) -> str:
+    """Create a downsized, watermarked preview from a private original.
+
+    Writes the result under static/uploads/<subdir>/<yyyy>/<mm>/ and returns
+    the path relative to the static folder (suitable for url_for('static', ...)).
+    """
+    static_root = current_app.static_folder or "static"
+    now = datetime.now(timezone.utc)
+    rel_dir = os.path.join("uploads", subdir, f"{now.year:04d}", f"{now.month:02d}")
+    abs_dir = os.path.join(static_root, rel_dir)
+    os.makedirs(abs_dir, exist_ok=True)
+
+    name = f"{uuid.uuid4().hex[:12]}-preview.jpg"
+    out_abs_path = os.path.join(abs_dir, name)
+
+    with Image.open(src_abs_path) as img:
+        img = img.convert("RGBA")
+        if img.width > max_width:
+            new_h = int(img.height * (max_width / img.width))
+            img = img.resize((max_width, new_h), Image.LANCZOS)
+
+        w, h = img.size
+        overlay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+
+        # Build a rotated text tile, then paste it across the canvas.
+        font_size = max(28, w // 22)
+        font = _load_watermark_font(font_size)
+        bbox = font.getbbox(watermark_text)
+        text_w = max(1, bbox[2] - bbox[0])
+        text_h = max(1, bbox[3] - bbox[1])
+
+        tile = Image.new("RGBA", (text_w + 60, text_h + 30), (0, 0, 0, 0))
+        ImageDraw.Draw(tile).text(
+            (30, 15), watermark_text, font=font, fill=(255, 255, 255, 110)
+        )
+        tile = tile.rotate(-28, expand=True, resample=Image.BICUBIC)
+
+        step_x = int(tile.width * 0.85)
+        step_y = int(tile.height * 1.6)
+        for y in range(-step_y, h + step_y, step_y):
+            offset = (step_x // 2) if (y // step_y) % 2 else 0
+            for x in range(-step_x + offset, w + step_x, step_x):
+                overlay.paste(tile, (x, y), tile)
+
+        result = Image.alpha_composite(img, overlay).convert("RGB")
+        result.save(out_abs_path, "JPEG", quality=82, optimize=True)
+
+    return os.path.join(rel_dir, name).replace(os.sep, "/")
+
+
+PAYSTACK_API_BASE = "https://api.paystack.co"
+
+
+def paystack_configured() -> bool:
+    return bool(current_app.config.get("PAYSTACK_SECRET_KEY"))
+
+
+def paystack_initialize(
+    *,
+    amount_pesewas: int,
+    email: str,
+    callback_url: str,
+    reference: str,
+    currency: str = "GHS",
+    metadata: dict | None = None,
+) -> dict:
+    """Initialise a Paystack transaction. Returns the parsed JSON payload."""
+    secret = current_app.config.get("PAYSTACK_SECRET_KEY")
+    if not secret:
+        raise RuntimeError("Paystack is not configured (missing PAYSTACK_SECRET_KEY).")
+    payload = {
+        "email": email,
+        "amount": int(amount_pesewas),
+        "currency": currency,
+        "callback_url": callback_url,
+        "reference": reference,
+    }
+    if metadata:
+        payload["metadata"] = metadata
+    resp = requests.post(
+        f"{PAYSTACK_API_BASE}/transaction/initialize",
+        json=payload,
+        headers={"Authorization": f"Bearer {secret}"},
+        timeout=20,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def paystack_verify(reference: str) -> dict:
+    """Verify a Paystack transaction by reference. Returns the parsed JSON."""
+    secret = current_app.config.get("PAYSTACK_SECRET_KEY")
+    if not secret:
+        raise RuntimeError("Paystack is not configured (missing PAYSTACK_SECRET_KEY).")
+    resp = requests.get(
+        f"{PAYSTACK_API_BASE}/transaction/verify/{reference}",
+        headers={"Authorization": f"Bearer {secret}"},
+        timeout=20,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def verify_paystack_signature(body: bytes, signature: str | None) -> bool:
+    """Verify the `x-paystack-signature` header for an incoming webhook."""
+    if not signature:
+        return False
+    secret = (current_app.config.get("PAYSTACK_SECRET_KEY") or "").encode()
+    if not secret:
+        return False
+    expected = hmac.new(secret, body, hashlib.sha512).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
+def new_payment_reference(prefix: str = "AP") -> str:
+    """Short, unique reference suitable for Paystack."""
+    return f"{prefix}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{secrets.token_hex(4)}"
+
+
+def new_download_token() -> str:
+    return secrets.token_urlsafe(32)
 
 
 def parse_tags(raw: str | None) -> list[str]:

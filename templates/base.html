@@ -66,6 +66,7 @@
       <a href="{{ url_for('public.news_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.news') or ep == 'public.article_detail' %}active text-white{% endif %}">News</a>
       <a href="{{ url_for('public.videos_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.video') %}active text-white{% endif %}">Videos</a>
       <a href="{{ url_for('public.ads_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.ad') %}active text-white{% endif %}">Marketplace</a>
+      <a href="{{ url_for('public.portraits_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.portrait') %}active text-white{% endif %}">Portraits</a>
       <a href="{{ url_for('public.about') }}" class="nav-link hover:text-white {% if ep == 'public.about' %}active text-white{% endif %}">About</a>
     </nav>
     <form action="{{ url_for('public.search') }}" method="get" class="ml-auto hidden flex-1 max-w-xs items-center gap-2 sm:flex">
@@ -86,9 +87,6 @@
         </form>
       {% else %}
         <a href="{{ url_for('auth.login') }}" class="rounded-md border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:border-slate-700 hover:text-white">Sign in</a>
-        {% if ALLOW_REGISTRATION %}
-          <a href="{{ url_for('auth.register') }}" class="hidden rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-500 sm:inline-block">Join</a>
-        {% endif %}
       {% endif %}
       <button id="mobile-nav-btn" type="button" class="rounded-md border border-slate-800 p-1.5 text-slate-200 hover:border-slate-700 md:hidden" aria-label="Open menu">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -101,6 +99,7 @@
       <a href="{{ url_for('public.news_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">News</a>
       <a href="{{ url_for('public.videos_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Videos</a>
       <a href="{{ url_for('public.ads_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Marketplace</a>
+      <a href="{{ url_for('public.portraits_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Portraits</a>
       <a href="{{ url_for('public.about') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">About</a>
       {% if current_user.is_authenticated %}
         <a href="{{ url_for('admin.dashboard') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Admin</a>
@@ -147,6 +146,7 @@
         <li><a href="{{ url_for('public.news_list') }}" class="hover:text-white">Latest news</a></li>
         <li><a href="{{ url_for('public.videos_list') }}" class="hover:text-white">Videos</a></li>
         <li><a href="{{ url_for('public.ads_list') }}" class="hover:text-white">Marketplace</a></li>
+        <li><a href="{{ url_for('public.portraits_list') }}" class="hover:text-white">Portraits</a></li>
         <li><a href="{{ url_for('public.search') }}" class="hover:text-white">Search</a></li>
       </ul>
     </div>

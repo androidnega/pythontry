@@ -1,0 +1,51 @@
+{% extends 'admin/_layout.html' %}
+{% from '_forms.html' import text, textarea, select, fileinput, check, submit %}
+{% block title %}{% if portrait and portrait.id %}Edit{% else %}New{% endif %} portrait &middot; Admin{% endblock %}
+
+{% block admin_content %}
+<div class="mb-4 flex items-end justify-between">
+  <h1 class="font-serif-news text-2xl font-semibold text-white">{% if portrait and portrait.id %}Edit{% else %}Upload{% endif %} portrait</h1>
+  <a href="{{ url_for('admin.portraits_list') }}" class="text-sm text-slate-400 hover:text-white">&larr; Back to list</a>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="grid gap-6 lg:grid-cols-[1fr,320px]">
+  {{ form.hidden_tag() }}
+  <div class="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+    {{ text(form.title, placeholder='Sunset over Dixcove') }}
+    {{ textarea(form.description, rows=6, placeholder='Tell the story behind the shot…') }}
+    {{ text(form.price, placeholder='50.00') }}
+    <p class="-mt-2 text-[11px] text-slate-500">Buyers pay this in GHS via Paystack. We store it as pesewas for the API.</p>
+
+    {{ fileinput(form.image) }}
+    <p class="-mt-2 text-[11px] text-slate-500">
+      JPG/PNG/WebP. The original is stored privately and never served directly — a watermarked preview is generated automatically.
+    </p>
+
+    {% if portrait and portrait.preview_path %}
+      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        <div>
+          <p class="mb-1 text-xs uppercase tracking-[0.16em] text-slate-500">Current preview (public)</p>
+          <img src="{{ url_for('static', filename=portrait.preview_path) }}" alt="" class="w-full rounded-lg border border-slate-800" />
+        </div>
+        <div>
+          <p class="mb-1 text-xs uppercase tracking-[0.16em] text-slate-500">Original (private)</p>
+          <div class="rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400">
+            <p class="break-all">{{ portrait.original_filename }}</p>
+            <p class="mt-1">{{ portrait.width }} × {{ portrait.height }} px</p>
+            {% if portrait.file_size_bytes %}<p class="mt-1">{{ (portrait.file_size_bytes / 1024 / 1024)|round(1) }} MB</p>{% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+  <aside class="space-y-4">
+    <div class="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+      {{ select(form.status) }}
+      {{ check(form.is_featured) }}
+    </div>
+    <div class="flex items-center justify-between rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+      {{ submit(form.submit) }}
+    </div>
+  </aside>
+</form>
+{% endblock %}

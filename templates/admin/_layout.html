@@ -11,10 +11,12 @@
       {% endmacro %}
       {{ nav(url_for('admin.dashboard'), 'Dashboard', ep == 'admin.dashboard') }}
       {{ nav(url_for('admin.articles'), 'Articles', ep.startswith('admin.article')) }}
-      {{ nav(url_for('admin.media_list'), 'Videos &amp; audio', ep.startswith('admin.media'))|safe }}
+      {{ nav(url_for('admin.media_list'), 'Videos', ep.startswith('admin.media')) }}
       {{ nav(url_for('admin.ads_list'), 'Ads', ep.startswith('admin.ad')) }}
+      {{ nav(url_for('admin.portraits_list'), 'Portraits', ep.startswith('admin.portrait')) }}
       {% if current_user.is_admin %}
         <div class="mt-2 border-t border-slate-800 pt-2"></div>
+        {{ nav(url_for('admin.orders_list'), 'Orders', ep.startswith('admin.orders')) }}
         {{ nav(url_for('admin.categories'), 'Categories', ep.startswith('admin.categor')) }}
         {{ nav(url_for('admin.users'), 'Users', ep.startswith('admin.user')) }}
       {% endif %}
