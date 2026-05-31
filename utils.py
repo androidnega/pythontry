@@ -245,3 +245,36 @@ def excerpt(text: str | None, limit: int = 180) -> str:
     if len(cleaned) <= limit:
         return cleaned
     return cleaned[: limit - 1].rstrip() + "\u2026"
+
+
+def reading_time_minutes(text: str | None, wpm: int = 220) -> int:
+    """Estimate reading time in minutes (minimum 1) for the given Markdown text."""
+    if not text:
+        return 1
+    cleaned = bleach.clean(text, tags=[], strip=True)
+    word_count = len(re.findall(r"\b\w+\b", cleaned))
+    if word_count <= 0:
+        return 1
+    minutes = (word_count + wpm - 1) // wpm
+    return max(1, minutes)
+
+
+def parse_tags(raw: str | None) -> list[str]:
+    """Split a comma- or hash-separated tag string into clean, deduplicated names."""
+    if not raw:
+        return []
+    parts = re.split(r"[,#]", raw)
+    seen: set[str] = set()
+    out: list[str] = []
+    for p in parts:
+        name = re.sub(r"\s+", " ", p).strip().strip("#").strip()
+        if not name:
+            continue
+        if len(name) > 64:
+            name = name[:64].rstrip()
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(name)
+    return out

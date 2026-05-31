@@ -108,6 +108,11 @@ class ArticleForm(FlaskForm):
     )
     remove_cover = BooleanField("Remove current cover image")
     category_id = SelectField("Category", coerce=int, validators=[Optional()])
+    tags = StringField(
+        "Tags (comma-separated)",
+        validators=[Optional(), Length(max=500)],
+        description="e.g. politics, takoradi, fishing — keep them short",
+    )
     is_featured = BooleanField("Feature on homepage")
     status = SelectField(
         "Status",
@@ -213,6 +218,25 @@ class UserAdminForm(FlaskForm):
     )
     is_active = BooleanField("Active", default=True)
     submit = SubmitField("Save user")
+
+
+class UserCreateForm(FlaskForm):
+    """Admin-only form to add a new user with any role."""
+    username = StringField(
+        "Username", validators=[DataRequired(), Length(min=3, max=64)]
+    )
+    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
+    display_name = StringField(
+        "Display name", validators=[Optional(), Length(max=120)]
+    )
+    role = SelectField(
+        "Role", choices=[("writer", "Writer"), ("admin", "Admin")], default="writer"
+    )
+    is_active = BooleanField("Active", default=True)
+    password = PasswordField(
+        "Initial password", validators=[DataRequired(), Length(min=8, max=128)]
+    )
+    submit = SubmitField("Create user")
 
 
 class DeleteForm(FlaskForm):

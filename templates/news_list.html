@@ -15,7 +15,16 @@
 </header>
 
 {% if categories %}
-  <div class="mb-8">{{ category_chips(categories, 'public.news_list', active_slug=active_category.slug if active_category else None) }}</div>
+  <div class="mb-6">{{ category_chips(categories, 'public.news_list', active_slug=active_category.slug if active_category else None) }}</div>
+{% endif %}
+
+{% if popular_tags %}
+  <div class="mb-8 flex flex-wrap items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 p-3">
+    <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Trending tags</span>
+    {% for t in popular_tags %}
+      <a href="{{ url_for('public.tag_detail', slug=t.slug) }}" class="rounded-full border border-slate-800 bg-slate-900/60 px-2.5 py-0.5 text-xs text-slate-200 hover:border-sky-500/40 hover:text-sky-300">#{{ t.name }}</a>
+    {% endfor %}
+  </div>
 {% endif %}
 
 {% if articles %}

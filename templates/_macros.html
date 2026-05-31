@@ -2,9 +2,9 @@
 
 {% macro article_card(article, size='md') %}
   {% set is_lg = size == 'lg' %}
-  <article class="group flex flex-col overflow-hidden rounded-xl border border-slate-800/80 bg-slate-950/60 transition hover:border-slate-700">
+  <article class="group flex flex-col overflow-hidden rounded-xl border border-slate-800/80 bg-slate-950/60 transition hover:border-slate-700 hover:shadow-[0_8px_30px_-12px_rgba(56,189,248,0.12)]">
     <a href="{{ url_for('public.article_detail', slug=article.slug) }}" class="block">
-      <div class="{% if is_lg %}aspect-[16/9]{% else %}aspect-[16/9]{% endif %} w-full overflow-hidden bg-slate-900">
+      <div class="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
         {% if article.cover_image %}
           <img src="{{ url_for('static', filename=article.cover_image) }}" alt="" loading="lazy"
             class="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
@@ -13,10 +13,13 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M4 4h16v16H4z"/><path d="m4 16 5-5 4 4 3-3 4 4"/><circle cx="9" cy="9" r="1.5"/></svg>
           </div>
         {% endif %}
+        {% if article.is_featured %}
+          <span class="absolute left-3 top-3 rounded-full bg-amber-500/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-900">Featured</span>
+        {% endif %}
       </div>
     </a>
     <div class="flex flex-1 flex-col gap-2 p-4">
-      <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-sky-400/90">
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] uppercase tracking-[0.16em] text-sky-400/90">
         {% if article.category %}<span>{{ article.category.name }}</span>{% endif %}
         {% if article.published_at %}<span class="text-slate-600">&middot;</span><time class="text-slate-500" datetime="{{ article.published_at.isoformat() }}">{{ article.published_at.strftime('%b %d, %Y') }}</time>{% endif %}
       </div>
@@ -28,8 +31,19 @@
       {% elif article.body %}
         <p class="clamp-2 text-sm text-slate-400">{{ article.body|excerpt(180) }}</p>
       {% endif %}
-      <div class="mt-auto pt-2 text-xs text-slate-500">
-        By {{ article.author.name if article.author else 'Staff' }}
+      {% if article.tags %}
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          {% for t in article.tags[:3] %}
+            <a href="{{ url_for('public.tag_detail', slug=t.slug) }}" class="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] text-slate-300 hover:text-sky-300">#{{ t.name }}</a>
+          {% endfor %}
+        </div>
+      {% endif %}
+      <div class="mt-auto flex items-center justify-between gap-2 pt-2 text-xs text-slate-500">
+        <span>{{ article.author.name if article.author else 'Staff' }}</span>
+        <span class="inline-flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          {{ article.body|reading_time }} min read
+        </span>
       </div>
     </div>
   </article>

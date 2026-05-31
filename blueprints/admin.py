@@ -28,16 +28,38 @@ from forms import (
     DeleteForm,
     MediaForm,
     UserAdminForm,
+    UserCreateForm,
 )
-from models import Ad, Article, Category, MediaItem, User
+from models import Ad, Article, Category, MediaItem, Tag, User
 from utils import (
     admin_required,
     can_edit,
     delete_upload,
+    parse_tags,
     save_upload,
     slugify,
     unique_slug,
 )
+
+
+def _sync_tags(article: Article, raw: str | None) -> None:
+    """Replace `article.tags` with rows derived from a comma-separated string."""
+    names = parse_tags(raw)
+    new_tags: list[Tag] = []
+    seen_slugs: set[str] = set()
+    for name in names:
+        slug = slugify(name, max_length=80)
+        if not slug or slug in seen_slugs:
+            continue
+        seen_slugs.add(slug)
+        tag = Tag.query.filter_by(slug=slug).first()
+        if tag is None:
+            tag = Tag(name=name, slug=slug)
+            db.session.add(tag)
+        elif tag.name != name and name:
+            tag.name = name
+        new_tags.append(tag)
+    article.tags = new_tags
 
 bp = Blueprint("admin", __name__)
 
@@ -115,8 +137,11 @@ def article_edit(article_id: int | None = None):
 
     form = ArticleForm(obj=article if article else None)
     form.category_id.choices = _category_choices(kind="news")
-    if request.method == "GET" and article and article.category_id:
-        form.category_id.data = article.category_id
+    if request.method == "GET" and article:
+        if article.category_id:
+            form.category_id.data = article.category_id
+        if article.tags:
+            form.tags.data = ", ".join(t.name for t in article.tags)
 
     if form.validate_on_submit():
         if article is None:
@@ -135,9 +160,12 @@ def article_edit(article_id: int | None = None):
 
         if not article.slug:
             base = slugify(article.title)
-            article.slug = unique_slug(
-                base, lambda s: Article.query.filter_by(slug=s).first()
-            )
+            with db.session.no_autoflush:
+                article.slug = unique_slug(
+                    base, lambda s: Article.query.filter_by(slug=s).first()
+                )
+
+        _sync_tags(article, form.tags.data)
 
         if form.remove_cover.data and article.cover_image:
             delete_upload(article.cover_image)
@@ -215,9 +243,10 @@ def media_edit(media_id: int | None = None):
 
         if not item.slug:
             base = slugify(item.title)
-            item.slug = unique_slug(
-                base, lambda s: MediaItem.query.filter_by(slug=s).first()
-            )
+            with db.session.no_autoflush:
+                item.slug = unique_slug(
+                    base, lambda s: MediaItem.query.filter_by(slug=s).first()
+                )
 
         if item.source_type == MediaItem.SOURCE_EMBED:
             item.embed_url = (form.embed_url.data or "").strip()
@@ -326,7 +355,10 @@ def ad_edit(ad_id: int | None = None):
 
         if not ad.slug:
             base = slugify(ad.title)
-            ad.slug = unique_slug(base, lambda s: Ad.query.filter_by(slug=s).first())
+            with db.session.no_autoflush:
+                ad.slug = unique_slug(
+                    base, lambda s: Ad.query.filter_by(slug=s).first()
+                )
 
         if form.remove_image.data and ad.image_path:
             delete_upload(ad.image_path)
@@ -420,6 +452,33 @@ def category_delete(category_id: int):
 def users():
     rows = User.query.order_by(User.created_at.desc()).all()
     return render_template("admin/users_list.html", users=rows, delete_form=DeleteForm())
+
+
+@bp.route("/users/new", methods=["GET", "POST"])
+@admin_required
+def user_new():
+    form = UserCreateForm()
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        email = form.email.data.strip().lower()
+        if User.query.filter_by(username=username).first():
+            form.username.errors.append("That username is already taken.")
+        elif User.query.filter_by(email=email).first():
+            form.email.errors.append("That email is already registered.")
+        else:
+            user = User(
+                username=username,
+                email=email,
+                role=form.role.data,
+                display_name=(form.display_name.data or "").strip() or None,
+                is_active_flag=bool(form.is_active.data),
+            )
+            user.set_password(form.password.data)
+            db.session.add(user)
+            db.session.commit()
+            flash(f"User {user.username!r} created.", "success")
+            return redirect(url_for("admin.users"))
+    return render_template("admin/user_new.html", form=form)
 
 
 @bp.route("/users/<int:user_id>/edit", methods=["GET", "POST"])

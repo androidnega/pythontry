@@ -82,6 +82,26 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             initialise_database()
             print("Database initialised.")
 
+    @app.cli.command("reset-admin")
+    def reset_admin_cmd() -> None:
+        """Reset the admin user's password and email to the values in env vars."""
+        with app.app_context():
+            from models import User
+
+            admin = User.query.filter_by(username=Config.ADMIN_USERNAME).first()
+            if admin is None:
+                print(
+                    f"No user named {Config.ADMIN_USERNAME!r} exists yet. "
+                    "Run `flask init-db` first."
+                )
+                return
+            admin.email = Config.ADMIN_EMAIL
+            admin.role = User.ROLE_ADMIN
+            admin.is_active_flag = True
+            admin.set_password(Config.ADMIN_PASSWORD)
+            db.session.commit()
+            print(f"Admin {admin.username!r} reset (email + password + role).")
+
     with app.app_context():
         try:
             initialise_database()
@@ -115,6 +135,12 @@ def initialise_database() -> None:
         )
         admin.set_password(admin_password)
         db.session.add(admin)
+        db.session.commit()
+    elif admin and Config.ADMIN_FORCE_RESET and admin_password:
+        admin.email = admin_email
+        admin.role = User.ROLE_ADMIN
+        admin.is_active_flag = True
+        admin.set_password(admin_password)
         db.session.commit()
 
     if db.session.query(Category).count() == 0:

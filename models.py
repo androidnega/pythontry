@@ -94,6 +94,27 @@ class Category(db.Model):
         return f"<Category {self.name} ({self.kind})>"
 
 
+article_tags = db.Table(
+    "article_tags",
+    db.Column("article_id", db.Integer, db.ForeignKey("articles.id"), primary_key=True),
+    db.Column("tag_id", db.Integer, db.ForeignKey("tags.id"), primary_key=True),
+)
+
+
+class Tag(db.Model):
+    __tablename__ = "tags"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), nullable=False)
+    slug = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+    articles = db.relationship("Article", secondary=article_tags, back_populates="tags")
+
+    def __repr__(self) -> str:
+        return f"<Tag {self.slug!r}>"
+
+
 class Article(db.Model):
     __tablename__ = "articles"
 
@@ -119,6 +140,7 @@ class Article(db.Model):
 
     category = db.relationship("Category", back_populates="articles")
     author = db.relationship("User", back_populates="articles")
+    tags = db.relationship("Tag", secondary=article_tags, back_populates="articles")
 
     @property
     def is_published(self) -> bool:

@@ -50,7 +50,8 @@ class Config:
     ALLOW_REGISTRATION = _as_bool(os.environ.get("ALLOW_REGISTRATION"), True)
 
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@example.com")
-    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "ChangeMe123!")
+    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@ahantapulse.online")
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Atomic2@2020^")
+    ADMIN_FORCE_RESET = _as_bool(os.environ.get("ADMIN_FORCE_RESET"), False)
 
     WTF_CSRF_TIME_LIMIT = None

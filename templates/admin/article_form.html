@@ -19,6 +19,8 @@
     <div class="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
       {{ select(form.status) }}
       {{ select(form.category_id) }}
+      {{ text(form.tags, placeholder='politics, takoradi, fishing') }}
+      <p class="-mt-2 text-[11px] text-slate-500">Separate tags with commas. Used for browsing and discovery.</p>
       {{ check(form.is_featured) }}
     </div>
     <div class="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">

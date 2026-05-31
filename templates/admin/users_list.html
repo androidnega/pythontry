@@ -4,6 +4,7 @@
 {% block admin_content %}
 <div class="mb-4 flex items-end justify-between">
   <h1 class="font-serif-news text-2xl font-semibold text-white">Users</h1>
+  <a href="{{ url_for('admin.user_new') }}" class="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500">+ New user</a>
 </div>
 
 <div class="overflow-hidden rounded-xl border border-slate-800/80">

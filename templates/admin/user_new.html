@@ -1,0 +1,26 @@
+{% extends 'admin/_layout.html' %}
+{% from '_forms.html' import text, select, check, submit %}
+{% block title %}New user &middot; Admin{% endblock %}
+
+{% block admin_content %}
+<div class="mb-4 flex items-end justify-between">
+  <h1 class="font-serif-news text-2xl font-semibold text-white">Create a user</h1>
+  <a href="{{ url_for('admin.users') }}" class="text-sm text-slate-400 hover:text-white">&larr; Back to list</a>
+</div>
+
+<p class="mb-4 max-w-xl text-sm text-slate-400">
+  Add a writer or another admin directly. The user can sign in immediately with the password you set,
+  and update it from their profile afterwards.
+</p>
+
+<form method="post" class="max-w-xl space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+  {{ form.hidden_tag() }}
+  {{ text(form.username, autocomplete='off') }}
+  {{ text(form.email, type='email', autocomplete='off') }}
+  {{ text(form.display_name, placeholder='Optional') }}
+  {{ select(form.role) }}
+  {{ text(form.password, type='password', autocomplete='new-password') }}
+  {{ check(form.is_active) }}
+  <div class="pt-2">{{ submit(form.submit) }}</div>
+</form>
+{% endblock %}

@@ -6,8 +6,8 @@ from flask import Blueprint, abort, jsonify, render_template, request
 from sqlalchemy import or_
 
 from extensions import csrf, db
-from models import Ad, Article, Category, MediaItem, NotifySignup
-from utils import detect_embed
+from models import Ad, Article, Category, MediaItem, NotifySignup, Tag
+from utils import detect_embed, reading_time_minutes
 
 bp = Blueprint("public", __name__)
 
@@ -67,6 +67,22 @@ def _embed_filter(url):
     return detect_embed(url)
 
 
+@bp.app_template_filter("reading_time")
+def _reading_time_filter(text):
+    return reading_time_minutes(text)
+
+
+def _popular_articles(limit: int = 5, exclude_id: int | None = None):
+    q = Article.query.filter_by(status=Article.STATUS_PUBLISHED)
+    if exclude_id:
+        q = q.filter(Article.id != exclude_id)
+    return (
+        q.order_by(Article.view_count.desc(), Article.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+
 @bp.route("/")
 def home():
     featured = _featured_articles(limit=3)
@@ -93,12 +109,21 @@ def news_list():
         q = q.filter_by(category_id=active_category.id)
     q = q.order_by(Article.published_at.desc().nullslast(), Article.created_at.desc())
     pagination = _paginate(q, page)
+    popular_tags = (
+        Tag.query.join(Tag.articles)
+        .filter(Article.status == Article.STATUS_PUBLISHED)
+        .group_by(Tag.id)
+        .order_by(db.func.count(Article.id).desc())
+        .limit(12)
+        .all()
+    )
     return render_template(
         "news_list.html",
         pagination=pagination,
         articles=pagination.items,
         categories=_categories(kind="news"),
         active_category=active_category,
+        popular_tags=popular_tags,
     )
 
 
@@ -109,17 +134,50 @@ def article_detail(slug: str):
         abort(404)
     article.view_count = (article.view_count or 0) + 1
     db.session.commit()
-    related = (
+    related_q = Article.query.filter(
+        Article.id != article.id,
+        Article.status == Article.STATUS_PUBLISHED,
+    )
+    if article.category_id:
+        related_q = related_q.filter(Article.category_id == article.category_id)
+    related = related_q.order_by(Article.created_at.desc()).limit(3).all()
+
+    more_by_author = (
         Article.query.filter(
             Article.id != article.id,
             Article.status == Article.STATUS_PUBLISHED,
-            Article.category_id == article.category_id,
+            Article.author_id == article.author_id,
         )
         .order_by(Article.created_at.desc())
-        .limit(3)
+        .limit(4)
         .all()
     )
-    return render_template("article_detail.html", article=article, related=related)
+    popular = _popular_articles(limit=5, exclude_id=article.id)
+    return render_template(
+        "article_detail.html",
+        article=article,
+        related=related,
+        more_by_author=more_by_author,
+        popular=popular,
+    )
+
+
+@bp.route("/tag/<slug>")
+def tag_detail(slug: str):
+    tag = Tag.query.filter_by(slug=slug).first_or_404()
+    page = request.args.get("page", 1, type=int)
+    q = (
+        Article.query.filter(Article.status == Article.STATUS_PUBLISHED)
+        .filter(Article.tags.any(Tag.id == tag.id))
+        .order_by(Article.published_at.desc().nullslast(), Article.created_at.desc())
+    )
+    pagination = _paginate(q, page)
+    return render_template(
+        "tag.html",
+        tag=tag,
+        pagination=pagination,
+        articles=pagination.items,
+    )
 
 
 @bp.route("/videos")
