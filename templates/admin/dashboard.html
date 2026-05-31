@@ -15,9 +15,9 @@
 </div>
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-  {% set tiles = [('articles','Articles','admin.articles'),('videos','Videos','admin.media_list'),('audio','Audio','admin.media_list'),('ads','Ads','admin.ads_list')] %}
+  {% set tiles = [('articles','Articles','admin.articles'),('videos','Videos','admin.media_list'),('ads','Ads','admin.ads_list')] %}
   {% for key, label, endpoint in tiles %}
-    <a href="{{ url_for(endpoint) }}" class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 transition hover:border-slate-700">
+    <a href="{{ url_for(endpoint) }}" class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 transition hover:border-slate-700 hover:bg-slate-900/40">
       <p class="text-xs uppercase tracking-[0.18em] text-slate-500">{{ label }}</p>
       <p class="mt-1 text-3xl font-semibold text-white">{{ counts[key] }}</p>
     </a>

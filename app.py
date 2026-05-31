@@ -48,6 +48,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     def inject_site() -> dict:
         return {
             "SITE_NAME": app.config["SITE_NAME"],
+            "SITE_SLOGAN": app.config["SITE_SLOGAN"],
             "SITE_TAGLINE": app.config["SITE_TAGLINE"],
             "SITE_REGION": app.config["SITE_REGION"],
             "ALLOW_REGISTRATION": app.config["ALLOW_REGISTRATION"],

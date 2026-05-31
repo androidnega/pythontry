@@ -76,7 +76,6 @@ def dashboard():
     counts = {
         "articles": _scope(Article).count(),
         "videos": _scope(MediaItem).filter_by(kind=MediaItem.KIND_VIDEO).count(),
-        "audio": _scope(MediaItem).filter_by(kind=MediaItem.KIND_AUDIO).count(),
         "ads": _scope(Ad).count(),
     }
     recent_articles = (

@@ -122,7 +122,8 @@ class MediaForm(FlaskForm):
     description = TextAreaField("Description", validators=[Optional()])
     kind = SelectField(
         "Type",
-        choices=[("video", "Video"), ("audio", "Audio")],
+        choices=[("video", "Video")],
+        default="video",
         validators=[DataRequired()],
     )
     source_type = SelectField(

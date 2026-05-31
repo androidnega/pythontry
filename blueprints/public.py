@@ -77,7 +77,6 @@ def home():
         featured=featured,
         latest=latest,
         videos=_latest_media(kind=MediaItem.KIND_VIDEO, limit=4),
-        audios=_latest_media(kind=MediaItem.KIND_AUDIO, limit=3),
         ads=_latest_ads(limit=4),
         categories=_categories(kind="news"),
     )

@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
   <meta name="description" content="{% block description %}{{ SITE_TAGLINE }}{% endblock %}" />
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo.png') }}" />
+  <meta property="og:title" content="{{ SITE_NAME }} — {{ SITE_SLOGAN }}" />
+  <meta property="og:description" content="{{ SITE_TAGLINE }}" />
+  <meta property="og:image" content="{{ url_for('static', filename='img/logo.png', _external=True) }}" />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#020617" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,9 +54,9 @@
 <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-[#020617]/85 backdrop-blur">
   <div class="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
     <a href="{{ url_for('public.home') }}" class="flex items-center gap-2.5 shrink-0">
-      <span class="grid h-9 w-9 place-items-center rounded-md bg-gradient-to-br from-sky-500 to-indigo-500 text-sm font-bold text-white shadow-md shadow-sky-900/40">AP</span>
-      <span class="hidden sm:block">
-        <span class="block text-base font-semibold leading-tight">{{ SITE_NAME }}</span>
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="{{ SITE_NAME }} logo" class="h-10 w-10 object-contain drop-shadow-[0_0_18px_rgba(56,189,248,0.18)]" />
+      <span class="hidden sm:block leading-tight">
+        <span class="block text-base font-semibold">{{ SITE_NAME }}</span>
         <span class="block text-[10px] uppercase tracking-[0.18em] text-sky-400/80">{{ SITE_REGION }}</span>
       </span>
     </a>
@@ -58,7 +65,6 @@
       <a href="{{ url_for('public.home') }}" class="nav-link hover:text-white {% if ep == 'public.home' %}active text-white{% endif %}">Home</a>
       <a href="{{ url_for('public.news_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.news') or ep == 'public.article_detail' %}active text-white{% endif %}">News</a>
       <a href="{{ url_for('public.videos_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.video') %}active text-white{% endif %}">Videos</a>
-      <a href="{{ url_for('public.audio_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.audio') %}active text-white{% endif %}">Audio</a>
       <a href="{{ url_for('public.ads_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.ad') %}active text-white{% endif %}">Marketplace</a>
       <a href="{{ url_for('public.about') }}" class="nav-link hover:text-white {% if ep == 'public.about' %}active text-white{% endif %}">About</a>
     </nav>
@@ -94,7 +100,6 @@
       <a href="{{ url_for('public.home') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Home</a>
       <a href="{{ url_for('public.news_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">News</a>
       <a href="{{ url_for('public.videos_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Videos</a>
-      <a href="{{ url_for('public.audio_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Audio</a>
       <a href="{{ url_for('public.ads_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Marketplace</a>
       <a href="{{ url_for('public.about') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">About</a>
       {% if current_user.is_authenticated %}
@@ -129,10 +134,11 @@
   <div class="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4 sm:px-6">
     <div>
       <div class="flex items-center gap-2.5">
-        <span class="grid h-9 w-9 place-items-center rounded-md bg-gradient-to-br from-sky-500 to-indigo-500 text-sm font-bold text-white">AP</span>
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="" class="h-10 w-10 object-contain" />
         <span class="text-base font-semibold">{{ SITE_NAME }}</span>
       </div>
-      <p class="mt-3 text-sm text-slate-400">{{ SITE_TAGLINE }}.</p>
+      <p class="mt-3 text-sm italic text-sky-300/90">&ldquo;{{ SITE_SLOGAN }}&rdquo;</p>
+      <p class="mt-2 text-sm text-slate-400">{{ SITE_TAGLINE }}</p>
       <p class="mt-1 text-xs text-slate-500">{{ SITE_REGION }}</p>
     </div>
     <div>
@@ -140,8 +146,8 @@
       <ul class="mt-3 space-y-1.5 text-sm text-slate-300">
         <li><a href="{{ url_for('public.news_list') }}" class="hover:text-white">Latest news</a></li>
         <li><a href="{{ url_for('public.videos_list') }}" class="hover:text-white">Videos</a></li>
-        <li><a href="{{ url_for('public.audio_list') }}" class="hover:text-white">Audio</a></li>
         <li><a href="{{ url_for('public.ads_list') }}" class="hover:text-white">Marketplace</a></li>
+        <li><a href="{{ url_for('public.search') }}" class="hover:text-white">Search</a></li>
       </ul>
     </div>
     <div>

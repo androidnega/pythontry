@@ -39,8 +39,10 @@ class Config:
     ALLOWED_VIDEO_EXT = {"mp4", "webm", "mov", "m4v"}
 
     SITE_NAME = os.environ.get("SITE_NAME", "AhantaPulse")
+    SITE_SLOGAN = os.environ.get("SITE_SLOGAN", "Your heartbeat, our community.")
     SITE_TAGLINE = os.environ.get(
-        "SITE_TAGLINE", "News, voices and stories from the Ahanta"
+        "SITE_TAGLINE",
+        "News, stories and videos from the Ahanta — plus a community marketplace.",
     )
     SITE_REGION = os.environ.get("SITE_REGION", "Ahanta, Ghana")
     CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "")
