@@ -39,7 +39,7 @@ def _safe_next(target: str | None) -> str | None:
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("public.home"))
+        return redirect(url_for("admin.dashboard"))
     form = LoginForm()
     if form.validate_on_submit():
         ident = form.identifier.data.strip()
@@ -53,7 +53,7 @@ def login():
         else:
             login_user(user, remember=bool(form.remember.data))
             flash(f"Welcome back, {user.name}.", "success")
-            return redirect(_safe_next(request.args.get("next")) or url_for("public.home"))
+            return redirect(_safe_next(request.args.get("next")) or url_for("admin.dashboard"))
     return render_template("auth/login.html", form=form)
 
 

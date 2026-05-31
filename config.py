@@ -56,7 +56,7 @@ class Config:
     SITE_REGION = os.environ.get("SITE_REGION", "Ahanta, Ghana")
     CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "")
 
-    ALLOW_REGISTRATION = _as_bool(os.environ.get("ALLOW_REGISTRATION"), True)
+    ALLOW_REGISTRATION = _as_bool(os.environ.get("ALLOW_REGISTRATION"), False)
 
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
     ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@ahantapulse.online")
