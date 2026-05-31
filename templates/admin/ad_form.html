@@ -4,13 +4,13 @@
 
 {% block admin_content %}
 <div class="mb-4 flex items-end justify-between">
-  <h1 class="font-serif-news text-2xl font-semibold text-white">{% if ad and ad.id %}Edit{% else %}Post{% endif %} ad</h1>
-  <a href="{{ url_for('admin.ads_list') }}" class="text-sm text-slate-400 hover:text-white">&larr; Back to list</a>
+  <h1 class="font-serif-news text-2xl font-semibold text-fg">{% if ad and ad.id %}Edit{% else %}Post{% endif %} ad</h1>
+  <a href="{{ url_for('admin.ads_list') }}" class="text-sm text-muted hover:text-fg">&larr; Back to list</a>
 </div>
 
 <form method="post" enctype="multipart/form-data" class="grid gap-6 lg:grid-cols-[1fr,300px]">
   {{ form.hidden_tag() }}
-  <div class="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+  <div class="space-y-4 rounded-xl border border-app bg-surface p-5">
     {{ text(form.title, placeholder='What are you selling?') }}
     {{ textarea(form.description, rows=8, placeholder='Describe the product or service (Markdown supported)') }}
     <div class="grid gap-4 sm:grid-cols-3">
@@ -26,20 +26,20 @@
     {{ text(form.external_url, placeholder='Optional link to product page') }}
   </div>
   <aside class="space-y-4">
-    <div class="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+    <div class="space-y-4 rounded-xl border border-app bg-surface p-5">
       {{ select(form.status) }}
       {{ select(form.category_id) }}
       {{ check(form.is_featured) }}
     </div>
-    <div class="space-y-3 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
-      <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Image</p>
+    <div class="space-y-3 rounded-xl border border-app bg-surface p-5">
+      <p class="text-xs uppercase tracking-[0.16em] text-subtle">Image</p>
       {% if ad and ad.image_path %}
-        <img src="{{ url_for('static', filename=ad.image_path) }}" alt="" class="w-full rounded-md border border-slate-800" />
+        <img src="{{ url_for('static', filename=ad.image_path) }}" alt="" class="w-full rounded-md border border-app" />
         {{ check(form.remove_image) }}
       {% endif %}
       {{ fileinput(form.image) }}
     </div>
-    <div class="flex items-center justify-between rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+    <div class="flex items-center justify-between rounded-xl border border-app bg-surface p-5">
       {{ submit(form.submit) }}
     </div>
   </aside>

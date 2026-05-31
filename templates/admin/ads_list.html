@@ -3,13 +3,13 @@
 
 {% block admin_content %}
 <div class="mb-4 flex items-end justify-between">
-  <h1 class="font-serif-news text-2xl font-semibold text-white">Ads</h1>
+  <h1 class="font-serif-news text-2xl font-semibold text-fg">Ads</h1>
   <a href="{{ url_for('admin.ad_edit') }}" class="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500">+ New ad</a>
 </div>
 
-<div class="overflow-hidden rounded-xl border border-slate-800/80">
-  <table class="min-w-full divide-y divide-slate-800 bg-slate-950/60 text-sm">
-    <thead class="text-left text-xs uppercase tracking-wider text-slate-500">
+<div class="overflow-hidden rounded-xl border border-app">
+  <table class="min-w-full divide-y divide-slate-800 bg-surface text-sm">
+    <thead class="text-left text-xs uppercase tracking-wider text-subtle">
       <tr>
         <th class="px-4 py-3">Title</th>
         <th class="px-4 py-3 hidden sm:table-cell">Price</th>
@@ -22,22 +22,22 @@
       {% for ad in ads %}
         <tr>
           <td class="px-4 py-3">
-            <div class="font-medium text-white">{{ ad.title }}</div>
-            <div class="text-xs text-slate-500">/{{ ad.slug }}</div>
+            <div class="font-medium text-fg">{{ ad.title }}</div>
+            <div class="text-xs text-subtle">/{{ ad.slug }}</div>
           </td>
-          <td class="px-4 py-3 hidden sm:table-cell text-slate-300">
+          <td class="px-4 py-3 hidden sm:table-cell text-muted">
             {% if ad.price %}{{ ad.currency or 'GHS' }} {{ ad.price }}{% else %}-{% endif %}
           </td>
-          <td class="px-4 py-3 hidden md:table-cell text-slate-400">{{ ad.location or '-' }}</td>
+          <td class="px-4 py-3 hidden md:table-cell text-muted">{{ ad.location or '-' }}</td>
           <td class="px-4 py-3 hidden lg:table-cell">
             <span class="rounded-full px-2 py-0.5 text-xs {% if ad.status == 'published' %}bg-emerald-500/10 text-emerald-300{% else %}bg-amber-500/10 text-amber-300{% endif %}">{{ ad.status }}</span>
           </td>
           <td class="px-4 py-3 text-right">
             <div class="inline-flex items-center gap-1">
               {% if ad.is_published %}
-                <a href="{{ url_for('public.ad_detail', slug=ad.slug) }}" class="rounded-md border border-slate-800 px-2 py-1 text-xs text-slate-200 hover:border-slate-600">View</a>
+                <a href="{{ url_for('public.ad_detail', slug=ad.slug) }}" class="rounded-md border border-app px-2 py-1 text-xs text-fg hover:border-accent">View</a>
               {% endif %}
-              <a href="{{ url_for('admin.ad_edit', ad_id=ad.id) }}" class="rounded-md border border-slate-800 px-2 py-1 text-xs text-slate-200 hover:border-slate-600">Edit</a>
+              <a href="{{ url_for('admin.ad_edit', ad_id=ad.id) }}" class="rounded-md border border-app px-2 py-1 text-xs text-fg hover:border-accent">Edit</a>
               <form method="post" action="{{ url_for('admin.ad_delete', ad_id=ad.id) }}" onsubmit="return confirm('Delete this ad?');" class="inline">
                 {{ delete_form.hidden_tag() }}
                 <button class="rounded-md bg-red-600/80 px-2 py-1 text-xs text-white hover:bg-red-500">Delete</button>
@@ -46,7 +46,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No ads yet.</td></tr>
+        <tr><td colspan="5" class="px-4 py-8 text-center text-subtle">No ads yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

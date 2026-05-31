@@ -3,13 +3,13 @@
 
 {% block admin_content %}
 <div class="mb-4 flex items-end justify-between">
-  <h1 class="font-serif-news text-2xl font-semibold text-white">Categories</h1>
+  <h1 class="font-serif-news text-2xl font-semibold text-fg">Categories</h1>
   <a href="{{ url_for('admin.category_edit') }}" class="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500">+ New category</a>
 </div>
 
-<div class="overflow-hidden rounded-xl border border-slate-800/80">
-  <table class="min-w-full divide-y divide-slate-800 bg-slate-950/60 text-sm">
-    <thead class="text-left text-xs uppercase tracking-wider text-slate-500">
+<div class="overflow-hidden rounded-xl border border-app">
+  <table class="min-w-full divide-y divide-slate-800 bg-surface text-sm">
+    <thead class="text-left text-xs uppercase tracking-wider text-subtle">
       <tr>
         <th class="px-4 py-3">Name</th>
         <th class="px-4 py-3 hidden sm:table-cell">Slug</th>
@@ -20,12 +20,12 @@
     <tbody class="divide-y divide-slate-800/80">
       {% for c in categories %}
         <tr>
-          <td class="px-4 py-3 text-white">{{ c.name }}{% if c.description %}<span class="ml-2 text-xs text-slate-500">{{ c.description }}</span>{% endif %}</td>
-          <td class="px-4 py-3 hidden sm:table-cell text-slate-400">{{ c.slug }}</td>
-          <td class="px-4 py-3 hidden md:table-cell text-slate-400">{{ c.kind }}</td>
+          <td class="px-4 py-3 text-fg">{{ c.name }}{% if c.description %}<span class="ml-2 text-xs text-subtle">{{ c.description }}</span>{% endif %}</td>
+          <td class="px-4 py-3 hidden sm:table-cell text-muted">{{ c.slug }}</td>
+          <td class="px-4 py-3 hidden md:table-cell text-muted">{{ c.kind }}</td>
           <td class="px-4 py-3 text-right">
             <div class="inline-flex items-center gap-1">
-              <a href="{{ url_for('admin.category_edit', category_id=c.id) }}" class="rounded-md border border-slate-800 px-2 py-1 text-xs text-slate-200 hover:border-slate-600">Edit</a>
+              <a href="{{ url_for('admin.category_edit', category_id=c.id) }}" class="rounded-md border border-app px-2 py-1 text-xs text-fg hover:border-accent">Edit</a>
               <form method="post" action="{{ url_for('admin.category_delete', category_id=c.id) }}" onsubmit="return confirm('Delete category?');" class="inline">
                 {{ delete_form.hidden_tag() }}
                 <button class="rounded-md bg-red-600/80 px-2 py-1 text-xs text-white hover:bg-red-500">Delete</button>
@@ -34,7 +34,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">No categories yet.</td></tr>
+        <tr><td colspan="4" class="px-4 py-8 text-center text-subtle">No categories yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -7,18 +7,18 @@
   <span class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
   </span>
-  <h1 class="font-serif-news mt-5 text-3xl font-semibold text-white">Payment received</h1>
-  <p class="mt-2 text-slate-400">Thanks for buying <span class="text-slate-200">{{ portrait.title }}</span>. Your high-resolution download is ready below.</p>
+  <h1 class="font-serif-news mt-5 text-3xl font-semibold text-fg">Payment received</h1>
+  <p class="mt-2 text-muted">Thanks for buying <span class="text-fg">{{ portrait.title }}</span>. Your high-resolution download is ready below.</p>
 
-  <div class="mt-8 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-6 text-left">
+  <div class="mt-8 rounded-2xl border border-app bg-surface p-6 text-left">
     <div class="flex items-center gap-4">
       {% if portrait.preview_path %}
         <img src="{{ url_for('static', filename=portrait.preview_path) }}" alt="" class="h-24 w-24 rounded-lg object-cover" />
       {% endif %}
       <div class="min-w-0">
-        <h2 class="text-lg font-semibold leading-tight text-white">{{ portrait.title }}</h2>
-        <p class="text-sm text-slate-400">{{ portrait.width }} × {{ portrait.height }} px &middot; {{ portrait.original_filename or 'portrait.jpg' }}</p>
-        <p class="mt-1 text-xs text-slate-500">Order #{{ order.id }} &middot; {{ order.currency }} {{ portrait.price_display }} &middot; Ref {{ order.paystack_reference }}</p>
+        <h2 class="text-lg font-semibold leading-tight text-fg">{{ portrait.title }}</h2>
+        <p class="text-sm text-muted">{{ portrait.width }} × {{ portrait.height }} px &middot; {{ portrait.original_filename or 'portrait.jpg' }}</p>
+        <p class="mt-1 text-xs text-subtle">Order #{{ order.id }} &middot; {{ order.currency }} {{ portrait.price_display }} &middot; Ref {{ order.paystack_reference }}</p>
       </div>
     </div>
     <a href="{{ url_for('public.portrait_download_file', token=order.download_token) }}"
@@ -26,14 +26,14 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Download high-res original
     </a>
-    <div class="mt-4 grid gap-1 text-xs text-slate-500 sm:grid-cols-2">
-      <p>Downloads remaining: <span class="text-slate-300">{{ (order.download_limit or 5) - (order.download_count or 0) }}</span></p>
+    <div class="mt-4 grid gap-1 text-xs text-subtle sm:grid-cols-2">
+      <p>Downloads remaining: <span class="text-muted">{{ (order.download_limit or 5) - (order.download_count or 0) }}</span></p>
       {% if order.token_expires_at %}
-        <p>Link expires: <span class="text-slate-300">{{ order.token_expires_at.strftime('%b %d, %Y %H:%M UTC') }}</span></p>
+        <p>Link expires: <span class="text-muted">{{ order.token_expires_at.strftime('%b %d, %Y %H:%M UTC') }}</span></p>
       {% endif %}
     </div>
   </div>
 
-  <p class="mt-6 text-xs text-slate-500">Bookmark this page — you can come back to download again until the link expires.</p>
+  <p class="mt-6 text-xs text-subtle">Bookmark this page — you can come back to download again until the link expires.</p>
 </div>
 {% endblock %}

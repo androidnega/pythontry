@@ -1,90 +1,111 @@
 {% extends 'base.html' %}
-{% from '_macros.html' import article_card, media_card, ad_card %}
+{% from '_macros.html' import article_card, article_stack_row, media_card, ad_card %}
 
 {% block title %}{{ SITE_NAME }} — {{ SITE_SLOGAN }}{% endblock %}
 {% block description %}{{ SITE_TAGLINE }}{% endblock %}
 
 {% block content %}
 
-<section class="relative overflow-hidden rounded-3xl border border-slate-800/70 bg-gradient-to-br from-slate-900/70 via-slate-950 to-[#020617] px-6 py-10 sm:px-10 sm:py-14">
-  <div aria-hidden="true" class="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl"></div>
-  <div aria-hidden="true" class="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-indigo-500/10 blur-3xl"></div>
-
-  <div class="relative grid items-center gap-10 md:grid-cols-[1.4fr,1fr]">
+{# ============ Hero ============ #}
+<section class="card overflow-hidden">
+  <div class="grid items-center gap-8 p-6 sm:p-10 md:grid-cols-[1.5fr,1fr]">
     <div>
-      <div class="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-950/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300/90">
-        <span class="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400"></span>
+      <span class="chip chip-accent">
+        <span class="inline-block h-1.5 w-1.5 rounded-full bg-accent"></span>
         {{ SITE_REGION }}
-      </div>
-      <h1 class="font-serif-news mt-4 text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl md:text-6xl">
+      </span>
+      <h1 class="font-serif-news mt-4 text-3xl font-semibold leading-[1.1] tracking-tight sm:text-4xl md:text-5xl">
         Your heartbeat.<br />
-        <span class="bg-gradient-to-r from-sky-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">Our community.</span>
+        <span class="text-accent">Our community.</span>
       </h1>
-      <p class="mt-5 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
+      <p class="mt-4 max-w-xl text-base leading-relaxed text-muted">
         AhantaPulse is your home for news, stories and videos from across the Ahanta —
         and a friendly marketplace where local businesses meet local people.
       </p>
-      <div class="mt-7 flex flex-wrap gap-2.5">
-        <a href="{{ url_for('public.news_list') }}" class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-sky-900/40 transition hover:bg-sky-500">
+      <div class="mt-6 flex flex-wrap gap-2.5">
+        <a href="{{ url_for('public.news_list') }}" class="btn-primary inline-flex items-center gap-2">
           Read the latest
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
-        <a href="{{ url_for('public.videos_list') }}" class="rounded-lg border border-slate-700 bg-slate-950/40 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:text-white">Watch videos</a>
-        <a href="{{ url_for('public.ads_list') }}" class="rounded-lg border border-slate-700 bg-slate-950/40 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:text-white">Marketplace</a>
+        <a href="{{ url_for('public.videos_list') }}" class="btn-secondary">Watch videos</a>
+        <a href="{{ url_for('public.portraits_list') }}" class="btn-secondary">Portraits</a>
       </div>
     </div>
     <div class="relative hidden justify-center md:flex">
-      <div class="absolute inset-0 -m-6 rounded-full bg-gradient-to-br from-sky-500/20 via-transparent to-indigo-500/20 blur-2xl"></div>
       <img src="{{ url_for('static', filename='img/logo.png') }}" alt="{{ SITE_NAME }} mark"
-        class="relative h-56 w-56 object-contain drop-shadow-[0_0_40px_rgba(56,189,248,0.25)]" />
+        class="relative h-44 w-44 object-contain" />
     </div>
   </div>
 </section>
 
 {% set has_content = featured or latest or videos or ads or portraits %}
 
+{# ============ Featured carousel ============ #}
 {% if featured %}
-<section class="mt-12">
-  <div class="mb-4 flex items-end justify-between">
+<section class="mt-12" data-carousel>
+  <div class="mb-4 flex items-end justify-between gap-3">
     <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">Featured</p>
-      <h2 class="font-serif-news mt-1 text-2xl font-semibold text-white sm:text-3xl">Top stories right now</h2>
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Featured</p>
+      <h2 class="font-serif-news mt-1 text-2xl font-semibold sm:text-3xl">Top stories right now</h2>
     </div>
-    <a href="{{ url_for('public.news_list') }}" class="hidden text-sm text-sky-400 hover:text-sky-300 sm:inline">All news &rarr;</a>
+    <div class="flex items-center gap-2">
+      <button type="button" data-carousel-prev class="btn-secondary !p-2" aria-label="Previous slide">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button type="button" data-carousel-next class="btn-secondary !p-2" aria-label="Next slide">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
   </div>
-  <div class="grid gap-6 lg:grid-cols-3">
+
+  <div class="carousel -mx-4 px-4 sm:mx-0 sm:px-0">
     {% for a in featured %}
-      <div class="{% if loop.first %}lg:col-span-2{% endif %}">
-        {{ article_card(a, size='lg' if loop.first else 'md') }}
-      </div>
+      <div class="carousel-item w-[88%] sm:w-[60%] lg:w-[44%]">{{ article_card(a, size='lg') }}</div>
     {% endfor %}
   </div>
+  <div data-carousel-dots class="mt-4 flex justify-center gap-2"></div>
 </section>
 {% endif %}
 
+{# ============ Latest news (grid) + Popular sidebar (stack) ============ #}
 {% if latest %}
-<section class="mt-14">
-  <div class="mb-4 flex items-end justify-between">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">Fresh today</p>
-      <h2 class="font-serif-news mt-1 text-2xl font-semibold text-white sm:text-3xl">Latest news</h2>
+<section class="mt-14 grid gap-8 lg:grid-cols-[1fr,300px]">
+  <div>
+    <div class="mb-4 flex items-end justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Fresh today</p>
+        <h2 class="font-serif-news mt-1 text-2xl font-semibold sm:text-3xl">Latest news</h2>
+      </div>
+      <a href="{{ url_for('public.news_list') }}" class="text-sm text-accent hover:text-accent-strong">All news &rarr;</a>
     </div>
-    <a href="{{ url_for('public.news_list') }}" class="text-sm text-sky-400 hover:text-sky-300">All news &rarr;</a>
+    <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+      {% for a in latest %}{{ article_card(a) }}{% endfor %}
+    </div>
   </div>
-  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-    {% for a in latest %}{{ article_card(a) }}{% endfor %}
-  </div>
+
+  <aside class="lg:sticky lg:top-20 lg:self-start">
+    <div class="card p-4">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-subtle">Also worth reading</p>
+      <div class="mt-3 space-y-2">
+        {% for a in latest[:6] %}
+          {{ article_stack_row(a) }}
+        {% endfor %}
+      </div>
+      <a href="{{ url_for('public.news_list') }}" class="mt-3 block text-center text-sm text-accent hover:text-accent-strong">More stories &rarr;</a>
+    </div>
+  </aside>
 </section>
 {% endif %}
 
+{# ============ Videos (column) ============ #}
 {% if videos %}
 <section class="mt-14">
   <div class="mb-4 flex items-end justify-between">
     <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">Watch</p>
-      <h2 class="font-serif-news mt-1 text-2xl font-semibold text-white sm:text-3xl">Videos from the community</h2>
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Watch</p>
+      <h2 class="font-serif-news mt-1 text-2xl font-semibold sm:text-3xl">Videos from the community</h2>
     </div>
-    <a href="{{ url_for('public.videos_list') }}" class="text-sm text-sky-400 hover:text-sky-300">All videos &rarr;</a>
+    <a href="{{ url_for('public.videos_list') }}" class="text-sm text-accent hover:text-accent-strong">All videos &rarr;</a>
   </div>
   <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
     {% for v in videos %}{{ media_card(v) }}{% endfor %}
@@ -92,14 +113,15 @@
 </section>
 {% endif %}
 
+{# ============ Marketplace ============ #}
 {% if ads %}
 <section class="mt-14">
   <div class="mb-4 flex items-end justify-between">
     <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">Marketplace</p>
-      <h2 class="font-serif-news mt-1 text-2xl font-semibold text-white sm:text-3xl">Local products &amp; services</h2>
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Marketplace</p>
+      <h2 class="font-serif-news mt-1 text-2xl font-semibold sm:text-3xl">Local products &amp; services</h2>
     </div>
-    <a href="{{ url_for('public.ads_list') }}" class="text-sm text-sky-400 hover:text-sky-300">All listings &rarr;</a>
+    <a href="{{ url_for('public.ads_list') }}" class="text-sm text-accent hover:text-accent-strong">All listings &rarr;</a>
   </div>
   <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
     {% for ad in ads %}{{ ad_card(ad) }}{% endfor %}
@@ -107,28 +129,29 @@
 </section>
 {% endif %}
 
+{# ============ Portraits ============ #}
 {% if portraits %}
 <section class="mt-14">
   <div class="mb-4 flex items-end justify-between">
     <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">Portraits</p>
-      <h2 class="font-serif-news mt-1 text-2xl font-semibold text-white sm:text-3xl">Buy original photography</h2>
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Portraits</p>
+      <h2 class="font-serif-news mt-1 text-2xl font-semibold sm:text-3xl">Buy original photography</h2>
     </div>
-    <a href="{{ url_for('public.portraits_list') }}" class="text-sm text-sky-400 hover:text-sky-300">All portraits &rarr;</a>
+    <a href="{{ url_for('public.portraits_list') }}" class="text-sm text-accent hover:text-accent-strong">All portraits &rarr;</a>
   </div>
   <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     {% for p in portraits %}
-      <article class="group overflow-hidden rounded-xl border border-slate-800/80 bg-slate-950/60 transition hover:border-slate-700">
-        <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="block aspect-[4/3] overflow-hidden bg-slate-900">
+      <article class="card card-hover group overflow-hidden">
+        <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="block aspect-[4/3] overflow-hidden bg-muted">
           {% if p.preview_path %}
-            <img src="{{ url_for('static', filename=p.preview_path) }}" alt="" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+            <img src="{{ url_for('static', filename=p.preview_path) }}" alt="" class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" loading="lazy" />
           {% endif %}
         </a>
         <div class="flex items-baseline justify-between gap-2 p-4">
-          <h3 class="text-base font-semibold leading-snug text-white">
-            <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="hover:text-sky-300">{{ p.title }}</a>
+          <h3 class="text-base font-semibold leading-snug">
+            <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="text-fg hover:text-accent">{{ p.title }}</a>
           </h3>
-          <span class="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-300">{{ p.currency }} {{ p.price_display }}</span>
+          <span class="chip chip-accent !text-xs shrink-0">{{ p.currency }} {{ p.price_display }}</span>
         </div>
       </article>
     {% endfor %}
@@ -136,22 +159,23 @@
 </section>
 {% endif %}
 
+{# ============ Empty state ============ #}
 {% if not has_content %}
 <section class="mt-14">
-  <div class="rounded-3xl border border-slate-800/70 bg-slate-950/60 p-8 sm:p-12">
+  <div class="card p-8 sm:p-12">
     <div class="mx-auto max-w-3xl text-center">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">Welcome</p>
-      <h2 class="font-serif-news mt-2 text-3xl font-semibold text-white sm:text-4xl">A new home for Ahanta voices</h2>
-      <p class="mt-3 text-base text-slate-400">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Welcome</p>
+      <h2 class="font-serif-news mt-2 text-3xl font-semibold sm:text-4xl">A new home for Ahanta voices</h2>
+      <p class="mt-3 text-base text-muted">
         We just turned the lights on. Stories, videos and listings from our writers
         will appear here as soon as they hit publish.
       </p>
       <div class="mt-6 flex flex-wrap justify-center gap-2.5">
         {% if current_user.is_authenticated %}
-          <a href="{{ url_for('admin.article_edit') }}" class="rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-sky-900/40 hover:bg-sky-500">Publish your first story</a>
-          <a href="{{ url_for('admin.media_edit') }}" class="rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-200 hover:border-slate-500 hover:text-white">Add a video</a>
+          <a href="{{ url_for('admin.article_edit') }}" class="btn-primary">Publish your first story</a>
+          <a href="{{ url_for('admin.media_edit') }}" class="btn-secondary">Add a video</a>
         {% else %}
-          <a href="{{ url_for('auth.login') }}" class="rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-sky-900/40 hover:bg-sky-500">Sign in to post</a>
+          <a href="{{ url_for('auth.login') }}" class="btn-primary">Sign in to post</a>
         {% endif %}
       </div>
     </div>
@@ -163,12 +187,12 @@
         ('Marketplace', 'Buy and sell locally with phone, WhatsApp and email contacts.', 'M3 7h18M5 7l1 12h12l1-12M9 11v6M15 11v6')
       ] %}
       {% for label, desc, icon in tiles %}
-        <div class="rounded-2xl border border-slate-800/70 bg-slate-900/50 p-5">
-          <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/10 text-sky-300">
+        <div class="card p-5">
+          <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent-soft text-accent">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ icon }}"/></svg>
           </span>
-          <h3 class="mt-3 font-semibold text-white">{{ label }}</h3>
-          <p class="mt-1 text-sm text-slate-400">{{ desc }}</p>
+          <h3 class="mt-3 font-semibold">{{ label }}</h3>
+          <p class="mt-1 text-sm text-muted">{{ desc }}</p>
         </div>
       {% endfor %}
     </div>
@@ -176,18 +200,19 @@
 </section>
 {% endif %}
 
+{# ============ CTA band (no gradients) ============ #}
 {% if has_content %}
-<section class="mt-16 rounded-2xl border border-slate-800/70 bg-gradient-to-br from-sky-500/5 via-slate-950 to-indigo-500/5 p-6 sm:p-8">
+<section class="mt-16 card p-6 sm:p-8">
   <div class="grid items-center gap-6 sm:grid-cols-[1fr,auto]">
     <div>
-      <h2 class="font-serif-news text-xl font-semibold text-white sm:text-2xl">Have a story to share?</h2>
-      <p class="mt-1 text-sm text-slate-400">Writers in the Ahanta can publish news, post videos and list products in minutes.</p>
+      <h2 class="font-serif-news text-xl font-semibold sm:text-2xl">Have a story to share?</h2>
+      <p class="mt-1 text-sm text-muted">Writers in the Ahanta can publish news, post videos and list products in minutes.</p>
     </div>
     <div class="flex flex-wrap gap-2.5">
       {% if current_user.is_authenticated %}
-        <a href="{{ url_for('admin.dashboard') }}" class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500">Open dashboard</a>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn-primary">Open dashboard</a>
       {% else %}
-        <a href="{{ url_for('auth.login') }}" class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500">Sign in</a>
+        <a href="{{ url_for('auth.login') }}" class="btn-primary">Sign in</a>
       {% endif %}
     </div>
   </div>

@@ -3,13 +3,13 @@
 
 {% block admin_content %}
 <div class="mb-4 flex items-end justify-between">
-  <h1 class="font-serif-news text-2xl font-semibold text-white">Orders</h1>
-  <p class="text-sm text-slate-500">Showing last 200 orders</p>
+  <h1 class="font-serif-news text-2xl font-semibold text-fg">Orders</h1>
+  <p class="text-sm text-subtle">Showing last 200 orders</p>
 </div>
 
-<div class="overflow-hidden rounded-xl border border-slate-800/80">
-  <table class="min-w-full divide-y divide-slate-800 bg-slate-950/60 text-sm">
-    <thead class="text-left text-xs uppercase tracking-wider text-slate-500">
+<div class="overflow-hidden rounded-xl border border-app">
+  <table class="min-w-full divide-y divide-slate-800 bg-surface text-sm">
+    <thead class="text-left text-xs uppercase tracking-wider text-subtle">
       <tr>
         <th class="px-4 py-3">Reference</th>
         <th class="px-4 py-3 hidden sm:table-cell">Portrait</th>
@@ -22,22 +22,22 @@
     <tbody class="divide-y divide-slate-800/80">
       {% for o in orders %}
         <tr>
-          <td class="px-4 py-3 font-mono text-xs text-slate-300">{{ o.paystack_reference }}</td>
-          <td class="px-4 py-3 hidden sm:table-cell text-slate-200">
+          <td class="px-4 py-3 font-mono text-xs text-muted">{{ o.paystack_reference }}</td>
+          <td class="px-4 py-3 hidden sm:table-cell text-fg">
             {% if o.portrait %}
-              <a href="{{ url_for('public.portrait_detail', slug=o.portrait.slug) }}" class="hover:text-sky-300">{{ o.portrait.title }}</a>
+              <a href="{{ url_for('public.portrait_detail', slug=o.portrait.slug) }}" class="hover:text-accent">{{ o.portrait.title }}</a>
             {% else %}—{% endif %}
           </td>
-          <td class="px-4 py-3 hidden md:table-cell text-slate-400">{{ o.buyer_email }}</td>
-          <td class="px-4 py-3 text-slate-200">{{ o.currency }} {{ '%.2f' % (o.amount_pesewas / 100) }}</td>
+          <td class="px-4 py-3 hidden md:table-cell text-muted">{{ o.buyer_email }}</td>
+          <td class="px-4 py-3 text-fg">{{ o.currency }} {{ '%.2f' % (o.amount_pesewas / 100) }}</td>
           <td class="px-4 py-3">
-            {% set classes = {'paid':'bg-emerald-500/10 text-emerald-300','pending':'bg-amber-500/10 text-amber-300','failed':'bg-red-500/10 text-red-300','abandoned':'bg-slate-800 text-slate-300'}.get(o.status, 'bg-slate-800 text-slate-300') %}
+            {% set classes = {'paid':'bg-emerald-500/10 text-emerald-300','pending':'bg-amber-500/10 text-amber-300','failed':'bg-red-500/10 text-red-300','abandoned':'bg-muted text-muted'}.get(o.status, 'bg-muted text-muted') %}
             <span class="rounded-full px-2 py-0.5 text-xs {{ classes }}">{{ o.status }}</span>
           </td>
-          <td class="px-4 py-3 hidden lg:table-cell text-slate-500">{{ o.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+          <td class="px-4 py-3 hidden lg:table-cell text-subtle">{{ o.created_at.strftime('%b %d, %Y %H:%M') }}</td>
         </tr>
       {% else %}
-        <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No orders yet.</td></tr>
+        <tr><td colspan="6" class="px-4 py-8 text-center text-subtle">No orders yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

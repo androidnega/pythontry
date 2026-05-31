@@ -4,10 +4,10 @@
 
 {% block content %}
 <div class="mx-auto max-w-md py-8">
-  <h1 class="font-serif-news text-3xl font-semibold text-white">Create an account</h1>
-  <p class="mt-1 text-sm text-slate-400">Writers can publish news, videos, audio and ads.</p>
+  <h1 class="font-serif-news text-3xl font-semibold text-fg">Create an account</h1>
+  <p class="mt-1 text-sm text-muted">Writers can publish news, videos, audio and ads.</p>
 
-  <form method="post" class="mt-6 space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+  <form method="post" class="mt-6 space-y-4 rounded-xl border border-app bg-surface p-5">
     {{ form.hidden_tag() }}
     {{ text(form.username, autocomplete='username') }}
     {{ text(form.email, type='email', autocomplete='email') }}
@@ -16,7 +16,7 @@
     {{ text(form.confirm, type='password', autocomplete='new-password') }}
     <div class="flex items-center justify-between pt-2">
       {{ submit(form.submit) }}
-      <a href="{{ url_for('auth.login') }}" class="text-sm text-sky-400 hover:text-sky-300">Already a member?</a>
+      <a href="{{ url_for('auth.login') }}" class="text-sm text-accent hover:text-accent">Already a member?</a>
     </div>
   </form>
 </div>

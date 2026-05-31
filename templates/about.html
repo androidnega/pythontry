@@ -5,10 +5,10 @@
 {% block content %}
 <section class="mx-auto max-w-3xl text-center">
   <img src="{{ url_for('static', filename='img/logo.png') }}" alt="" class="mx-auto h-24 w-24 object-contain drop-shadow-[0_0_40px_rgba(56,189,248,0.25)]" />
-  <p class="mt-5 text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">About</p>
-  <h1 class="font-serif-news mt-2 text-3xl font-semibold text-white sm:text-4xl">{{ SITE_NAME }}</h1>
-  <p class="mt-2 text-base italic text-sky-300/90">&ldquo;{{ SITE_SLOGAN }}&rdquo;</p>
-  <p class="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-300">
+  <p class="mt-5 text-xs font-semibold uppercase tracking-[0.22em] text-accent">About</p>
+  <h1 class="font-serif-news mt-2 text-3xl font-semibold text-fg sm:text-4xl">{{ SITE_NAME }}</h1>
+  <p class="mt-2 text-base italic text-accent">&ldquo;{{ SITE_SLOGAN }}&rdquo;</p>
+  <p class="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted">
     AhantaPulse is a community-first news portal for the Ahanta region of Ghana.
     Our mission is simple: amplify local voices, share what matters here at home,
     and connect people with the businesses, events and stories that shape daily life.
@@ -22,19 +22,19 @@
     ('Marketplace', 'A friendly local marketplace for products, services and small businesses.', 'M3 7h18M5 7l1 12h12l1-12M9 11v6M15 11v6')
   ] %}
   {% for label, desc, icon in tiles %}
-    <div class="rounded-2xl border border-slate-800/70 bg-slate-950/50 p-5">
-      <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/10 text-sky-300">
+    <div class="rounded-2xl border border-app/70 bg-surface p-5">
+      <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent-soft text-accent">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ icon }}"/></svg>
       </span>
-      <h3 class="mt-3 font-semibold text-white">{{ label }}</h3>
-      <p class="mt-1 text-sm text-slate-400">{{ desc }}</p>
+      <h3 class="mt-3 font-semibold text-fg">{{ label }}</h3>
+      <p class="mt-1 text-sm text-muted">{{ desc }}</p>
     </div>
   {% endfor %}
 </section>
 
-<section class="mx-auto mt-12 max-w-3xl rounded-2xl border border-slate-800/70 bg-slate-950/50 p-6 sm:p-8">
-  <h2 class="font-serif-news text-2xl font-semibold text-white">Want to contribute?</h2>
-  <p class="mt-2 text-slate-400">
+<section class="mx-auto mt-12 max-w-3xl rounded-2xl border border-app/70 bg-surface p-6 sm:p-8">
+  <h2 class="font-serif-news text-2xl font-semibold text-fg">Want to contribute?</h2>
+  <p class="mt-2 text-muted">
     Writers and creators in the Ahanta are welcome. Register a free account to
     publish your own articles, share videos from your channel, or list a product
     on the marketplace.
@@ -46,7 +46,7 @@
       {% if ALLOW_REGISTRATION %}
         <a href="{{ url_for('auth.register') }}" class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500">Create an account</a>
       {% endif %}
-      <a href="{{ url_for('auth.login') }}" class="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-500 hover:text-white">Sign in</a>
+      <a href="{{ url_for('auth.login') }}" class="rounded-lg border border-app px-4 py-2 text-sm font-medium text-fg hover:border-accent hover:text-fg">Sign in</a>
     {% endif %}
   </div>
 </section>

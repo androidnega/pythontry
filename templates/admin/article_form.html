@@ -4,36 +4,36 @@
 
 {% block admin_content %}
 <div class="mb-4 flex items-end justify-between">
-  <h1 class="font-serif-news text-2xl font-semibold text-white">{% if article and article.id %}Edit article{% else %}New article{% endif %}</h1>
-  <a href="{{ url_for('admin.articles') }}" class="text-sm text-slate-400 hover:text-white">&larr; Back to list</a>
+  <h1 class="font-serif-news text-2xl font-semibold text-fg">{% if article and article.id %}Edit article{% else %}New article{% endif %}</h1>
+  <a href="{{ url_for('admin.articles') }}" class="text-sm text-muted hover:text-fg">&larr; Back to list</a>
 </div>
 
 <form method="post" enctype="multipart/form-data" class="grid gap-6 lg:grid-cols-[1fr,300px]">
   {{ form.hidden_tag() }}
-  <div class="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+  <div class="space-y-4 rounded-xl border border-app bg-surface p-5">
     {{ text(form.title, placeholder='Headline') }}
     {{ textarea(form.summary, rows=2, placeholder='One-line summary (shown in lists and previews)') }}
     {{ textarea(form.body, rows=18, placeholder='Write in Markdown. Use ## for sub-headings, **bold**, _italic_, [link](url)...') }}
   </div>
   <aside class="space-y-4">
-    <div class="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+    <div class="space-y-4 rounded-xl border border-app bg-surface p-5">
       {{ select(form.status) }}
       {{ select(form.category_id) }}
       {{ text(form.tags, placeholder='politics, takoradi, fishing') }}
-      <p class="-mt-2 text-[11px] text-slate-500">Separate tags with commas. Used for browsing and discovery.</p>
+      <p class="-mt-2 text-[11px] text-subtle">Separate tags with commas. Used for browsing and discovery.</p>
       {{ check(form.is_featured) }}
     </div>
-    <div class="space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+    <div class="space-y-4 rounded-xl border border-app bg-surface p-5">
       {% if article and article.cover_image %}
         <div class="space-y-2">
-          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Current cover</p>
-          <img src="{{ url_for('static', filename=article.cover_image) }}" alt="" class="w-full rounded-md border border-slate-800" />
+          <p class="text-xs uppercase tracking-[0.16em] text-subtle">Current cover</p>
+          <img src="{{ url_for('static', filename=article.cover_image) }}" alt="" class="w-full rounded-md border border-app" />
           {{ check(form.remove_cover) }}
         </div>
       {% endif %}
       {{ fileinput(form.cover) }}
     </div>
-    <div class="flex items-center justify-between rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+    <div class="flex items-center justify-between rounded-xl border border-app bg-surface p-5">
       {{ submit(form.submit) }}
     </div>
   </aside>

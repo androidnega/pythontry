@@ -1,12 +1,12 @@
-{# Reusable WTForms field renderers. Tailwind classes baked in. #}
+{# Reusable WTForms field renderers — theme-aware. #}
 
 {% macro _label(field) %}
-  <label for="{{ field.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{{ field.label.text }}</label>
+  <label for="{{ field.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-muted">{{ field.label.text }}</label>
 {% endmacro %}
 
 {% macro _errors(field) %}
   {% if field.errors %}
-    <ul class="mt-1 space-y-0.5 text-xs text-red-400">
+    <ul class="mt-1 space-y-0.5 text-xs" style="color: var(--danger-text)">
       {% for err in field.errors %}<li>{{ err }}</li>{% endfor %}
     </ul>
   {% endif %}
@@ -15,7 +15,7 @@
 {% macro text(field, type='text', placeholder='', autocomplete=None) %}
   <div>
     {{ _label(field) }}
-    {{ field(class_='w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-600/40', placeholder=placeholder, autocomplete=autocomplete or '', type=type) }}
+    {{ field(class_='input', placeholder=placeholder, autocomplete=autocomplete or '', type=type) }}
     {{ _errors(field) }}
   </div>
 {% endmacro %}
@@ -23,7 +23,7 @@
 {% macro textarea(field, rows=4, placeholder='') %}
   <div>
     {{ _label(field) }}
-    {{ field(class_='w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-600/40', rows=rows, placeholder=placeholder) }}
+    {{ field(class_='input', rows=rows, placeholder=placeholder) }}
     {{ _errors(field) }}
   </div>
 {% endmacro %}
@@ -31,7 +31,7 @@
 {% macro select(field) %}
   <div>
     {{ _label(field) }}
-    {{ field(class_='w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-600/40') }}
+    {{ field(class_='input') }}
     {{ _errors(field) }}
   </div>
 {% endmacro %}
@@ -39,14 +39,14 @@
 {% macro fileinput(field) %}
   <div>
     {{ _label(field) }}
-    {{ field(class_='block w-full text-sm text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-slate-700') }}
+    {{ field(class_='block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-fg hover:file:bg-hover') }}
     {{ _errors(field) }}
   </div>
 {% endmacro %}
 
 {% macro check(field) %}
-  <label class="inline-flex items-center gap-2 text-sm text-slate-200">
-    {{ field(class_='h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-500 focus:ring-sky-600') }}
+  <label class="inline-flex items-center gap-2 text-sm text-fg">
+    {{ field(class_='h-4 w-4 rounded border-app focus:ring-sky-600', style='accent-color: var(--accent);') }}
     <span>{{ field.label.text }}</span>
   </label>
   {{ _errors(field) }}
@@ -54,10 +54,10 @@
 
 {% macro submit(field, variant='primary') %}
   {% if variant == 'primary' %}
-    {{ field(class_='rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500') }}
+    {{ field(class_='btn-primary cursor-pointer') }}
   {% elif variant == 'danger' %}
-    {{ field(class_='rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500') }}
+    {{ field(class_='btn-primary cursor-pointer', style='background-color: var(--danger-text); border-color: var(--danger-text);') }}
   {% else %}
-    {{ field(class_='rounded-md border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 hover:border-slate-500') }}
+    {{ field(class_='btn-secondary cursor-pointer') }}
   {% endif %}
 {% endmacro %}

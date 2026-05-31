@@ -7,14 +7,14 @@
 {% block content %}
 <div class="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.5fr,1fr]">
   <div>
-    <div class="overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950">
+    <div class="overflow-hidden rounded-2xl border border-app bg-page">
       {% if portrait.preview_path %}
         <img src="{{ url_for('static', filename=portrait.preview_path) }}" alt="Watermarked preview of {{ portrait.title }}" class="w-full" />
       {% else %}
-        <div class="flex h-72 items-center justify-center text-slate-700">No preview available</div>
+        <div class="flex h-72 items-center justify-center text-subtle">No preview available</div>
       {% endif %}
     </div>
-    <p class="mt-3 text-xs text-slate-500">
+    <p class="mt-3 text-xs text-subtle">
       The displayed image is a watermarked preview. The high-resolution original
       ({{ portrait.width }} × {{ portrait.height }} px) is delivered as a clean download after payment.
     </p>
@@ -24,18 +24,18 @@
   </div>
 
   <aside class="space-y-4">
-    <div class="rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">Portrait</p>
-      <h1 class="font-serif-news mt-1 text-2xl font-semibold leading-tight text-white sm:text-3xl">{{ portrait.title }}</h1>
+    <div class="rounded-2xl border border-app bg-surface p-5">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Portrait</p>
+      <h1 class="font-serif-news mt-1 text-2xl font-semibold leading-tight text-fg sm:text-3xl">{{ portrait.title }}</h1>
       <p class="mt-4 text-3xl font-semibold text-emerald-300">{{ portrait.currency }} {{ portrait.price_display }}</p>
-      <ul class="mt-4 space-y-2 text-sm text-slate-300">
+      <ul class="mt-4 space-y-2 text-sm text-muted">
         <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-400">&#10003;</span><span>High-resolution {{ portrait.width }} × {{ portrait.height }} px file</span></li>
         <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-400">&#10003;</span><span>Watermark-free after payment</span></li>
         <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-400">&#10003;</span><span>Instant download via secure link</span></li>
         <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-400">&#10003;</span><span>Secure payment via Paystack</span></li>
       </ul>
 
-      <hr class="my-5 border-slate-800" />
+      <hr class="my-5 border-app" />
 
       {% if paystack_ready %}
         <form method="post" action="{{ url_for('public.portrait_buy', slug=portrait.slug) }}" class="space-y-3">
@@ -46,7 +46,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
             Pay with Paystack
           </button>
-          <p class="text-[11px] text-slate-500">By continuing you accept that the download link is valid for {{ config.PORTRAIT_DOWNLOAD_TTL_HOURS }} hours and up to {{ config.PORTRAIT_MAX_DOWNLOADS }} downloads.</p>
+          <p class="text-[11px] text-subtle">By continuing you accept that the download link is valid for {{ config.PORTRAIT_DOWNLOAD_TTL_HOURS }} hours and up to {{ config.PORTRAIT_MAX_DOWNLOADS }} downloads.</p>
         </form>
       {% else %}
         <div class="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-amber-200">
@@ -55,7 +55,7 @@
       {% endif %}
     </div>
 
-    <p class="text-xs text-slate-500">Posted by {{ portrait.author.name if portrait.author else 'Studio' }} &middot; {{ portrait.created_at.strftime('%b %d, %Y') }}</p>
+    <p class="text-xs text-subtle">Posted by {{ portrait.author.name if portrait.author else 'Studio' }} &middot; {{ portrait.created_at.strftime('%b %d, %Y') }}</p>
   </aside>
 </div>
 {% endblock %}

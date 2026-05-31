@@ -4,13 +4,13 @@
 
 {% block admin_content %}
 <div class="mb-4 flex items-end justify-between">
-  <h1 class="font-serif-news text-2xl font-semibold text-white">Edit user</h1>
-  <a href="{{ url_for('admin.users') }}" class="text-sm text-slate-400 hover:text-white">&larr; Back to list</a>
+  <h1 class="font-serif-news text-2xl font-semibold text-fg">Edit user</h1>
+  <a href="{{ url_for('admin.users') }}" class="text-sm text-muted hover:text-fg">&larr; Back to list</a>
 </div>
 
-<form method="post" class="max-w-xl space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+<form method="post" class="max-w-xl space-y-4 rounded-xl border border-app bg-surface p-5">
   {{ form.hidden_tag() }}
-  <p class="text-sm text-slate-400">Editing <span class="text-white">{{ user.username }}</span>. Username can't be changed.</p>
+  <p class="text-sm text-muted">Editing <span class="text-fg">{{ user.username }}</span>. Username can't be changed.</p>
   {{ text(form.display_name) }}
   {{ text(form.email, type='email') }}
   {{ select(form.role) }}
