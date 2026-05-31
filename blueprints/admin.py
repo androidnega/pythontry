@@ -33,7 +33,7 @@ from forms import (
     UserAdminForm,
     UserCreateForm,
 )
-from models import Ad, Article, Category, MediaItem, Order, Portrait, Tag, User
+from models import Ad, Article, Category, MediaItem, Order, Portrait, PortraitImage, Tag, User
 from utils import (
     admin_required,
     ai_configured,
@@ -504,9 +504,61 @@ def portrait_edit(portrait_id: int | None = None):
             db.session.rollback()
             return render_template("admin/portrait_form.html", form=form, portrait=None)
 
+        # Make sure the portrait has an ID before attaching extras
+        db.session.flush()
+
+        # Handle additional uploads (alternate views)
+        extras_files = [f for f in (form.extra_images.data or []) if f and getattr(f, "filename", "")]
+        max_extras = 5
+        existing_extras = len(portrait.extra_images or [])
+        slots_left = max(0, max_extras - existing_extras)
+        if len(extras_files) > slots_left:
+            extras_files = extras_files[:slots_left]
+            flash(
+                f"Only {slots_left} more view(s) can be added (max {max_extras}).",
+                "warning",
+            )
+
+        originals_root = str(current_app.config["ORIGINALS_DIR"])
+        for f in extras_files:
+            try:
+                rel_original, original_filename, width, height = save_original_image(
+                    f, subdir="portraits"
+                )
+            except ValueError as exc:
+                flash(f"Skipped “{f.filename}”: {exc}", "warning")
+                continue
+            src_abs = os.path.join(originals_root, rel_original)
+            try:
+                preview_rel = make_watermarked_preview(
+                    src_abs,
+                    subdir="portraits",
+                    max_width=current_app.config["PORTRAIT_PREVIEW_MAX_WIDTH"],
+                    watermark_text=current_app.config["WATERMARK_TEXT"],
+                )
+            except Exception as exc:
+                delete_original(rel_original)
+                flash(f"Skipped “{f.filename}”: preview generation failed ({exc}).", "warning")
+                continue
+            try:
+                size = os.path.getsize(src_abs)
+            except OSError:
+                size = None
+            extra = PortraitImage(
+                portrait_id=portrait.id,
+                preview_path=preview_rel,
+                original_path=rel_original,
+                original_filename=original_filename,
+                width=width,
+                height=height,
+                file_size_bytes=size,
+                position=(portrait.extra_images[-1].position + 1) if portrait.extra_images else 1,
+            )
+            db.session.add(extra)
+
         db.session.commit()
         flash("Portrait saved.", "success")
-        return redirect(url_for("admin.portraits_list"))
+        return redirect(url_for("admin.portrait_edit", portrait_id=portrait.id))
 
     return render_template("admin/portrait_form.html", form=form, portrait=portrait)
 
@@ -517,12 +569,32 @@ def portrait_delete(portrait_id: int):
     _ensure_can_edit(portrait)
     form = DeleteForm()
     if form.validate_on_submit():
+        for extra in list(portrait.extra_images or []):
+            delete_upload(extra.preview_path)
+            delete_original(extra.original_path)
         delete_upload(portrait.preview_path)
         delete_original(portrait.original_path)
         db.session.delete(portrait)
         db.session.commit()
         flash("Portrait deleted.", "success")
     return redirect(url_for("admin.portraits_list"))
+
+
+@bp.post("/portraits/<int:portrait_id>/images/<int:image_id>/delete")
+def portrait_image_delete(portrait_id: int, image_id: int):
+    portrait = db.session.get(Portrait, portrait_id) or abort(404)
+    _ensure_can_edit(portrait)
+    extra = db.session.get(PortraitImage, image_id) or abort(404)
+    if extra.portrait_id != portrait.id:
+        abort(404)
+    form = DeleteForm()
+    if form.validate_on_submit():
+        delete_upload(extra.preview_path)
+        delete_original(extra.original_path)
+        db.session.delete(extra)
+        db.session.commit()
+        flash("View removed.", "success")
+    return redirect(url_for("admin.portrait_edit", portrait_id=portrait.id))
 
 
 @bp.route("/orders")

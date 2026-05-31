@@ -334,11 +334,21 @@ def portrait_detail(slug: str):
     portrait.view_count = (portrait.view_count or 0) + 1
     db.session.commit()
     form = CheckoutForm()
+    related = (
+        Portrait.query.filter(
+            Portrait.status == Portrait.STATUS_PUBLISHED,
+            Portrait.id != portrait.id,
+        )
+        .order_by(Portrait.is_featured.desc(), Portrait.created_at.desc())
+        .limit(4)
+        .all()
+    )
     return render_template(
         "portrait_detail.html",
         portrait=portrait,
         form=form,
         paystack_ready=paystack_configured(),
+        related_portraits=related,
     )
 
 
@@ -483,21 +493,52 @@ def portrait_download_file(token: str):
         abort(429)  # Too Many
 
     portrait = order.portrait
-    if portrait is None or not portrait.original_path:
+    if portrait is None:
         abort(404)
 
-    abs_path = os.path.join(
-        str(current_app.config["ORIGINALS_DIR"]),
-        portrait.original_path,
-    )
-    if not os.path.isfile(abs_path):
+    originals_root = str(current_app.config["ORIGINALS_DIR"])
+    originals = portrait.all_originals or []
+    files_on_disk: list[tuple[str, str]] = []
+    for item in originals:
+        p = os.path.join(originals_root, item["path"])
+        if os.path.isfile(p):
+            files_on_disk.append((p, item["filename"]))
+
+    if not files_on_disk:
         abort(404)
 
     order.download_count = (order.download_count or 0) + 1
     db.session.commit()
 
-    download_name = portrait.original_filename or os.path.basename(abs_path)
-    return send_file(abs_path, as_attachment=True, download_name=download_name)
+    if len(files_on_disk) == 1:
+        abs_path, name = files_on_disk[0]
+        return send_file(abs_path, as_attachment=True, download_name=name)
+
+    # Multiple originals → stream a single ZIP
+    import io
+    import zipfile
+
+    buf = io.BytesIO()
+    seen_names: set[str] = set()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_STORED) as zf:
+        for idx, (abs_path, name) in enumerate(files_on_disk, start=1):
+            arcname = name or os.path.basename(abs_path)
+            base, ext = os.path.splitext(arcname)
+            unique = arcname
+            n = 1
+            while unique in seen_names:
+                unique = f"{base}-{n}{ext}"
+                n += 1
+            seen_names.add(unique)
+            zf.write(abs_path, arcname=unique)
+    buf.seek(0)
+    zip_name = f"{portrait.slug or 'portrait'}.zip"
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=zip_name,
+        mimetype="application/zip",
+    )
 
 
 @bp.post("/webhooks/paystack")

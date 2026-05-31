@@ -37,6 +37,38 @@
         </div>
       </div>
     {% endif %}
+
+    <div class="mt-6 border-t border-app pt-5">
+      <div class="flex items-end justify-between">
+        <div>
+          <p class="text-sm font-semibold text-fg">Additional views</p>
+          <p class="text-xs text-subtle">Close-ups, alternate angles, behind-the-scenes. Up to 5.</p>
+        </div>
+        {% if portrait and portrait.id %}
+          <p class="text-xs text-muted">{{ (portrait.extra_images|length) }}/5 added</p>
+        {% endif %}
+      </div>
+      {{ fileinput(form.extra_images) }}
+      <p class="-mt-2 text-[11px] text-subtle">Hold ⌘/Ctrl to select multiple files.</p>
+
+      {% if portrait and portrait.extra_images %}
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {% for img in portrait.extra_images %}
+            <div class="overflow-hidden rounded-lg border border-app bg-page">
+              <img src="{{ url_for('static', filename=img.preview_path) }}" alt="" class="aspect-[4/3] w-full object-cover" />
+              <div class="flex items-center justify-between gap-2 p-2 text-[11px] text-muted">
+                <span>{{ img.width }}×{{ img.height }}</span>
+                <form method="post" action="{{ url_for('admin.portrait_image_delete', portrait_id=portrait.id, image_id=img.id) }}"
+                      onsubmit="return confirm('Remove this view?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="rounded px-2 py-1 text-xs font-medium text-rose-400 hover:bg-rose-500/10">Remove</button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
   </div>
   <aside class="space-y-4">
     <div class="space-y-4 rounded-xl border border-app bg-surface p-5">

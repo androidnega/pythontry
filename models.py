@@ -288,6 +288,12 @@ class Portrait(db.Model):
 
     author = db.relationship("User")
     orders = db.relationship("Order", back_populates="portrait", lazy="dynamic")
+    extra_images = db.relationship(
+        "PortraitImage",
+        back_populates="portrait",
+        cascade="all, delete-orphan",
+        order_by="PortraitImage.position, PortraitImage.id",
+    )
 
     @property
     def is_published(self) -> bool:
@@ -298,8 +304,74 @@ class Portrait(db.Model):
         whole, frac = divmod(int(self.price_pesewas or 0), 100)
         return f"{whole}.{frac:02d}"
 
+    @property
+    def aspect_ratio(self) -> str | None:
+        if not self.width or not self.height:
+            return None
+        from math import gcd
+        g = gcd(self.width, self.height)
+        return f"{self.width // g}:{self.height // g}"
+
+    @property
+    def megapixels(self) -> float | None:
+        if not self.width or not self.height:
+            return None
+        return round((self.width * self.height) / 1_000_000, 1)
+
+    @property
+    def all_views(self) -> list[dict]:
+        """All viewable previews (primary + extras). Each item: {preview, label, is_primary}."""
+        items: list[dict] = []
+        if self.preview_path:
+            items.append({"preview": self.preview_path, "label": "Main view", "is_primary": True})
+        for i, img in enumerate(self.extra_images or [], start=2):
+            if img.preview_path:
+                items.append({"preview": img.preview_path, "label": f"View {i}", "is_primary": False})
+        return items
+
+    @property
+    def all_originals(self) -> list[dict]:
+        """Original (non-watermarked) files for delivery after payment."""
+        items: list[dict] = []
+        if self.original_path:
+            items.append({"path": self.original_path, "filename": self.original_filename or "portrait.jpg"})
+        for i, img in enumerate(self.extra_images or [], start=2):
+            if img.original_path:
+                fn = img.original_filename or f"portrait-view-{i}.jpg"
+                items.append({"path": img.original_path, "filename": fn})
+        return items
+
     def __repr__(self) -> str:
         return f"<Portrait {self.slug!r}>"
+
+
+class PortraitImage(db.Model):
+    """An additional view/angle of a portrait (the primary stays on Portrait).
+
+    Mirrors the Portrait file layout: `original_path` is relative to the app's
+    ORIGINALS_FOLDER (never served publicly); `preview_path` is relative to the
+    static folder and is the watermarked file shown to buyers.
+    """
+
+    __tablename__ = "portrait_images"
+
+    id = db.Column(db.Integer, primary_key=True)
+    portrait_id = db.Column(db.Integer, db.ForeignKey("portraits.id"), nullable=False, index=True)
+
+    preview_path = db.Column(db.String(512))
+    original_path = db.Column(db.String(512))
+    original_filename = db.Column(db.String(255))
+    width = db.Column(db.Integer)
+    height = db.Column(db.Integer)
+    file_size_bytes = db.Column(db.Integer)
+    position = db.Column(db.Integer, default=0, nullable=False)
+
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+    portrait = db.relationship("Portrait", back_populates="extra_images")
+
+    def __repr__(self) -> str:
+        return f"<PortraitImage portrait={self.portrait_id} pos={self.position}>"
 
 
 class Order(db.Model):

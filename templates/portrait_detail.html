@@ -5,57 +5,222 @@
 {% block description %}{{ portrait.description|excerpt(160) if portrait.description }}{% endblock %}
 
 {% block content %}
-<div class="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.5fr,1fr]">
-  <div>
-    <div class="overflow-hidden rounded-2xl border border-app bg-page">
-      {% if portrait.preview_path %}
-        <img src="{{ url_for('static', filename=portrait.preview_path) }}" alt="Watermarked preview of {{ portrait.title }}" class="w-full" />
-      {% else %}
-        <div class="flex h-72 items-center justify-center text-subtle">No preview available</div>
-      {% endif %}
-    </div>
-    <p class="mt-3 text-xs text-subtle">
-      The displayed image is a watermarked preview. The high-resolution original
-      ({{ portrait.width }} × {{ portrait.height }} px) is delivered as a clean download after payment.
-    </p>
-    {% if portrait.description %}
-      <div class="prose-news mt-8">{{ portrait.description|markdown|safe }}</div>
-    {% endif %}
-  </div>
+{% set views = [] %}
+{% for v in portrait.all_views %}
+  {% set _ = views.append({'src': url_for('static', filename=v.preview), 'label': v.label}) %}
+{% endfor %}
+<div class="mx-auto max-w-6xl">
+  <nav class="mb-4 text-xs text-subtle">
+    <a href="{{ url_for('public.portraits_list') }}" class="hover:text-accent">Portraits</a>
+    <span class="mx-1">/</span>
+    <span class="text-fg">{{ portrait.title }}</span>
+  </nav>
 
-  <aside class="space-y-4">
-    <div class="rounded-2xl border border-app bg-surface p-5">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Portrait</p>
-      <h1 class="font-serif-news mt-1 text-2xl font-semibold leading-tight text-fg sm:text-3xl">{{ portrait.title }}</h1>
-      <p class="mt-4 text-3xl font-semibold text-emerald-300">{{ portrait.currency }} {{ portrait.price_display }}</p>
-      <ul class="mt-4 space-y-2 text-sm text-muted">
-        <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-400">&#10003;</span><span>High-resolution {{ portrait.width }} × {{ portrait.height }} px file</span></li>
-        <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-400">&#10003;</span><span>Watermark-free after payment</span></li>
-        <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-400">&#10003;</span><span>Instant download via secure link</span></li>
-        <li class="flex items-start gap-2"><span class="mt-0.5 text-emerald-400">&#10003;</span><span>Secure payment via Paystack</span></li>
-      </ul>
+  <div class="grid gap-8 lg:grid-cols-[1.55fr,1fr]">
+    {# ───── Gallery ───── #}
+    <div data-gallery>
+      <script type="application/json" data-gallery-views>
+        {{ views|tojson }}
+      </script>
 
-      <hr class="my-5 border-app" />
+      <div class="gallery-main" data-gallery-main role="button" tabindex="0"
+           aria-label="Open larger view">
+        {% if views %}
+          <img src="{{ views[0].src }}" alt="Watermarked preview of {{ portrait.title }}" />
+        {% else %}
+          <div class="flex h-full items-center justify-center text-subtle">No preview available</div>
+        {% endif %}
 
-      {% if paystack_ready %}
-        <form method="post" action="{{ url_for('public.portrait_buy', slug=portrait.slug) }}" class="space-y-3">
-          {{ form.hidden_tag() }}
-          {{ text(form.buyer_email, type='email', autocomplete='email', placeholder='you@example.com') }}
-          {{ text(form.buyer_name, autocomplete='name', placeholder='Optional') }}
-          <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 hover:bg-sky-500">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-            Pay with Paystack
+        <span class="gallery-badge" data-gallery-label>{{ views[0].label if views else '' }}</span>
+        <span class="gallery-zoom-hint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          Click to zoom
+        </span>
+
+        {% if views|length > 1 %}
+          <button type="button" class="gallery-nav-btn gallery-nav-prev" data-gallery-prev aria-label="Previous view">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <p class="text-[11px] text-subtle">By continuing you accept that the download link is valid for {{ config.PORTRAIT_DOWNLOAD_TTL_HOURS }} hours and up to {{ config.PORTRAIT_MAX_DOWNLOADS }} downloads.</p>
-        </form>
-      {% else %}
-        <div class="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-amber-200">
-          Payments are not set up yet. Add your Paystack keys to start selling.
+          <button type="button" class="gallery-nav-btn gallery-nav-next" data-gallery-next aria-label="Next view">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        {% endif %}
+      </div>
+
+      {% if views|length > 1 %}
+        <div class="gallery-thumbs mt-3">
+          {% for v in views %}
+            <button type="button" class="gallery-thumb {% if loop.first %}is-active{% endif %}" data-gallery-thumb
+                    aria-label="Show {{ v.label }}">
+              <img src="{{ v.src }}" alt="" loading="lazy" />
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <p class="mt-3 text-xs text-subtle">
+        Previews are watermarked. The clean high-resolution file{% if views|length > 1 %}s{% endif %}
+        ({{ portrait.width }} × {{ portrait.height }} px{% if portrait.megapixels %}, {{ portrait.megapixels }} MP{% endif %})
+        {% if views|length > 1 %}are delivered as a ZIP{% else %}is delivered{% endif %} after payment.
+      </p>
+
+      {# ───── Details panel ───── #}
+      <div class="mt-6 grid gap-3 sm:grid-cols-2">
+        <div class="card p-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-subtle">Image details</p>
+          <dl class="mt-2 grid grid-cols-2 gap-y-1.5 text-sm">
+            <dt class="text-muted">Resolution</dt>
+            <dd class="text-fg">{{ portrait.width }} × {{ portrait.height }} px</dd>
+            {% if portrait.megapixels %}
+              <dt class="text-muted">Megapixels</dt>
+              <dd class="text-fg">{{ portrait.megapixels }} MP</dd>
+            {% endif %}
+            {% if portrait.aspect_ratio %}
+              <dt class="text-muted">Aspect ratio</dt>
+              <dd class="text-fg">{{ portrait.aspect_ratio }}</dd>
+            {% endif %}
+            <dt class="text-muted">Views included</dt>
+            <dd class="text-fg">{{ views|length }}</dd>
+            {% if portrait.file_size_bytes %}
+              <dt class="text-muted">File size</dt>
+              <dd class="text-fg">{{ (portrait.file_size_bytes / 1024 / 1024)|round(1) }} MB</dd>
+            {% endif %}
+          </dl>
+        </div>
+        <div class="card p-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-subtle">What you'll get</p>
+          <ul class="mt-2 space-y-1.5 text-sm text-muted">
+            <li class="flex items-start gap-2">
+              <svg class="mt-0.5 shrink-0 text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Full-resolution, watermark-free file{% if views|length > 1 %}s{% endif %}</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="mt-0.5 shrink-0 text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Instant download via secure link</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="mt-0.5 shrink-0 text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Link is valid {{ config.PORTRAIT_DOWNLOAD_TTL_HOURS }}h, up to {{ config.PORTRAIT_MAX_DOWNLOADS }} downloads</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="mt-0.5 shrink-0 text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Secure payment via Paystack</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      {% if portrait.description %}
+        <div class="mt-8">
+          <h2 class="font-serif-news mb-2 text-xl font-semibold text-fg">About this portrait</h2>
+          <div class="prose-news">{{ portrait.description|markdown|safe }}</div>
         </div>
       {% endif %}
     </div>
 
-    <p class="text-xs text-subtle">Posted by {{ portrait.author.name if portrait.author else 'Studio' }} &middot; {{ portrait.created_at.strftime('%b %d, %Y') }}</p>
-  </aside>
+    {# ───── Sidebar (buy box) ───── #}
+    <aside class="space-y-4 lg:sticky lg:top-24 lg:self-start">
+      <div class="card p-5">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">Portrait</p>
+        <h1 class="font-serif-news mt-1 text-2xl font-semibold leading-tight text-fg sm:text-3xl">{{ portrait.title }}</h1>
+        <p class="mt-1 text-xs text-subtle">
+          By {{ portrait.author.name if portrait.author else 'Studio' }} &middot; {{ portrait.created_at.strftime('%b %d, %Y') }}
+        </p>
+
+        <p class="mt-4 text-3xl font-semibold" style="color: var(--success-text);">
+          {{ portrait.currency }} {{ portrait.price_display }}
+        </p>
+        <p class="mt-1 text-[11px] text-subtle">One-time payment &middot; no subscription</p>
+
+        <hr class="my-5 border-app" />
+
+        {% if paystack_ready %}
+          <form method="post" action="{{ url_for('public.portrait_buy', slug=portrait.slug) }}" class="space-y-3">
+            {{ form.hidden_tag() }}
+            {{ text(form.buyer_email, type='email', autocomplete='email', placeholder='you@example.com') }}
+            {{ text(form.buyer_name, autocomplete='name', placeholder='Optional') }}
+            <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-900/40 hover:bg-sky-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+              Pay with Paystack
+            </button>
+            <p class="text-[11px] text-subtle">By continuing you accept the {{ config.PORTRAIT_DOWNLOAD_TTL_HOURS }}-hour download window and {{ config.PORTRAIT_MAX_DOWNLOADS }}-download limit.</p>
+          </form>
+        {% else %}
+          <div class="rounded-lg px-3 py-2 text-sm" style="background: var(--warn-bg); color: var(--warn-text);">
+            Payments are not set up yet. Add your Paystack keys to start selling.
+          </div>
+        {% endif %}
+
+        <div class="mt-4 flex items-center justify-between border-t border-app pt-3 text-[11px] text-subtle">
+          <span class="inline-flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg>
+            Secure payment
+          </span>
+          <span>{{ portrait.view_count or 0 }} view{{ '' if (portrait.view_count or 0) == 1 else 's' }}</span>
+        </div>
+      </div>
+
+      {# Quick actions (share / save) — non-buy controls #}
+      <div class="card p-4">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-subtle">Actions</p>
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <button type="button" class="btn-secondary w-full justify-center"
+                  onclick="if(navigator.share){navigator.share({title:document.title,url:location.href});}else{navigator.clipboard.writeText(location.href);this.innerHTML='Copied'}"
+                  aria-label="Share">
+            <span class="inline-flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share
+            </span>
+          </button>
+          <a class="btn-secondary w-full justify-center text-center"
+             href="{{ url_for('public.portraits_list') }}">More portraits</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  {# ───── Related portraits ───── #}
+  {% if related_portraits %}
+    <section class="mt-12 border-t border-app pt-8">
+      <div class="mb-4 flex items-end justify-between">
+        <h2 class="font-serif-news text-xl font-semibold text-fg">You may also like</h2>
+        <a href="{{ url_for('public.portraits_list') }}" class="text-sm text-accent hover:text-accent-strong">Browse all &rarr;</a>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {% for p in related_portraits %}
+          <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="card card-hover overflow-hidden">
+            <div class="aspect-[4/3] overflow-hidden bg-muted">
+              {% if p.preview_path %}
+                <img src="{{ url_for('static', filename=p.preview_path) }}" alt="{{ p.title }}"
+                     class="h-full w-full object-cover" loading="lazy" />
+              {% endif %}
+            </div>
+            <div class="p-3">
+              <p class="line-clamp-2 text-sm font-semibold text-fg">{{ p.title }}</p>
+              <p class="mt-1 text-xs text-muted">{{ p.currency }} {{ p.price_display }}</p>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
 </div>
+
+{# ───── Sticky mobile buy bar ───── #}
+{% if paystack_ready %}
+  <div class="buy-bar lg:hidden">
+    <div class="min-w-0 flex-1">
+      <p class="truncate text-xs text-subtle">{{ portrait.title }}</p>
+      <p class="text-base font-semibold" style="color: var(--success-text);">{{ portrait.currency }} {{ portrait.price_display }}</p>
+    </div>
+    <a href="#buy" onclick="document.querySelector('aside form input[type=email]')?.focus(); return false;"
+       class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white">
+      Buy now
+    </a>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block body_extra %}
+<script src="{{ url_for('static', filename='js/gallery.js') }}" defer></script>
 {% endblock %}

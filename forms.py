@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from flask_wtf import FlaskForm
-from flask_wtf.file import FileAllowed, FileField
+from flask_wtf.file import FileAllowed, FileField, MultipleFileField
 from wtforms import (
     BooleanField,
     DecimalField,
@@ -258,7 +258,7 @@ class PortraitForm(FlaskForm):
         description="Buyers pay this amount via Paystack to unlock the high-res file.",
     )
     image = FileField(
-        "High-resolution image",
+        "Main high-resolution image",
         validators=[
             Optional(),
             FileAllowed(
@@ -267,6 +267,17 @@ class PortraitForm(FlaskForm):
             ),
         ],
         description="JPG, PNG or WebP. The original is stored privately; a watermarked preview is generated automatically.",
+    )
+    extra_images = MultipleFileField(
+        "Additional views (optional)",
+        validators=[
+            Optional(),
+            FileAllowed(
+                Config.ALLOWED_PORTRAIT_EXT,
+                "Allowed: " + ", ".join(sorted(Config.ALLOWED_PORTRAIT_EXT)),
+            ),
+        ],
+        description="Add up to 5 more shots — close-ups, alternate angles, behind-the-scenes — so buyers can see the work from every side.",
     )
     is_featured = BooleanField("Feature on homepage")
     status = SelectField(
