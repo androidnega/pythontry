@@ -67,4 +67,12 @@ class Config:
     PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY", "")
     PAYSTACK_CURRENCY = os.environ.get("PAYSTACK_CURRENCY", "GHS")
 
+    # ── AI writing assistant ──────────────────────────────────────────
+    # Use an OpenAI-compatible chat-completions API. Defaults to OpenAI but you
+    # can point this at any compatible endpoint (Groq, Together, OpenRouter, etc.)
+    AI_API_BASE   = os.environ.get("AI_API_BASE", "https://api.openai.com/v1")
+    AI_API_KEY    = os.environ.get("AI_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
+    AI_MODEL      = os.environ.get("AI_MODEL", "gpt-4o-mini")
+    AI_MAX_TOKENS = int(os.environ.get("AI_MAX_TOKENS", "1800"))
+
     WTF_CSRF_TIME_LIMIT = None

@@ -13,6 +13,7 @@ from flask import (
     abort,
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -35,6 +36,10 @@ from forms import (
 from models import Ad, Article, Category, MediaItem, Order, Portrait, Tag, User
 from utils import (
     admin_required,
+    ai_configured,
+    ai_draft_article,
+    ai_improve_article,
+    ai_seo_meta,
     can_edit,
     delete_original,
     delete_upload,
@@ -185,7 +190,12 @@ def article_edit(article_id: int | None = None):
                 )
             except ValueError as exc:
                 form.cover.errors.append(str(exc))
-                return render_template("admin/article_form.html", form=form, article=article)
+                return render_template(
+                    "admin/article_form.html",
+                    form=form, article=article,
+                    ai_ready=ai_configured(),
+                    ai_model=current_app.config.get("AI_MODEL", ""),
+                )
             delete_upload(article.cover_image)
             article.cover_image = rel
 
@@ -193,7 +203,12 @@ def article_edit(article_id: int | None = None):
         flash("Article saved.", "success")
         return redirect(url_for("admin.articles"))
 
-    return render_template("admin/article_form.html", form=form, article=article)
+    return render_template(
+        "admin/article_form.html",
+        form=form, article=article,
+        ai_ready=ai_configured(),
+        ai_model=current_app.config.get("AI_MODEL", ""),
+    )
 
 
 @bp.post("/articles/<int:article_id>/delete")
@@ -633,3 +648,77 @@ def user_delete(user_id: int):
         db.session.commit()
         flash("User deleted.", "success")
     return redirect(url_for("admin.users"))
+
+
+# ───────────────────────── Editor APIs (JSON) ─────────────────────────
+
+@bp.post("/api/upload-image")
+def api_upload_image():
+    """Save an image uploaded from the WYSIWYG editor and return its public URL."""
+    f = request.files.get("file") or request.files.get("image")
+    if not f or not f.filename:
+        return jsonify(ok=False, error="No file provided."), 400
+    try:
+        rel = save_upload(f, subdir="article_images", allowed=current_app.config["ALLOWED_IMAGE_EXT"])
+    except ValueError as exc:
+        return jsonify(ok=False, error=str(exc)), 400
+    if rel is None:
+        return jsonify(ok=False, error="Could not save the file."), 400
+    return jsonify(ok=True, url=url_for("static", filename=rel))
+
+
+def _json_or_400(field: str):
+    data = request.get_json(silent=True) or {}
+    value = (data.get(field) or "").strip()
+    if not value:
+        return None, (jsonify(ok=False, error=f"Missing field: {field}"), 400)
+    return (data, value), None
+
+
+@bp.post("/api/ai/draft")
+def api_ai_draft():
+    if not ai_configured():
+        return jsonify(ok=False, error="AI is not configured on the server. Add AI_API_KEY (or OPENAI_API_KEY) and restart."), 503
+    parsed, err = _json_or_400("brief")
+    if err:
+        return err
+    _, brief = parsed
+    try:
+        html = ai_draft_article(brief)
+    except Exception as exc:
+        current_app.logger.exception("AI draft failed: %s", exc)
+        return jsonify(ok=False, error=str(exc)), 502
+    return jsonify(ok=True, html=html)
+
+
+@bp.post("/api/ai/improve")
+def api_ai_improve():
+    if not ai_configured():
+        return jsonify(ok=False, error="AI is not configured on the server. Add AI_API_KEY (or OPENAI_API_KEY) and restart."), 503
+    parsed, err = _json_or_400("body")
+    if err:
+        return err
+    data, body = parsed
+    focus = (data.get("focus_keyword") or "").strip() or None
+    try:
+        html = ai_improve_article(body, focus_keyword=focus)
+    except Exception as exc:
+        current_app.logger.exception("AI improve failed: %s", exc)
+        return jsonify(ok=False, error=str(exc)), 502
+    return jsonify(ok=True, html=html)
+
+
+@bp.post("/api/ai/seo")
+def api_ai_seo():
+    if not ai_configured():
+        return jsonify(ok=False, error="AI is not configured on the server. Add AI_API_KEY (or OPENAI_API_KEY) and restart."), 503
+    parsed, err = _json_or_400("body")
+    if err:
+        return err
+    _, body = parsed
+    try:
+        result = ai_seo_meta(body)
+    except Exception as exc:
+        current_app.logger.exception("AI SEO failed: %s", exc)
+        return jsonify(ok=False, error=str(exc)), 502
+    return jsonify(ok=True, **result)

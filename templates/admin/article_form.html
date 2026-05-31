@@ -1,6 +1,11 @@
 {% extends 'admin/_layout.html' %}
 {% from '_forms.html' import text, textarea, select, fileinput, check, submit %}
-{% block title %}{% if article %}Edit article{% else %}New article{% endif %} &middot; Admin{% endblock %}
+{% block title %}{% if article %}Edit article{% else %}New article{% endif %} &middot; Dashboard{% endblock %}
+
+{% block head_extra %}
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
+{% endblock %}
 
 {% block admin_content %}
 <div class="mb-4 flex items-end justify-between">
@@ -8,22 +13,41 @@
   <a href="{{ url_for('admin.articles') }}" class="text-sm text-muted hover:text-fg">&larr; Back to list</a>
 </div>
 
-<form method="post" enctype="multipart/form-data" class="grid gap-6 lg:grid-cols-[1fr,300px]">
+<form id="article-form" method="post" enctype="multipart/form-data" class="grid gap-6 lg:grid-cols-[1fr,320px]">
   {{ form.hidden_tag() }}
-  <div class="space-y-4 rounded-xl border border-app bg-surface p-5">
-    {{ text(form.title, placeholder='Headline') }}
-    {{ textarea(form.summary, rows=2, placeholder='One-line summary (shown in lists and previews)') }}
-    {{ textarea(form.body, rows=18, placeholder='Write in Markdown. Use ## for sub-headings, **bold**, _italic_, [link](url)...') }}
+
+  <div class="space-y-4">
+    <div class="card p-5">
+      {{ text(form.title, placeholder='Headline') }}
+      <div class="mt-4">
+        {{ textarea(form.summary, rows=2, placeholder='One-line summary (shown in lists, previews and Google snippets)') }}
+      </div>
+    </div>
+
+    <div class="card p-0">
+      <div class="flex items-center justify-between gap-2 border-b border-app px-4 py-2">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-subtle">Article body</p>
+        <button type="button" class="btn-secondary !py-1 !px-2 text-xs" onclick="document.getElementById('ai-modal').classList.remove('hidden')">
+          ✨ AI assist
+        </button>
+      </div>
+      <div class="editor-wrap">
+        <div id="editor" data-upload-url="{{ url_for('admin.api_upload_image') }}"></div>
+      </div>
+      {# Hidden input that the editor JS keeps in sync; this is what actually submits. #}
+      {{ form.body(id='body-input', class_='hidden', style='display:none') }}
+    </div>
   </div>
+
   <aside class="space-y-4">
-    <div class="space-y-4 rounded-xl border border-app bg-surface p-5">
+    <div class="card p-5 space-y-4">
       {{ select(form.status) }}
       {{ select(form.category_id) }}
       {{ text(form.tags, placeholder='politics, takoradi, fishing') }}
       <p class="-mt-2 text-[11px] text-subtle">Separate tags with commas. Used for browsing and discovery.</p>
       {{ check(form.is_featured) }}
     </div>
-    <div class="space-y-4 rounded-xl border border-app bg-surface p-5">
+    <div class="card p-5 space-y-4">
       {% if article and article.cover_image %}
         <div class="space-y-2">
           <p class="text-xs uppercase tracking-[0.16em] text-subtle">Current cover</p>
@@ -33,9 +57,84 @@
       {% endif %}
       {{ fileinput(form.cover) }}
     </div>
-    <div class="flex items-center justify-between rounded-xl border border-app bg-surface p-5">
+    <div class="card p-5 flex items-center justify-between">
       {{ submit(form.submit) }}
     </div>
   </aside>
 </form>
+
+{# ───────── AI assistant modal ───────── #}
+<div id="ai-modal" class="modal-backdrop hidden">
+  <div class="modal-panel">
+    <div class="modal-head">
+      <div>
+        <h2 class="font-serif-news text-xl font-semibold">AI writing assistant</h2>
+        <p class="mt-0.5 text-xs text-subtle">
+          {% if ai_ready %}
+            Powered by {{ ai_model }}.
+          {% else %}
+            <span style="color: var(--warn-text)">AI is not configured on the server yet.</span>
+            Set <code>OPENAI_API_KEY</code> (or <code>AI_API_KEY</code>) and restart.
+          {% endif %}
+        </p>
+      </div>
+      <button type="button" data-ai-close class="btn-ghost" aria-label="Close">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="flex flex-wrap gap-2 border-b border-app pb-3">
+        <button type="button" class="btn-secondary text-sm active-tab" data-ai-tab="draft">Draft from brief</button>
+        <button type="button" class="btn-secondary text-sm" data-ai-tab="improve">Polish &amp; SEO</button>
+        <button type="button" class="btn-secondary text-sm" data-ai-tab="seo">Headline · summary · tags</button>
+      </div>
+
+      {# Panel: Draft #}
+      <div data-ai-panel="draft" class="mt-4 space-y-3">
+        <p class="text-sm text-muted">Give the assistant a brief — the angle, who/what/where/when, any sources — and it will write a first draft. <strong>Always fact-check before publishing.</strong></p>
+        <textarea id="ai-brief" class="input" rows="6" placeholder="e.g. The Takoradi market fire on Saturday — local traders displaced, the assembly's response, what comes next."></textarea>
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-subtle">The draft will replace your current article body.</p>
+          <button type="button" id="ai-run-draft" class="btn-primary" {% if not ai_ready %}disabled{% endif %}>Draft article</button>
+        </div>
+      </div>
+
+      {# Panel: Improve #}
+      <div data-ai-panel="improve" class="mt-4 space-y-3 hidden">
+        <p class="text-sm text-muted">Tighten the prose, add helpful subheadings, and weave in a focus keyword (optional) so the article ranks better on Google.</p>
+        <input id="ai-focus-keyword" type="text" class="input" placeholder="Optional focus keyword e.g. takoradi market fire" />
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-subtle">This rewrites the current body in place.</p>
+          <button type="button" id="ai-run-improve" class="btn-primary" {% if not ai_ready %}disabled{% endif %}>Polish article</button>
+        </div>
+      </div>
+
+      {# Panel: SEO #}
+      <div data-ai-panel="seo" class="mt-4 space-y-3 hidden">
+        <p class="text-sm text-muted">Generates headline ideas, a meta description, a focus keyword and tag suggestions from the body you've written. Click any item to apply it to the form.</p>
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-subtle">Reads the body but doesn't change it.</p>
+          <button type="button" id="ai-run-seo" class="btn-primary" {% if not ai_ready %}disabled{% endif %}>Generate suggestions</button>
+        </div>
+        <div id="ai-seo-output"></div>
+      </div>
+
+      <div id="ai-status" class="mt-4 text-sm"></div>
+    </div>
+
+    <div class="modal-foot">
+      <button type="button" data-ai-close class="btn-secondary">Close</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block body_extra %}
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<style>
+  /* Highlight the currently-selected tab. */
+  [data-ai-tab].active-tab { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+</style>
 {% endblock %}

@@ -34,14 +34,18 @@ _ALLOWED_TAGS = sorted(
         "p", "pre", "h1", "h2", "h3", "h4", "h5", "h6",
         "br", "hr", "img", "figure", "figcaption",
         "table", "thead", "tbody", "tr", "th", "td",
-        "span", "div",
+        "span", "div", "s", "u", "iframe",
     }
 )
 _ALLOWED_ATTRS = {
     "*": ["class"],
     "a": ["href", "title", "rel", "target"],
     "img": ["src", "alt", "title", "width", "height", "loading"],
+    "iframe": ["src", "width", "height", "frameborder", "allow", "allowfullscreen", "loading"],
 }
+
+# Quick check: does this look like HTML the editor produced (vs. plain markdown)?
+_HTML_HINT = re.compile(r"<\s*(p|h[1-6]|ol|ul|blockquote|figure|table|div|br|hr|img)\b", re.I)
 
 
 def slugify(value: str, *, max_length: int = 120) -> str:
@@ -64,14 +68,21 @@ def unique_slug(base: str, exists_query) -> str:
 
 
 def render_markdown(text: str | None) -> str:
-    """Render markdown to sanitised HTML for safe display."""
+    """Render rich-text body to sanitised HTML for safe display.
+
+    If `text` already looks like HTML (the WYSIWYG editor stores HTML), we just
+    sanitise it. Otherwise we treat it as Markdown and convert first.
+    """
     if not text:
         return ""
-    html = md_lib.markdown(
-        text,
-        extensions=["extra", "sane_lists", "nl2br", "tables", "fenced_code"],
-        output_format="html",
-    )
+    if _HTML_HINT.search(text):
+        html = text
+    else:
+        html = md_lib.markdown(
+            text,
+            extensions=["extra", "sane_lists", "nl2br", "tables", "fenced_code"],
+            output_format="html",
+        )
     cleaned = bleach.clean(html, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS, strip=True)
     return bleach.linkify(cleaned)
 
@@ -460,6 +471,137 @@ def new_payment_reference(prefix: str = "AP") -> str:
 
 def new_download_token() -> str:
     return secrets.token_urlsafe(32)
+
+
+# ───────────────────────── AI writing assistant ─────────────────────────
+
+def ai_configured() -> bool:
+    return bool(current_app.config.get("AI_API_KEY"))
+
+
+def _ai_chat(messages: list[dict], *, max_tokens: int | None = None, json_mode: bool = False) -> str:
+    """Call an OpenAI-compatible chat-completions endpoint. Returns the raw text."""
+    key = current_app.config.get("AI_API_KEY")
+    if not key:
+        raise RuntimeError("AI is not configured. Set AI_API_KEY (or OPENAI_API_KEY).")
+    base = (current_app.config.get("AI_API_BASE") or "https://api.openai.com/v1").rstrip("/")
+    model = current_app.config.get("AI_MODEL", "gpt-4o-mini")
+    body: dict = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": int(max_tokens or current_app.config.get("AI_MAX_TOKENS", 1800)),
+        "temperature": 0.7,
+    }
+    if json_mode:
+        body["response_format"] = {"type": "json_object"}
+
+    resp = requests.post(
+        f"{base}/chat/completions",
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+        },
+        json=body,
+        timeout=90,
+    )
+    if resp.status_code >= 400:
+        # Surface the provider's error message to the caller for easier debugging.
+        try:
+            err = resp.json().get("error", {}).get("message") or resp.text
+        except Exception:
+            err = resp.text
+        raise RuntimeError(f"AI provider error ({resp.status_code}): {err}")
+    data = resp.json()
+    choice = (data.get("choices") or [{}])[0]
+    msg = (choice.get("message") or {}).get("content") or ""
+    return msg.strip()
+
+
+def _strip_code_fence(text: str) -> str:
+    """If the model wrapped output in a ```html ... ``` fence, strip it."""
+    t = text.strip()
+    if t.startswith("```"):
+        # remove leading fence
+        first_nl = t.find("\n")
+        if first_nl != -1:
+            t = t[first_nl + 1 :]
+        if t.endswith("```"):
+            t = t[:-3]
+    return t.strip()
+
+
+_SYSTEM_NEWS = (
+    "You are a senior news editor for AhantaPulse, a local news portal covering "
+    "the Ahanta region of Ghana. You write clear, factual, balanced articles for "
+    "a general audience. Prefer simple language, short paragraphs (2-4 sentences), "
+    "subheadings, and active voice. Optimize for both readability and Google search "
+    "without keyword-stuffing. Never invent facts about real people or events — if "
+    "a specific name, date or quote is needed but not provided, leave a clearly "
+    "marked placeholder like [SOURCE NEEDED] so the editor can fill it in."
+)
+
+_HTML_RULES = (
+    "Output ONLY the article BODY as clean HTML, no <html>, <head> or <body> tags. "
+    "Use these tags only: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <blockquote>, <strong>, "
+    "<em>, <a>. Do NOT output a top-level <h1> (the page already has the title). "
+    "Do NOT wrap the output in code fences."
+)
+
+
+def ai_draft_article(brief: str) -> str:
+    """Draft a full article body from a short brief. Returns HTML."""
+    user = (
+        "Write a complete news article based on this brief. Length 400-700 words. "
+        "Open with a strong lead paragraph that includes the most relevant search "
+        "keyword naturally. Use 2-4 H2 subheadings. Close with a short forward-looking "
+        "or context paragraph.\n\n"
+        f"Brief:\n{brief}\n\n" + _HTML_RULES
+    )
+    return _strip_code_fence(_ai_chat(
+        [{"role": "system", "content": _SYSTEM_NEWS}, {"role": "user", "content": user}],
+    ))
+
+
+def ai_improve_article(html_or_text: str, focus_keyword: str | None = None) -> str:
+    """Rewrite/improve the given article body. Returns HTML."""
+    kw_line = f"\nPrimary keyword to weave in naturally: {focus_keyword}\n" if focus_keyword else ""
+    user = (
+        "Improve this article for readability AND Google search. Keep the meaning "
+        "and facts unchanged. Tighten verbose sentences, add helpful H2/H3 "
+        "subheadings if missing, and ensure the lead paragraph contains the main "
+        "topic keyword. Do not invent facts.\n"
+        f"{kw_line}\nArticle:\n{html_or_text}\n\n" + _HTML_RULES
+    )
+    return _strip_code_fence(_ai_chat(
+        [{"role": "system", "content": _SYSTEM_NEWS}, {"role": "user", "content": user}],
+    ))
+
+
+def ai_seo_meta(html_or_text: str) -> dict:
+    """Return {title_suggestions, summary, tags, focus_keyword} as JSON."""
+    user = (
+        "For the article below, output a JSON object exactly like:\n"
+        "{\n"
+        '  "summary": "A 1-2 sentence meta description, max 160 chars",\n'
+        '  "focus_keyword": "the single most search-relevant phrase",\n'
+        '  "tags": ["tag1", "tag2", "tag3"],   // 3-7 short tags, lowercase\n'
+        '  "title_suggestions": ["headline 1", "headline 2", "headline 3"]\n'
+        "}\n\n"
+        "Tags should be short, lowercase, no hashtags. Title suggestions should be "
+        "punchy and ≤ 70 chars each.\n\n"
+        f"Article:\n{html_or_text}"
+    )
+    raw = _ai_chat(
+        [{"role": "system", "content": _SYSTEM_NEWS}, {"role": "user", "content": user}],
+        json_mode=True,
+        max_tokens=600,
+    )
+    import json as _json
+    try:
+        return _json.loads(raw)
+    except ValueError:
+        # Some providers wrap JSON in fences even with response_format set.
+        return _json.loads(_strip_code_fence(raw))
 
 
 def parse_tags(raw: str | None) -> list[str]:
