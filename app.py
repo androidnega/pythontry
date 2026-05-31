@@ -41,8 +41,6 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
-    csrf.exempt(public_bp.view_functions["api_notify"])
-
     app.jinja_env.filters["markdown"] = render_markdown
     app.jinja_env.filters["excerpt"] = excerpt
 

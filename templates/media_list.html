@@ -23,8 +23,8 @@
   <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     {% for it in items %}{{ media_card(it) }}{% endfor %}
   </div>
-  {% set endpoint = 'public.videos_list' if kind == 'video' else 'public.audio_list' %}
-  {{ pagination_nav(pagination, endpoint, category=(active_category.slug if active_category else None)) }}
+  {% set page_endpoint = 'public.videos_list' if kind == 'video' else 'public.audio_list' %}
+  {{ pagination_nav(pagination, page_endpoint, extra={'category': active_category.slug} if active_category else {}) }}
 {% else %}
   <div class="rounded-xl border border-dashed border-slate-800 bg-slate-950/50 p-8 text-center text-slate-400">
     No {{ kind }} yet.

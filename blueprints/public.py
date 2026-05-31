@@ -5,7 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, abort, jsonify, render_template, request
 from sqlalchemy import or_
 
-from extensions import db
+from extensions import csrf, db
 from models import Ad, Article, Category, MediaItem, NotifySignup
 from utils import detect_embed
 
@@ -289,6 +289,7 @@ def api_info():
 
 
 @bp.post("/api/notify")
+@csrf.exempt
 def api_notify():
     payload = request.get_json(silent=True) or {}
     email = (payload.get("email") or request.form.get("email") or "").strip().lower()
