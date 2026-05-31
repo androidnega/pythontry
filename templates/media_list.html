@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import media_card, pagination_nav, category_chips %}
+
+{% block title %}{{ title }} &middot; {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<header class="mb-6">
+  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">{{ kind|capitalize }}</p>
+  <h1 class="font-serif-news mt-1 text-3xl font-semibold text-white sm:text-4xl">
+    {% if active_category %}{{ active_category.name }}{% else %}{{ title }}{% endif %}
+  </h1>
+  {% if active_category and active_category.description %}
+    <p class="mt-1 text-slate-400">{{ active_category.description }}</p>
+  {% endif %}
+</header>
+
+{% if categories %}
+  {% set endpoint = 'public.videos_list' if kind == 'video' else 'public.audio_list' %}
+  <div class="mb-8">{{ category_chips(categories, endpoint, active_slug=active_category.slug if active_category else None) }}</div>
+{% endif %}
+
+{% if items %}
+  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {% for it in items %}{{ media_card(it) }}{% endfor %}
+  </div>
+  {% set endpoint = 'public.videos_list' if kind == 'video' else 'public.audio_list' %}
+  {{ pagination_nav(pagination, endpoint, category=(active_category.slug if active_category else None)) }}
+{% else %}
+  <div class="rounded-xl border border-dashed border-slate-800 bg-slate-950/50 p-8 text-center text-slate-400">
+    No {{ kind }} yet.
+  </div>
+{% endif %}
+{% endblock %}

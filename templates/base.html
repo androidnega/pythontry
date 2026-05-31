@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#020617]">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
+  <meta name="description" content="{% block description %}{{ SITE_TAGLINE }}{% endblock %}" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: dark; }
+    html, body { background-color: #020617; }
+    body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    .font-serif-news { font-family: 'Source Serif 4', ui-serif, Georgia, serif; }
+    .prose-news h1, .prose-news h2, .prose-news h3, .prose-news h4 { font-family: 'Source Serif 4', ui-serif, Georgia, serif; }
+    .prose-news { line-height: 1.75; color: #cbd5e1; font-size: 1.0625rem; }
+    .prose-news h2 { font-size: 1.6rem; margin: 1.8rem 0 0.6rem; color: #f1f5f9; font-weight: 600; }
+    .prose-news h3 { font-size: 1.25rem; margin: 1.4rem 0 0.5rem; color: #f1f5f9; font-weight: 600; }
+    .prose-news p { margin: 0.85rem 0; }
+    .prose-news a { color: #38bdf8; text-decoration: underline; text-underline-offset: 3px; }
+    .prose-news a:hover { color: #7dd3fc; }
+    .prose-news img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1.2rem 0; }
+    .prose-news blockquote { border-left: 3px solid #334155; padding-left: 1rem; color: #94a3b8; font-style: italic; margin: 1rem 0; }
+    .prose-news pre, .prose-news code { background: #0f172a; border-radius: 0.4rem; padding: 0.15rem 0.4rem; font-size: 0.92em; }
+    .prose-news pre { padding: 0.9rem 1rem; overflow-x: auto; }
+    .prose-news ul { list-style: disc; padding-left: 1.25rem; }
+    .prose-news ol { list-style: decimal; padding-left: 1.25rem; }
+    .prose-news li { margin: 0.3rem 0; }
+    .embed-frame { background:#0b1220; border-radius: 0.75rem; overflow: hidden; }
+    .embed-frame iframe { width: 100%; height: 100%; display: block; border: 0; }
+    .clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .clamp-3 { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+    .nav-link { position: relative; }
+    .nav-link.active::after {
+      content:''; position:absolute; left:0; right:0; bottom:-6px; height:2px;
+      background: linear-gradient(to right, #38bdf8, #818cf8); border-radius: 2px;
+    }
+    details > summary { list-style: none; cursor: pointer; }
+    details > summary::-webkit-details-marker { display: none; }
+  </style>
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="min-h-full bg-[#020617] text-slate-100 antialiased">
+
+<header class="sticky top-0 z-40 border-b border-slate-800/80 bg-[#020617]/85 backdrop-blur">
+  <div class="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
+    <a href="{{ url_for('public.home') }}" class="flex items-center gap-2.5 shrink-0">
+      <span class="grid h-9 w-9 place-items-center rounded-md bg-gradient-to-br from-sky-500 to-indigo-500 text-sm font-bold text-white shadow-md shadow-sky-900/40">AP</span>
+      <span class="hidden sm:block">
+        <span class="block text-base font-semibold leading-tight">{{ SITE_NAME }}</span>
+        <span class="block text-[10px] uppercase tracking-[0.18em] text-sky-400/80">{{ SITE_REGION }}</span>
+      </span>
+    </a>
+    <nav class="hidden flex-1 items-center gap-5 text-sm font-medium text-slate-300 md:flex">
+      {% set ep = request.endpoint or '' %}
+      <a href="{{ url_for('public.home') }}" class="nav-link hover:text-white {% if ep == 'public.home' %}active text-white{% endif %}">Home</a>
+      <a href="{{ url_for('public.news_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.news') or ep == 'public.article_detail' %}active text-white{% endif %}">News</a>
+      <a href="{{ url_for('public.videos_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.video') %}active text-white{% endif %}">Videos</a>
+      <a href="{{ url_for('public.audio_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.audio') %}active text-white{% endif %}">Audio</a>
+      <a href="{{ url_for('public.ads_list') }}" class="nav-link hover:text-white {% if ep.startswith('public.ad') %}active text-white{% endif %}">Marketplace</a>
+      <a href="{{ url_for('public.about') }}" class="nav-link hover:text-white {% if ep == 'public.about' %}active text-white{% endif %}">About</a>
+    </nav>
+    <form action="{{ url_for('public.search') }}" method="get" class="ml-auto hidden flex-1 max-w-xs items-center gap-2 sm:flex">
+      <label class="relative block w-full">
+        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
+        </span>
+        <input type="search" name="q" value="{{ request.args.get('q','') }}" placeholder="Search"
+          class="w-full rounded-md border border-slate-800 bg-slate-950/70 py-1.5 pl-8 pr-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-600 focus:ring-1 focus:ring-sky-600/40" />
+      </label>
+    </form>
+    <div class="flex items-center gap-2">
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('admin.dashboard') }}" class="hidden rounded-md border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:border-slate-700 hover:text-white sm:inline-block">Admin</a>
+        <form action="{{ url_for('auth.logout') }}" method="post" class="hidden sm:block">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700">Sign out</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="rounded-md border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:border-slate-700 hover:text-white">Sign in</a>
+        {% if ALLOW_REGISTRATION %}
+          <a href="{{ url_for('auth.register') }}" class="hidden rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-500 sm:inline-block">Join</a>
+        {% endif %}
+      {% endif %}
+      <button id="mobile-nav-btn" type="button" class="rounded-md border border-slate-800 p-1.5 text-slate-200 hover:border-slate-700 md:hidden" aria-label="Open menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="mobile-nav" class="hidden border-t border-slate-800 bg-[#020617] md:hidden">
+    <nav class="mx-auto flex max-w-6xl flex-col px-4 py-3 text-sm font-medium text-slate-300">
+      <a href="{{ url_for('public.home') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Home</a>
+      <a href="{{ url_for('public.news_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">News</a>
+      <a href="{{ url_for('public.videos_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Videos</a>
+      <a href="{{ url_for('public.audio_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Audio</a>
+      <a href="{{ url_for('public.ads_list') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Marketplace</a>
+      <a href="{{ url_for('public.about') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">About</a>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('admin.dashboard') }}" class="rounded px-2 py-2 hover:bg-slate-900 hover:text-white">Admin</a>
+      {% endif %}
+      <form action="{{ url_for('public.search') }}" method="get" class="mt-2 sm:hidden">
+        <input type="search" name="q" placeholder="Search" class="w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-500" />
+      </form>
+    </nav>
+  </div>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="mx-auto mt-3 max-w-6xl space-y-2 px-4 sm:px-6">
+      {% for category, msg in messages %}
+        {% set classes = {'success':'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+                          'error':'bg-red-500/10 text-red-300 border-red-500/30',
+                          'info':'bg-sky-500/10 text-sky-300 border-sky-500/30',
+                          'warning':'bg-amber-500/10 text-amber-300 border-amber-500/30'}.get(category, 'bg-slate-800/60 text-slate-200 border-slate-700') %}
+        <div class="rounded-md border px-3 py-2 text-sm {{ classes }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<main class="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="mt-16 border-t border-slate-800/80 bg-[#020617]">
+  <div class="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4 sm:px-6">
+    <div>
+      <div class="flex items-center gap-2.5">
+        <span class="grid h-9 w-9 place-items-center rounded-md bg-gradient-to-br from-sky-500 to-indigo-500 text-sm font-bold text-white">AP</span>
+        <span class="text-base font-semibold">{{ SITE_NAME }}</span>
+      </div>
+      <p class="mt-3 text-sm text-slate-400">{{ SITE_TAGLINE }}.</p>
+      <p class="mt-1 text-xs text-slate-500">{{ SITE_REGION }}</p>
+    </div>
+    <div>
+      <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Read</h3>
+      <ul class="mt-3 space-y-1.5 text-sm text-slate-300">
+        <li><a href="{{ url_for('public.news_list') }}" class="hover:text-white">Latest news</a></li>
+        <li><a href="{{ url_for('public.videos_list') }}" class="hover:text-white">Videos</a></li>
+        <li><a href="{{ url_for('public.audio_list') }}" class="hover:text-white">Audio</a></li>
+        <li><a href="{{ url_for('public.ads_list') }}" class="hover:text-white">Marketplace</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Account</h3>
+      <ul class="mt-3 space-y-1.5 text-sm text-slate-300">
+        {% if current_user.is_authenticated %}
+          <li><a href="{{ url_for('admin.dashboard') }}" class="hover:text-white">Admin dashboard</a></li>
+          <li><a href="{{ url_for('auth.profile') }}" class="hover:text-white">My profile</a></li>
+        {% else %}
+          <li><a href="{{ url_for('auth.login') }}" class="hover:text-white">Sign in</a></li>
+          {% if ALLOW_REGISTRATION %}<li><a href="{{ url_for('auth.register') }}" class="hover:text-white">Create an account</a></li>{% endif %}
+        {% endif %}
+        <li><a href="{{ url_for('public.about') }}" class="hover:text-white">About</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Stay in the loop</h3>
+      <p class="mt-3 text-sm text-slate-400">Get email updates when we post something new.</p>
+      <form id="footer-notify" class="mt-3 flex gap-2">
+        <input id="footer-notify-email" name="email" type="email" required placeholder="you@example.com"
+          class="w-full min-w-0 rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-sky-600 focus:outline-none" />
+        <button class="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500" type="submit">Notify</button>
+      </form>
+      <p id="footer-notify-msg" class="mt-2 hidden text-xs"></p>
+    </div>
+  </div>
+  <div class="border-t border-slate-900">
+    <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-slate-500 sm:flex-row sm:px-6">
+      <p>&copy; {{ SITE_NAME }} {{ now_year() }}. All rights reserved.</p>
+      <p>Made for Ahanta.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var btn = document.getElementById('mobile-nav-btn');
+  var nav = document.getElementById('mobile-nav');
+  if (btn && nav) {
+    btn.addEventListener('click', function () {
+      nav.classList.toggle('hidden');
+    });
+  }
+  var form = document.getElementById('footer-notify');
+  if (form) {
+    var msg = document.getElementById('footer-notify-msg');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = document.getElementById('footer-notify-email').value.trim();
+      fetch('{{ url_for("public.api_notify") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email: email })
+      }).then(function (r) {
+        return r.json().then(function (j) { return { ok: r.ok, body: j }; });
+      }).then(function (res) {
+        msg.classList.remove('hidden', 'text-emerald-400', 'text-red-400');
+        if (res.ok && res.body.ok) {
+          msg.textContent = res.body.message || "You're on the list.";
+          msg.classList.add('text-emerald-400');
+          form.reset();
+        } else {
+          msg.textContent = (res.body && res.body.error) || 'Something went wrong.';
+          msg.classList.add('text-red-400');
+        }
+      }).catch(function () {
+        msg.classList.remove('hidden');
+        msg.textContent = 'Network error. Try again.';
+        msg.classList.add('text-red-400');
+      });
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

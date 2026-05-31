@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import article_card, media_card, ad_card %}
+
+{% block title %}Search &middot; {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<header class="mb-6">
+  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-400/90">Search</p>
+  <h1 class="font-serif-news mt-1 text-3xl font-semibold text-white sm:text-4xl">
+    {% if q %}Results for &ldquo;{{ q }}&rdquo;{% else %}Search{% endif %}
+  </h1>
+</header>
+
+<form action="{{ url_for('public.search') }}" method="get" class="mb-8 max-w-xl">
+  <input name="q" value="{{ q }}" type="search" placeholder="Search news, videos, audio, ads..."
+    class="w-full rounded-md border border-slate-800 bg-slate-950 px-4 py-2.5 text-base text-white placeholder:text-slate-500 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-600/40" />
+</form>
+
+{% if q %}
+  {% if articles %}
+    <section class="mt-8">
+      <h2 class="font-serif-news mb-4 text-xl font-semibold text-white">News ({{ articles|length }})</h2>
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{% for a in articles %}{{ article_card(a) }}{% endfor %}</div>
+    </section>
+  {% endif %}
+  {% if media %}
+    <section class="mt-12">
+      <h2 class="font-serif-news mb-4 text-xl font-semibold text-white">Videos &amp; audio ({{ media|length }})</h2>
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{% for m in media %}{{ media_card(m) }}{% endfor %}</div>
+    </section>
+  {% endif %}
+  {% if ads %}
+    <section class="mt-12">
+      <h2 class="font-serif-news mb-4 text-xl font-semibold text-white">Marketplace ({{ ads|length }})</h2>
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{% for ad in ads %}{{ ad_card(ad) }}{% endfor %}</div>
+    </section>
+  {% endif %}
+  {% if not articles and not media and not ads %}
+    <div class="rounded-xl border border-dashed border-slate-800 bg-slate-950/50 p-8 text-center text-slate-400">
+      Nothing matched your search.
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

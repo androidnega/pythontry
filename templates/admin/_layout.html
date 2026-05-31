@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-[220px,1fr]">
+  <aside class="lg:sticky lg:top-20 lg:self-start">
+    <div class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-3">
+      <p class="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Admin</p>
+      {% set ep = request.endpoint or '' %}
+      {% macro nav(href, label, active) %}
+        <a href="{{ href }}" class="block rounded-md px-3 py-2 text-sm {% if active %}bg-slate-900 text-white{% else %}text-slate-300 hover:bg-slate-900/60 hover:text-white{% endif %}">{{ label }}</a>
+      {% endmacro %}
+      {{ nav(url_for('admin.dashboard'), 'Dashboard', ep == 'admin.dashboard') }}
+      {{ nav(url_for('admin.articles'), 'Articles', ep.startswith('admin.article')) }}
+      {{ nav(url_for('admin.media_list'), 'Videos &amp; audio', ep.startswith('admin.media'))|safe }}
+      {{ nav(url_for('admin.ads_list'), 'Ads', ep.startswith('admin.ad')) }}
+      {% if current_user.is_admin %}
+        <div class="mt-2 border-t border-slate-800 pt-2"></div>
+        {{ nav(url_for('admin.categories'), 'Categories', ep.startswith('admin.categor')) }}
+        {{ nav(url_for('admin.users'), 'Users', ep.startswith('admin.user')) }}
+      {% endif %}
+      <div class="mt-2 border-t border-slate-800 pt-2"></div>
+      {{ nav(url_for('auth.profile'), 'My profile', ep.startswith('auth.profile')) }}
+    </div>
+  </aside>
+  <section>
+    {% block admin_content %}{% endblock %}
+  </section>
+</div>
+{% endblock %}

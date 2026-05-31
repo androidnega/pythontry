@@ -1,0 +1,74 @@
+{% extends 'admin/_layout.html' %}
+{% block title %}Dashboard &middot; Admin{% endblock %}
+
+{% block admin_content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="font-serif-news text-3xl font-semibold text-white">Welcome, {{ current_user.name }}</h1>
+    <p class="mt-1 text-sm text-slate-400">Role: <span class="text-slate-200">{{ current_user.role }}</span></p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="{{ url_for('admin.article_edit') }}" class="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500">+ New article</a>
+    <a href="{{ url_for('admin.media_edit') }}" class="rounded-md border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 hover:border-slate-500">+ Video / audio</a>
+    <a href="{{ url_for('admin.ad_edit') }}" class="rounded-md border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 hover:border-slate-500">+ Ad</a>
+  </div>
+</div>
+
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  {% set tiles = [('articles','Articles','admin.articles'),('videos','Videos','admin.media_list'),('audio','Audio','admin.media_list'),('ads','Ads','admin.ads_list')] %}
+  {% for key, label, endpoint in tiles %}
+    <a href="{{ url_for(endpoint) }}" class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 transition hover:border-slate-700">
+      <p class="text-xs uppercase tracking-[0.18em] text-slate-500">{{ label }}</p>
+      <p class="mt-1 text-3xl font-semibold text-white">{{ counts[key] }}</p>
+    </a>
+  {% endfor %}
+</div>
+
+<div class="mt-10 grid gap-6 lg:grid-cols-2">
+  <div class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Recent articles</h2>
+    {% if recent_articles %}
+      <ul class="space-y-2 text-sm">
+        {% for a in recent_articles %}
+          <li class="flex items-center justify-between gap-2">
+            <a href="{{ url_for('admin.article_edit', article_id=a.id) }}" class="truncate text-white hover:text-sky-300">{{ a.title }}</a>
+            <span class="shrink-0 text-xs {% if a.status == 'published' %}text-emerald-400{% else %}text-amber-400{% endif %}">{{ a.status }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-sm text-slate-500">No articles yet.</p>
+    {% endif %}
+  </div>
+  <div class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Recent media</h2>
+    {% if recent_media %}
+      <ul class="space-y-2 text-sm">
+        {% for m in recent_media %}
+          <li class="flex items-center justify-between gap-2">
+            <a href="{{ url_for('admin.media_edit', media_id=m.id) }}" class="truncate text-white hover:text-sky-300">{{ m.title }}</a>
+            <span class="shrink-0 text-xs text-slate-500">{{ m.kind }} &middot; {{ m.source_type }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-sm text-slate-500">No media yet.</p>
+    {% endif %}
+  </div>
+  <div class="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 lg:col-span-2">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Recent ads</h2>
+    {% if recent_ads %}
+      <ul class="space-y-2 text-sm">
+        {% for ad in recent_ads %}
+          <li class="flex items-center justify-between gap-2">
+            <a href="{{ url_for('admin.ad_edit', ad_id=ad.id) }}" class="truncate text-white hover:text-sky-300">{{ ad.title }}</a>
+            <span class="shrink-0 text-xs text-slate-500">{% if ad.price %}{{ ad.currency or 'GHS' }} {{ ad.price }}{% endif %}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-sm text-slate-500">No ads yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

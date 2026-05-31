@@ -1,0 +1,18 @@
+{% extends 'admin/_layout.html' %}
+{% from '_forms.html' import text, select, submit %}
+{% block title %}{% if category and category.id %}Edit{% else %}New{% endif %} category &middot; Admin{% endblock %}
+
+{% block admin_content %}
+<div class="mb-4 flex items-end justify-between">
+  <h1 class="font-serif-news text-2xl font-semibold text-white">{% if category and category.id %}Edit{% else %}New{% endif %} category</h1>
+  <a href="{{ url_for('admin.categories') }}" class="text-sm text-slate-400 hover:text-white">&larr; Back to list</a>
+</div>
+
+<form method="post" class="max-w-xl space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+  {{ form.hidden_tag() }}
+  {{ text(form.name) }}
+  {{ select(form.kind) }}
+  {{ text(form.description, placeholder='Optional short description') }}
+  {{ submit(form.submit) }}
+</form>
+{% endblock %}

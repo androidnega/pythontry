@@ -1,0 +1,20 @@
+{% extends 'admin/_layout.html' %}
+{% from '_forms.html' import text, select, check, submit %}
+{% block title %}Edit user &middot; Admin{% endblock %}
+
+{% block admin_content %}
+<div class="mb-4 flex items-end justify-between">
+  <h1 class="font-serif-news text-2xl font-semibold text-white">Edit user</h1>
+  <a href="{{ url_for('admin.users') }}" class="text-sm text-slate-400 hover:text-white">&larr; Back to list</a>
+</div>
+
+<form method="post" class="max-w-xl space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+  {{ form.hidden_tag() }}
+  <p class="text-sm text-slate-400">Editing <span class="text-white">{{ user.username }}</span>. Username can't be changed.</p>
+  {{ text(form.display_name) }}
+  {{ text(form.email, type='email') }}
+  {{ select(form.role) }}
+  {{ check(form.is_active) }}
+  <div class="pt-2">{{ submit(form.submit) }}</div>
+</form>
+{% endblock %}

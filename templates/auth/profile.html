@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% from '_forms.html' import text, textarea, fileinput, submit %}
+{% block title %}My profile &middot; {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl py-6">
+  <h1 class="font-serif-news text-3xl font-semibold text-white">My profile</h1>
+  <p class="mt-1 text-sm text-slate-400">Logged in as <span class="text-slate-200">{{ current_user.username }}</span> &middot; role: <span class="text-slate-200">{{ current_user.role }}</span></p>
+
+  <form method="post" enctype="multipart/form-data" class="mt-6 space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+    {{ form.hidden_tag() }}
+    {% if current_user.avatar_path %}
+      <div class="flex items-center gap-3">
+        <img src="{{ url_for('static', filename=current_user.avatar_path) }}" alt="" class="h-16 w-16 rounded-full object-cover" />
+        <span class="text-sm text-slate-400">Current avatar</span>
+      </div>
+    {% endif %}
+    {{ text(form.display_name) }}
+    {{ textarea(form.bio, rows=4) }}
+    {{ fileinput(form.avatar) }}
+    <div class="flex items-center justify-between pt-2">
+      {{ submit(form.submit) }}
+      <a href="{{ url_for('auth.change_password') }}" class="text-sm text-sky-400 hover:text-sky-300">Change password &rarr;</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

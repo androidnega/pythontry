@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% from '_forms.html' import text, check, submit %}
+{% block title %}Sign in &middot; {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-md py-8">
+  <h1 class="font-serif-news text-3xl font-semibold text-white">Sign in</h1>
+  <p class="mt-1 text-sm text-slate-400">Welcome back to {{ SITE_NAME }}.</p>
+
+  <form method="post" class="mt-6 space-y-4 rounded-xl border border-slate-800/80 bg-slate-950/60 p-5">
+    {{ form.hidden_tag() }}
+    {{ text(form.identifier, autocomplete='username', placeholder='you@example.com or username') }}
+    {{ text(form.password, type='password', autocomplete='current-password') }}
+    {{ check(form.remember) }}
+    <div class="flex items-center justify-between pt-2">
+      {{ submit(form.submit) }}
+      {% if ALLOW_REGISTRATION %}
+        <a href="{{ url_for('auth.register') }}" class="text-sm text-sky-400 hover:text-sky-300">Create account &rarr;</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}
