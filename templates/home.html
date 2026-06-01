@@ -224,6 +224,65 @@
   {% endif %}
 {% endif %}
 
+{# ============ Trending — TOP OF THE WEEK ============ #}
+{% set _sp_id = spotlight.id if spotlight else 0 %}
+{% set _pool = ((latest or []) + (featured or [])) | selectattr('cover_image') | list %}
+{# Sort by view_count desc (true "top of the week"); falls back to chronology for ties. #}
+{% set _sorted = _pool | sort(attribute='view_count', reverse=True) %}
+{% set _trending = [] %}
+{% set _seen = namespace(ids=[_sp_id]) %}
+{% for a in _sorted %}
+  {% if a.id not in _seen.ids and _trending|length < 3 %}
+    {% set _ = _trending.append(a) %}
+    {% set _ = _seen.ids.append(a.id) %}
+  {% endif %}
+{% endfor %}
+{% if _trending|length == 3 %}
+<section class="mt-14 lg:mt-16" aria-label="Trending stories">
+  <header class="section-head">
+    <h2 class="section-title-xl">Trending</h2>
+    <p class="section-eyebrow">Top of the week</p>
+  </header>
+  <div class="trend-grid">
+    {% for a in _trending %}
+      {% set _ci = (a.category.slug|sum_of_chars % 8) if a.category and a.category.slug else (loop.index0 % 8) %}
+      <article class="trend-card">
+        <div class="trend-media no-save-zone">
+          <img src="{{ a.cover_image|cover_url }}" alt="{{ a.title }}" class="no-save" draggable="false" />
+          <a class="trend-link" href="{{ url_for('public.article_detail', slug=a.slug) }}"
+             aria-label="Read {{ a.title }}"></a>
+        </div>
+        <div class="trend-pills">
+          {% if a.category %}
+            <span class="story-pill" data-c="{{ _ci }}">{{ a.category.name|lower }}</span>
+          {% endif %}
+          {% for t in a.tags[:1] %}
+            {% set _ti = (t.slug|sum_of_chars % 8) if t.slug else 5 %}
+            <span class="story-pill" data-c="{{ _ti }}">{{ t.name|lower }}</span>
+          {% endfor %}
+        </div>
+        <h3 class="trend-title">
+          <a href="{{ url_for('public.article_detail', slug=a.slug) }}">{{ a.title }}</a>
+        </h3>
+        <p class="trend-meta">
+          <span>By {{ a.author.name if a.author else 'Staff' }}</span>
+          <span class="dot" aria-hidden="true"></span>
+          {% if a.published_at %}
+            <time datetime="{{ a.published_at.isoformat() }}">{{ a.published_at.strftime('%B %d, %Y') }}</time>
+            <span class="dot" aria-hidden="true"></span>
+          {% endif %}
+          <span>{{ a.body|reading_time }} Mins read</span>
+        </p>
+        {% set _ex = a.summary or (a.body|striptags) %}
+        {% if _ex %}
+          <p class="trend-excerpt">{{ _ex|truncate(170, killwords=False) }}</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {# ============ Latest news (grid) + Popular sidebar (stack) ============ #}
 {% if latest %}
 <section class="mt-14 grid gap-8 lg:grid-cols-[1fr,300px]">
