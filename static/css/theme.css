@@ -507,10 +507,32 @@ body.lightbox-open { overflow: hidden; }
 /* ───── InHype-style hero slider ───── */
 .hero-slider {
   position: relative;
-  border-radius: 18px;
   overflow: hidden;
   background: var(--bg-muted);
   isolation: isolate;
+}
+
+/* Break the hero out of the centered <main> container so it spans the full
+   viewport width edge-to-edge, exactly like the InHype reference.
+   The negative margins cancel the centering done by <main class="mx-auto">. */
+.hero-fullbleed {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  /* Cancel the px-4 / sm:px-6 padding inherited from <main> so the photo
+     truly reaches the viewport edges. */
+  margin-top: calc(-1 * 0px); /* placeholder; overridden when present */
+}
+/* Pull the hero up so it kisses the header on home, and push the next
+   section down for breathing room. */
+main > .hero-fullbleed:first-child {
+  margin-top: -1.5rem;   /* offsets the py-6 (1.5rem) on <main> */
+}
+@media (min-width: 640px) {
+  main > .hero-fullbleed:first-child { margin-top: -2.5rem; } /* sm:py-10 */
 }
 .hero-stage {
   position: relative;
@@ -546,10 +568,14 @@ body.lightbox-open { overflow: hidden; }
   z-index: 1;
 }
 
+/* Constrain the hero's inner content to the same max-width as the rest
+   of the site, while the background image stays edge-to-edge. */
 .hero-content {
   position: absolute;
-  left: 0; right: 0; top: 0;
-  bottom: 0;
+  left: 50%; transform: translateX(-50%);
+  width: 100%;
+  max-width: 72rem; /* matches max-w-6xl (72rem) */
+  top: 0; bottom: 0;
   display: flex; flex-direction: column; justify-content: center;
   padding: 1.5rem 1.5rem 7.5rem;
   color: #fff;
@@ -561,7 +587,10 @@ body.lightbox-open { overflow: hidden; }
   .hero-content { padding: 2rem 2.25rem 8rem; }
 }
 @media (min-width: 1024px) {
-  .hero-content { padding: 2.5rem 3rem 9rem; max-width: 56%; }
+  .hero-content {
+    padding: 2.5rem 3rem 9rem;
+  }
+  .hero-content > * { max-width: 56%; }
 }
 
 .hero-pills { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
@@ -621,17 +650,32 @@ body.lightbox-open { overflow: hidden; }
 .hero-arrow-prev { left: 14px; }
 .hero-arrow-next { right: 14px; }
 
-/* Bottom card strip — previews the slides */
+/* Bottom card strip — previews the slides.
+   Pinned to the inner-content right edge so it lines up with the rest
+   of the page even though the hero is full-bleed. */
 .hero-cards {
   position: absolute;
-  bottom: 0; right: 0;
+  bottom: 0;
+  left: 50%; transform: translateX(-50%);
   width: 100%;
+  max-width: 72rem; /* lines up with the rest of the site */
   display: grid;
   grid-template-columns: 1fr;
   z-index: 3;
+  padding: 0; /* override generic padding */
 }
 @media (min-width: 640px) {
-  .hero-cards { grid-template-columns: repeat(3, 1fr); width: 78%; max-width: 720px; }
+  .hero-cards {
+    grid-template-columns: repeat(3, 1fr);
+    left: auto; right: 0; transform: none;
+    width: auto; max-width: 720px;
+  }
+}
+@media (min-width: 1024px) {
+  /* Sit the card strip flush with the right edge of the 72rem inner column. */
+  .hero-cards {
+    right: max(0px, calc((100vw - 72rem) / 2));
+  }
 }
 .hero-card {
   text-align: left;
@@ -703,4 +747,100 @@ body.lightbox-open { overflow: hidden; }
 [data-theme="dark"] .hero-card.is-active {
   background: var(--accent);
   color: var(--accent-on);
+}
+
+/* ───── Story shortcuts: text-only mini cards under the hero ───── */
+.story-strip-wrap {
+  /* Sits inside <main> but breaks out to full viewport width so it lines
+     up flush with the hero above. */
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  background: var(--bg-page);
+}
+.story-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  max-width: 72rem;     /* lines up with site content */
+  margin: 0 auto;
+  border-bottom: 1px solid var(--border-base);
+}
+@media (min-width: 640px) { .story-strip { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .story-strip { grid-template-columns: repeat(4, 1fr); } }
+
+.story-shortcut {
+  padding: 1.5rem 1.5rem 1.75rem;
+  display: flex; flex-direction: column; gap: .9rem;
+  background: var(--bg-page);
+  border-right: 1px solid var(--border-base);
+  border-bottom: 1px solid var(--border-base);
+  transition: background .15s ease;
+}
+@media (min-width: 1024px) { .story-shortcut { border-bottom: 0; } }
+@media (min-width: 640px) {
+  .story-shortcut:nth-child(2n) { border-right: 0; }
+}
+@media (min-width: 1024px) {
+  .story-shortcut { border-right: 1px solid var(--border-base); }
+  .story-shortcut:nth-child(2n) { border-right: 1px solid var(--border-base); }
+  .story-shortcut:nth-child(4n) { border-right: 0; }
+}
+.story-shortcut:hover { background: var(--bg-hover); }
+
+.story-pills {
+  display: inline-flex; flex-wrap: wrap; gap: .4rem;
+}
+.story-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--border-base);
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-page);
+  text-transform: lowercase;
+}
+.story-pill::before {
+  content: ''; width: 7px; height: 7px; border-radius: 999px;
+  background: var(--dot-color, #6366f1);
+}
+
+/* Dot color palette by category slug — deterministic via inline style on the pill */
+.story-pill[data-c="0"] { --dot-color: #6366f1; } /* indigo  */
+.story-pill[data-c="1"] { --dot-color: #3b82f6; } /* blue    */
+.story-pill[data-c="2"] { --dot-color: #ec4899; } /* pink    */
+.story-pill[data-c="3"] { --dot-color: #f97316; } /* orange  */
+.story-pill[data-c="4"] { --dot-color: #10b981; } /* emerald */
+.story-pill[data-c="5"] { --dot-color: #a855f7; } /* purple  */
+.story-pill[data-c="6"] { --dot-color: #ef4444; } /* red     */
+.story-pill[data-c="7"] { --dot-color: #06b6d4; } /* cyan    */
+
+.story-title {
+  font-family: 'Source Serif 4', ui-serif, Georgia, serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.32;
+  color: var(--text-base);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.story-title a { color: inherit; text-decoration: none; }
+.story-shortcut:hover .story-title a { color: var(--accent-strong); }
+
+.story-meta {
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+  display: flex; align-items: center; gap: .55rem;
+  margin-top: auto;
+}
+.story-meta .dot {
+  width: 3px; height: 3px; border-radius: 999px;
+  background: var(--text-subtle); display: inline-block;
 }

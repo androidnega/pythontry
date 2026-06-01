@@ -96,6 +96,15 @@ def _reading_time_filter(text):
     return reading_time_minutes(text)
 
 
+@bp.app_template_filter("sum_of_chars")
+def _sum_of_chars_filter(value):
+    """Deterministic non-negative int from a string — handy for picking a
+    stable color/index from a slug in templates."""
+    if not value:
+        return 0
+    return sum(ord(c) for c in str(value))
+
+
 def _popular_articles(limit: int = 5, exclude_id: int | None = None):
     q = Article.query.filter_by(status=Article.STATUS_PUBLISHED)
     if exclude_id:
@@ -113,7 +122,9 @@ def home():
     # through while the bottom card strip stays capped at 3 in the template.
     featured = _featured_articles(limit=5)
     exclude = [a.id for a in featured]
-    latest = _latest_articles(limit=8, exclude_ids=exclude)
+    # 12 = first 4 fill the under-hero "story shortcuts" strip, the rest
+    # fall into the main grid below.
+    latest = _latest_articles(limit=12, exclude_ids=exclude)
     return render_template(
         "home.html",
         featured=featured,
