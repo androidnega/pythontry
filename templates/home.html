@@ -418,59 +418,17 @@
 {# ============ Empty state ============ #}
 {% if not has_content %}
 <section class="mt-14">
-  <div class="card p-8 sm:p-12">
-    <div class="mx-auto max-w-3xl text-center">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Welcome</p>
-      <h2 class="font-serif-news mt-2 text-3xl font-semibold sm:text-4xl">A new home for Ahanta voices</h2>
-      <p class="mt-3 text-base text-muted">
-        We just turned the lights on. Stories, videos and listings from our writers
-        will appear here as soon as they hit publish.
-      </p>
-      <div class="mt-6 flex flex-wrap justify-center gap-2.5">
-        {% if current_user.is_authenticated %}
-          <a href="{{ url_for('admin.article_edit') }}" class="btn-primary">Publish your first story</a>
-          <a href="{{ url_for('admin.media_edit') }}" class="btn-secondary">Add a video</a>
-        {% else %}
-          <a href="{{ url_for('auth.login') }}" class="btn-primary">Sign in to post</a>
-        {% endif %}
+  <div class="card p-8 text-center sm:p-12">
+    <h2 class="font-serif-news text-2xl font-semibold sm:text-3xl">Nothing here yet</h2>
+    <p class="mt-2 text-sm text-muted">
+      Stories, videos and listings will appear on this page as they are published.
+    </p>
+    {% if current_user.is_authenticated %}
+      <div class="mt-5 flex flex-wrap justify-center gap-2.5">
+        <a href="{{ url_for('admin.article_edit') }}" class="btn-primary">Publish your first story</a>
+        <a href="{{ url_for('admin.media_edit') }}" class="btn-secondary">Add a video</a>
       </div>
-    </div>
-
-    <div class="mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-3">
-      {% set tiles = [
-        ('News & stories', 'In-depth reporting and everyday stories from across the Ahanta.', 'M4 6h16M4 12h10M4 18h16'),
-        ('Videos', 'Embed Facebook & YouTube clips, or upload your own footage.', 'M8 5v14l11-7z'),
-        ('Marketplace', 'Buy and sell locally with phone, WhatsApp and email contacts.', 'M3 7h18M5 7l1 12h12l1-12M9 11v6M15 11v6')
-      ] %}
-      {% for label, desc, icon in tiles %}
-        <div class="card p-5">
-          <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent-soft text-accent">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ icon }}"/></svg>
-          </span>
-          <h3 class="mt-3 font-semibold">{{ label }}</h3>
-          <p class="mt-1 text-sm text-muted">{{ desc }}</p>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-{# ============ CTA band (no gradients) ============ #}
-{% if has_content %}
-<section class="mt-16 card p-6 sm:p-8">
-  <div class="grid items-center gap-6 sm:grid-cols-[1fr,auto]">
-    <div>
-      <h2 class="font-serif-news text-xl font-semibold sm:text-2xl">Have a story to share?</h2>
-      <p class="mt-1 text-sm text-muted">Writers in the Ahanta can publish news, post videos and list products in minutes.</p>
-    </div>
-    <div class="flex flex-wrap gap-2.5">
-      {% if current_user.is_authenticated %}
-        <a href="{{ url_for('admin.dashboard') }}" class="btn-primary">Open dashboard</a>
-      {% else %}
-        <a href="{{ url_for('auth.login') }}" class="btn-primary">Sign in</a>
-      {% endif %}
-    </div>
+    {% endif %}
   </div>
 </section>
 {% endif %}
