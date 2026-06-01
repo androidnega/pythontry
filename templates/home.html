@@ -104,9 +104,15 @@
 </section>
 {% endif %}
 
-{# Split `latest` into the under-hero shortcut strip and the main grid. #}
+{# Split `latest` into the under-hero shortcut strip and the main grid.
+   When we have lots of articles, slice the top 4 off the grid so there
+   is no overlap. When we don't, leave the grid intact so the rest of
+   the homepage still has content (a little overlap is fine — the
+   shortcuts are a compact preview, the grid below is the full feed). #}
 {% set shortcuts = (latest or [])[:4] %}
-{% set latest = (latest or [])[4:] %}
+{% if (latest|length) > 8 %}
+  {% set latest = latest[4:] %}
+{% endif %}
 {% set has_content = featured or shortcuts or latest or videos or ads %}
 
 {# ============ Story shortcuts (text-only, 4-up) ============ #}

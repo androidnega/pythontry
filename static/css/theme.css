@@ -775,15 +775,19 @@ main > .hero-fullbleed:first-child {
 /* ───── Story shortcuts: text-only mini cards under the hero ───── */
 .story-strip-wrap {
   /* Sits inside <main> but breaks out to full viewport width so it lines
-     up flush with the hero above. */
+     up flush with the hero above (separated by clear vertical breathing
+     room rather than glued to it). */
   width: 100vw;
   position: relative;
   left: 50%;
   right: 50%;
   margin-left: -50vw;
   margin-right: -50vw;
+  margin-top: 2.25rem;
   background: var(--bg-page);
+  border-top: 1px solid var(--border-base);
 }
+@media (min-width: 1024px) { .story-strip-wrap { margin-top: 3rem; } }
 .story-strip {
   display: grid;
   grid-template-columns: 1fr;
