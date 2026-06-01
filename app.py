@@ -103,6 +103,27 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             db.session.commit()
             print(f"Admin {admin.username!r} reset (email + password + role).")
 
+    @app.cli.command("seed-demo")
+    def seed_demo_cmd() -> None:
+        """Populate the database with a small set of demo news articles.
+
+        Idempotent: skips articles whose slugs already exist. Existing
+        content is never modified or removed.
+        """
+        with app.app_context():
+            n = seed_demo_articles()
+            if n == 0:
+                print("No new demo articles added (all already present).")
+            else:
+                print(f"Seeded {n} demo article(s).")
+
+    @app.cli.command("unseed-demo")
+    def unseed_demo_cmd() -> None:
+        """Remove articles created by `flask seed-demo` (by slug)."""
+        with app.app_context():
+            n = remove_demo_articles()
+            print(f"Removed {n} demo article(s).")
+
     with app.app_context():
         try:
             initialise_database()
@@ -165,6 +186,274 @@ def initialise_database() -> None:
             )
             db.session.add(Category(name=name, slug=slug, kind=kind))
         db.session.commit()
+
+
+_DEMO_ARTICLES: tuple[dict, ...] = (
+    {
+        "slug": "ahanta-cultural-festival-2026",
+        "title": "Ahanta Cultural Festival returns to Busua with a sea of colour",
+        "summary": (
+            "Drummers, weavers and storytellers gathered along the Busua "
+            "shoreline this weekend for the biggest edition of the festival "
+            "in a decade."
+        ),
+        "category": "Culture & Heritage",
+        "featured": True,
+        "days_ago": 1,
+        "tags": ["busua", "festival", "culture"],
+        "body": (
+            "## A festival rooted in memory\n\n"
+            "From the first beats of the **fontomfrom** at dawn to the late-"
+            "night procession of the Asafo companies, this year's Ahanta "
+            "Cultural Festival was a reminder of why the coast remembers.\n\n"
+            "Chief Nana Kwaku Acquah, who opened the weekend, said the "
+            "festival is \"more than a celebration — it is a school for the "
+            "young to understand where we come from.\"\n\n"
+            "### What's new this year\n\n"
+            "- A children's **kente weaving** corner attracted more than 80 "
+            "  pupils from Dixcove and Busua basic schools.\n"
+            "- The maiden **Ahanta language spelling bee** crowned 11-year-"
+            "  old Akua Mensah as the inaugural champion.\n"
+            "- Local restaurants ran a *taste of Ahanta* tour featuring "
+            "  smoked tuna, kontomire stew and palm-wine cocktails.\n\n"
+            "> \"We want the festival to feel like a homecoming for every "
+            "> child of the Ahanta, wherever they are now,\" said co-"
+            "> organiser Esi Bonsu.\n\n"
+            "The closing fireworks lit the bay just past 10pm. Planning for "
+            "next year's edition begins in September."
+        ),
+    },
+    {
+        "slug": "dixcove-fishing-harbour-upgrade",
+        "title": "Dixcove fishing harbour set for a long-awaited upgrade",
+        "summary": (
+            "A GHS 28 million project will modernise the landing site, add a "
+            "cold store and pave the access road that fishers have lobbied "
+            "for since 2017."
+        ),
+        "category": "Ahanta News",
+        "featured": True,
+        "days_ago": 2,
+        "tags": ["dixcove", "infrastructure", "fishing"],
+        "body": (
+            "Work begins next month on the long-overdue upgrade of the "
+            "Dixcove fishing harbour, after the Ministry of Roads signed "
+            "off on the contractor's scope at the weekend.\n\n"
+            "The package covers three things fishermen have asked for "
+            "repeatedly:\n\n"
+            "1. A **resurfaced jetty** with proper drainage so canoes can "
+            "land safely at high tide.\n"
+            "2. A **cold-storage block** big enough to hold a day's catch "
+            "during the lean season.\n"
+            "3. Paving of the **access road** from the highway to the "
+            "harbour gate — currently a stretch that becomes impassable "
+            "after heavy rain.\n\n"
+            "Local fishmonger leader Madam Adwoa Sika welcomed the news but "
+            "warned that the timing matters: \"Start it now and finish "
+            "before the August upwelling. If we lose another season to "
+            "construction, that is bad news for the women here.\""
+        ),
+    },
+    {
+        "slug": "ahanta-youth-coding-bootcamp",
+        "title": "Ahanta youth coding bootcamp graduates first 40 students",
+        "summary": (
+            "Three months, two web apps and one big leap: meet the trainees "
+            "who turned their first lines of Python into real, working "
+            "community tools."
+        ),
+        "category": "Community",
+        "featured": True,
+        "days_ago": 4,
+        "tags": ["education", "youth", "technology"],
+        "body": (
+            "Forty young people from Agona Nkwanta, Princess Town and "
+            "Apowa walked out of the Ahanta Youth Coding Bootcamp last "
+            "Friday with certificates in one hand and live URLs in the "
+            "other.\n\n"
+            "Each trainee spent the final month working on a small "
+            "community project. Highlights:\n\n"
+            "- A **market price tracker** showing daily prices for tomato, "
+            "  onion and pepper across three local markets.\n"
+            "- A **lost-and-found board** for the central Agona Nkwanta "
+            "  lorry station.\n"
+            "- An **immunisation reminder bot** that sends SMS nudges to "
+            "  parents two days before clinic days.\n\n"
+            "Programme lead Kwesi Ofori said the next cohort opens in "
+            "August and will double the number of laptops on the floor "
+            "thanks to a partnership with a Takoradi-based ISP."
+        ),
+    },
+    {
+        "slug": "busua-beach-cleanup-record",
+        "title": "Busua beach cleanup pulls a record 1.2 tonnes from the shoreline",
+        "summary": (
+            "More than 300 volunteers turned up at sunrise. By noon they had "
+            "filled 84 sacks — most of it single-use plastic."
+        ),
+        "category": "Community",
+        "featured": False,
+        "days_ago": 5,
+        "tags": ["environment", "busua", "community"],
+        "body": (
+            "The largest single-day cleanup ever organised at Busua beach "
+            "wrapped up at noon on Saturday with **1,212 kilograms** of "
+            "waste removed from the shoreline.\n\n"
+            "Organiser Ato Quayson said the haul confirms what fishermen "
+            "have said for years: \"The tide brings the plastic right back "
+            "every dry season. We can keep cleaning, but the real fix is "
+            "stopping it upstream.\"\n\n"
+            "The cleanup is now slated to run every two months until the "
+            "end of the year."
+        ),
+    },
+    {
+        "slug": "princess-town-fort-restoration",
+        "title": "Princess Town's 17th-century fort gets a careful new life",
+        "summary": (
+            "A team of conservators is rebuilding the seaward wall using "
+            "the same lime mortar recipe the original Brandenburgers used."
+        ),
+        "category": "Culture & Heritage",
+        "featured": False,
+        "days_ago": 7,
+        "tags": ["heritage", "princess-town", "tourism"],
+        "body": (
+            "On a quiet bluff overlooking the Atlantic, the small "
+            "Brandenburg fort at Princess Town is getting the most careful "
+            "restoration of its 340-year history.\n\n"
+            "The team has spent six weeks documenting every stone before "
+            "lifting any of it. The new lime mortar is mixed on-site from "
+            "shell-lime collected along the coast, exactly as the original "
+            "builders did.\n\n"
+            "Chief conservator Naa Densu Owusu says the goal is not to "
+            "make the fort look new: \"We want to stabilise what is here "
+            "so the next generation can still walk these walls. Repair, "
+            "not replace.\"\n\n"
+            "The site will reopen to the public in October."
+        ),
+    },
+    {
+        "slug": "ahanta-pulse-podcast-launch",
+        "title": "AhantaPulse launches a weekly podcast hosted in Fanti and English",
+        "summary": (
+            "Twenty-minute episodes every Thursday, with deep interviews "
+            "from chiefs to fishmongers to first-year university students."
+        ),
+        "category": "Community",
+        "featured": False,
+        "days_ago": 9,
+        "tags": ["podcast", "media"],
+        "body": (
+            "Our team is excited to share that the **AhantaPulse Podcast** "
+            "is now live. Episode 1 sits down with elder Nana Egya Boampong "
+            "on what the *Kwesi nsia* festival means in 2026.\n\n"
+            "Episodes drop every Thursday at 6pm GMT on Spotify, Apple "
+            "Podcasts, and right here on the site. Have someone we should "
+            "interview? Send the name to **tips@ahantapulse.online**."
+        ),
+    },
+    {
+        "slug": "agona-nkwanta-market-day-fire",
+        "title": "Agona Nkwanta market traders count losses after Sunday fire",
+        "summary": (
+            "Twenty-two stalls were destroyed. No injuries, but several "
+            "families lost a full season of inventory."
+        ),
+        "category": "Ahanta News",
+        "featured": False,
+        "days_ago": 11,
+        "tags": ["agona-nkwanta", "safety"],
+        "body": (
+            "A fire that broke out shortly before midnight on Sunday "
+            "destroyed twenty-two stalls in the eastern wing of the Agona "
+            "Nkwanta market. Firefighters from Takoradi reached the scene "
+            "in 38 minutes and contained the blaze before it spread to the "
+            "main lorry park.\n\n"
+            "The Ahanta West Municipal Assembly has set up a temporary "
+            "registration desk for affected traders. The cause of the fire "
+            "is still under investigation; an electrical fault is suspected."
+        ),
+    },
+)
+
+
+def seed_demo_articles() -> int:
+    """Create demo articles defined in `_DEMO_ARTICLES`. Returns the count
+    of articles actually inserted. Idempotent — articles whose slug already
+    exists in the DB are skipped.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from models import Article, Category, Tag, User
+    from utils import slugify
+
+    admin = (
+        db.session.query(User).filter_by(username=Config.ADMIN_USERNAME).first()
+        or db.session.query(User).filter_by(role=User.ROLE_ADMIN).first()
+        or db.session.query(User).order_by(User.id.asc()).first()
+    )
+    if admin is None:
+        print("No user found in the database. Run `flask init-db` first.")
+        return 0
+
+    created = 0
+    for spec in _DEMO_ARTICLES:
+        if db.session.query(Article).filter_by(slug=spec["slug"]).first():
+            continue
+
+        category = (
+            db.session.query(Category)
+            .filter_by(name=spec.get("category", ""), kind=Category.KIND_NEWS)
+            .first()
+        )
+
+        published_at = datetime.now(timezone.utc) - timedelta(
+            days=int(spec.get("days_ago", 0))
+        )
+
+        article = Article(
+            slug=spec["slug"],
+            title=spec["title"],
+            summary=spec.get("summary"),
+            body=spec["body"],
+            status=Article.STATUS_PUBLISHED,
+            is_featured=bool(spec.get("featured")),
+            category_id=category.id if category else None,
+            author_id=admin.id,
+            published_at=published_at,
+            view_count=0,
+        )
+        db.session.add(article)
+
+        with db.session.no_autoflush:
+            for tag_label in spec.get("tags", []):
+                tag_slug = slugify(tag_label)
+                tag = db.session.query(Tag).filter_by(slug=tag_slug).first()
+                if tag is None:
+                    tag = Tag(name=tag_label.replace("-", " ").title(), slug=tag_slug)
+                    db.session.add(tag)
+                article.tags.append(tag)
+        created += 1
+
+    if created:
+        db.session.commit()
+    return created
+
+
+def remove_demo_articles() -> int:
+    """Delete articles whose slugs are in the demo set. Returns count removed."""
+    from models import Article
+
+    slugs = [spec["slug"] for spec in _DEMO_ARTICLES]
+    rows = db.session.query(Article).filter(Article.slug.in_(slugs)).all()
+    n = 0
+    for row in rows:
+        db.session.delete(row)
+        n += 1
+    if n:
+        db.session.commit()
+    return n
 
 
 def _apply_lightweight_migrations() -> None:
