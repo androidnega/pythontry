@@ -142,9 +142,9 @@
   <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     {% for p in portraits %}
       <article class="card card-hover group overflow-hidden">
-        <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="block aspect-[4/3] overflow-hidden bg-muted">
+        <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="portrait-thumb aspect-[4/3]">
           {% if p.preview_path %}
-            <img src="{{ url_for('static', filename=p.preview_path) }}" alt="" class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" loading="lazy" />
+            <img src="{{ url_for('static', filename=p.preview_path) }}" alt="" class="transition duration-500 group-hover:scale-[1.03]" loading="lazy" />
           {% endif %}
         </a>
         <div class="flex items-baseline justify-between gap-2 p-4">
