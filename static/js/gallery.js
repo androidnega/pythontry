@@ -324,6 +324,34 @@
         if (e.target.closest("[data-gallery-prev], [data-gallery-next]")) return;
         createLightbox(views, current);
       });
+
+      // Hover-zoom: tracks cursor position and applies a transform on the
+      // image. Only on devices with a real hover pointer.
+      var hoverable = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+      if (hoverable) {
+        var zoomTimer = null;
+        function setCursorTarget(e) {
+          var rect = main.getBoundingClientRect();
+          var x = ((e.clientX - rect.left) / rect.width) * 100;
+          var y = ((e.clientY - rect.top) / rect.height) * 100;
+          x = Math.max(0, Math.min(100, x));
+          y = Math.max(0, Math.min(100, y));
+          main.style.setProperty("--hz-x", x + "%");
+          main.style.setProperty("--hz-y", y + "%");
+        }
+        main.addEventListener("mouseenter", function (e) {
+          setCursorTarget(e);
+          // Small delay so a quick mouse-over doesn't snap the zoom on.
+          zoomTimer = setTimeout(function () {
+            main.classList.add("is-hover-zoom");
+          }, 120);
+        });
+        main.addEventListener("mousemove", setCursorTarget);
+        main.addEventListener("mouseleave", function () {
+          clearTimeout(zoomTimer);
+          main.classList.remove("is-hover-zoom");
+        });
+      }
     }
 
     setMain(0);

@@ -117,6 +117,7 @@ def initialise_database() -> None:
     from models import Category, User  # local import to avoid circular ref
 
     db.create_all()
+    _apply_lightweight_migrations()
 
     admin_username = Config.ADMIN_USERNAME
     admin_email = Config.ADMIN_EMAIL
@@ -164,6 +165,38 @@ def initialise_database() -> None:
             )
             db.session.add(Category(name=name, slug=slug, kind=kind))
         db.session.commit()
+
+
+def _apply_lightweight_migrations() -> None:
+    """Add missing columns to existing tables (SQLite-friendly).
+
+    `db.create_all()` only creates *missing* tables — it never ALTERs an
+    existing one. Production databases that pre-date a model change need
+    those new columns added or the app crashes on the next read.
+
+    We keep this list small and forward-only. Each entry is idempotent.
+    """
+    from sqlalchemy import inspect, text
+
+    bind = db.session.get_bind()
+    insp = inspect(bind)
+    if not insp.has_table("portraits"):
+        return
+
+    existing_cols = {c["name"] for c in insp.get_columns("portraits")}
+    additions = [
+        ("card_aspect", "VARCHAR(16) NOT NULL DEFAULT 'natural'"),
+        ("focal_x", "INTEGER NOT NULL DEFAULT 50"),
+        ("focal_y", "INTEGER NOT NULL DEFAULT 50"),
+    ]
+    for name, sql_type in additions:
+        if name in existing_cols:
+            continue
+        try:
+            db.session.execute(text(f"ALTER TABLE portraits ADD COLUMN {name} {sql_type}"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
 
 app = create_app()

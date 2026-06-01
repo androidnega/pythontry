@@ -324,17 +324,41 @@ details > summary::-webkit-details-marker { display: none; }
 }
 .gallery-main:hover > img { transform: scale(1.01); }
 
-/* Cards: show the whole image (no crop) with a soft backdrop so portrait
-   and landscape shots both look natural in a grid. */
+/* Hover-zoom: when the user moves the mouse over the main viewer, the
+   image scales up with its transform-origin tracking the cursor — like
+   product zoom on e-commerce sites. JS adds .is-hover-zoom and updates
+   the CSS variables --hz-x / --hz-y in real time. */
+.gallery-main.is-hover-zoom > img {
+  transform-origin: var(--hz-x, 50%) var(--hz-y, 50%);
+  transform: scale(var(--hz-scale, 1.8));
+  cursor: zoom-in;
+  transition: transform .08s ease-out;
+}
+.gallery-main.is-hover-zoom .gallery-badge,
+.gallery-main.is-hover-zoom .gallery-zoom-hint,
+.gallery-main.is-hover-zoom .gallery-nav-btn {
+  opacity: 0; pointer-events: none;
+}
+/* Disable on coarse/touch pointers — tapping shouldn't trigger zoom. */
+@media (hover: none), (pointer: coarse) {
+  .gallery-main.is-hover-zoom > img { transform: none; transition: none; }
+}
+
+/* Portrait cards: by default the card matches the image's own aspect
+   ratio (set via inline `style="aspect-ratio: w/h"` per card), so the
+   image fills the card with no letterboxing and no crop. Admins can
+   override with a fixed aspect + focal point — in that case the image
+   still fills the card via object-fit: cover and the focal point keeps
+   the subject in view. */
 .portrait-thumb {
-  display: flex; align-items: center; justify-content: center;
+  position: relative;
   background: var(--bg-muted);
   overflow: hidden;
 }
 .portrait-thumb > img {
-  max-width: 100%; max-height: 100%;
-  width: auto; height: auto;
-  object-fit: contain;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
   display: block;
 }
 .gallery-badge {

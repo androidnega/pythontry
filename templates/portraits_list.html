@@ -14,13 +14,15 @@
 </header>
 
 {% if portraits %}
-  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="grid items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
     {% for p in portraits %}
       <article class="group flex flex-col overflow-hidden rounded-xl border border-app bg-surface transition hover:border-app hover:shadow-[0_8px_30px_-12px_rgba(56,189,248,0.18)]">
-        <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="portrait-thumb relative aspect-[4/3] no-save-zone">
+        <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="portrait-thumb no-save-zone"
+           style="aspect-ratio: {{ p.card_aspect_css }};">
           {% if p.preview_path %}
             <img src="{{ url_for('static', filename=p.preview_path) }}" alt="" loading="lazy" draggable="false"
-              class="no-save transition duration-500 group-hover:scale-105" />
+              class="no-save transition duration-500 group-hover:scale-105"
+              style="object-position: {{ p.card_object_position }};" />
           {% else %}
             <div class="flex h-full w-full items-center justify-center text-subtle">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>

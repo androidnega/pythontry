@@ -75,9 +75,123 @@
       {{ select(form.status) }}
       {{ check(form.is_featured) }}
     </div>
+
+    <div class="rounded-xl border border-app bg-surface p-5" data-focal-root
+         data-preview="{{ url_for('static', filename=portrait.preview_path) if portrait and portrait.preview_path else '' }}">
+      <p class="text-sm font-semibold text-fg">Card display</p>
+      <p class="mt-0.5 text-[11px] text-subtle">
+        How this portrait fills cards on the home, list and related sections.
+      </p>
+
+      <div class="mt-3">
+        {{ select(form.card_aspect) }}
+      </div>
+
+      {{ form.focal_x(type='hidden', id='focal_x_input') }}
+      {{ form.focal_y(type='hidden', id='focal_y_input') }}
+
+      {% if portrait and portrait.preview_path %}
+        <p class="mt-4 text-[11px] uppercase tracking-[0.16em] text-subtle">Focal point</p>
+        <p class="mt-1 text-[11px] text-muted">
+          Click on the photo to pick the part that should stay in view when the
+          card crops the image.
+        </p>
+        <div class="relative mt-2 cursor-crosshair overflow-hidden rounded-lg border border-app bg-muted"
+             data-focal-picker>
+          <img src="{{ url_for('static', filename=portrait.preview_path) }}" alt=""
+               class="block w-full select-none" draggable="false" />
+          <span data-focal-marker
+                class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                style="left: 50%; top: 50%;">
+            <span class="block h-6 w-6 rounded-full border-2 border-white shadow-lg"
+                  style="background: var(--accent); box-shadow: 0 0 0 2px rgba(0,0,0,0.35);"></span>
+          </span>
+        </div>
+
+        <p class="mt-4 text-[11px] uppercase tracking-[0.16em] text-subtle">Card crop preview</p>
+        <div class="mt-2 overflow-hidden rounded-lg border border-app bg-muted">
+          <div data-focal-preview class="w-full" style="aspect-ratio: 4 / 5;">
+            <img src="{{ url_for('static', filename=portrait.preview_path) }}" alt=""
+                 class="block h-full w-full" style="object-fit: cover; object-position: 50% 50%;" />
+          </div>
+        </div>
+        <p class="mt-1 text-[11px] text-subtle">This is roughly how this card will appear on the homepage.</p>
+      {% else %}
+        <p class="mt-3 text-[11px] text-subtle">Save the portrait first to set a focal point.</p>
+      {% endif %}
+    </div>
+
     <div class="flex items-center justify-between rounded-xl border border-app bg-surface p-5">
       {{ submit(form.submit) }}
     </div>
   </aside>
 </form>
+{% endblock %}
+
+{% block body_extra %}
+<script>
+(function () {
+  var root = document.querySelector('[data-focal-root]');
+  if (!root) return;
+  var aspectSel = root.querySelector('#card_aspect');
+  var fxInput   = root.querySelector('#focal_x_input');
+  var fyInput   = root.querySelector('#focal_y_input');
+  var picker    = root.querySelector('[data-focal-picker]');
+  var marker    = root.querySelector('[data-focal-marker]');
+  var preview   = root.querySelector('[data-focal-preview]');
+  var previewImg= preview ? preview.querySelector('img') : null;
+
+  function ratioFromImg(img) {
+    if (!img || !img.naturalWidth || !img.naturalHeight) return '4 / 5';
+    return img.naturalWidth + ' / ' + img.naturalHeight;
+  }
+  function aspectToCss(val, fallbackImg) {
+    if (!val || val === 'natural') return ratioFromImg(fallbackImg);
+    var m = String(val).split(':');
+    if (m.length === 2 && +m[0] && +m[1]) return m[0] + ' / ' + m[1];
+    return '4 / 5';
+  }
+  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+
+  function place(x, y) {
+    x = clamp(x, 0, 100); y = clamp(y, 0, 100);
+    if (marker) { marker.style.left = x + '%'; marker.style.top = y + '%'; }
+    if (previewImg) previewImg.style.objectPosition = x + '% ' + y + '%';
+    if (fxInput) fxInput.value = Math.round(x);
+    if (fyInput) fyInput.value = Math.round(y);
+  }
+
+  function syncAspect() {
+    if (!preview) return;
+    var v = aspectSel ? aspectSel.value : 'natural';
+    var fallback = picker ? picker.querySelector('img') : null;
+    preview.style.aspectRatio = aspectToCss(v, fallback);
+    // "natural" means no crop — make the preview show the whole image.
+    if (previewImg) {
+      previewImg.style.objectFit = (v === 'natural') ? 'contain' : 'cover';
+    }
+  }
+
+  if (picker) {
+    picker.addEventListener('click', function (e) {
+      var r = picker.getBoundingClientRect();
+      place(((e.clientX - r.left) / r.width) * 100,
+            ((e.clientY - r.top)  / r.height) * 100);
+    });
+  }
+  if (aspectSel) aspectSel.addEventListener('change', syncAspect);
+
+  var startX = parseInt(fxInput && fxInput.value, 10);
+  var startY = parseInt(fyInput && fyInput.value, 10);
+  place(isFinite(startX) ? startX : 50, isFinite(startY) ? startY : 50);
+  syncAspect();
+
+  // Re-sync once the preview image has loaded (so natural aspect picks up
+  // the real width/height).
+  if (picker) {
+    var pImg = picker.querySelector('img');
+    if (pImg) pImg.addEventListener('load', syncAspect);
+  }
+})();
+</script>
 {% endblock %}

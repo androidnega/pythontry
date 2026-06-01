@@ -191,12 +191,14 @@
         <h2 class="font-serif-news text-xl font-semibold text-fg">You may also like</h2>
         <a href="{{ url_for('public.portraits_list') }}" class="text-sm text-accent hover:text-accent-strong">Browse all &rarr;</a>
       </div>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {% for p in related_portraits %}
           <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="card card-hover overflow-hidden">
-            <div class="portrait-thumb aspect-[4/3] no-save-zone">
+            <div class="portrait-thumb no-save-zone" style="aspect-ratio: {{ p.card_aspect_css }};">
               {% if p.preview_path %}
-                <img src="{{ url_for('static', filename=p.preview_path) }}" alt="{{ p.title }}" loading="lazy" draggable="false" class="no-save" />
+                <img src="{{ url_for('static', filename=p.preview_path) }}" alt="{{ p.title }}"
+                     loading="lazy" draggable="false" class="no-save"
+                     style="object-position: {{ p.card_object_position }};" />
               {% endif %}
             </div>
             <div class="p-3">

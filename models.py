@@ -281,6 +281,14 @@ class Portrait(db.Model):
     view_count = db.Column(db.Integer, default=0, nullable=False)
     sales_count = db.Column(db.Integer, default=0, nullable=False)
 
+    # Card display tuning. Default "natural" makes every card match the
+    # image's own aspect ratio (no letterbox, no crop). Admins can override
+    # to enforce a uniform card shape across the grid and pick a focal
+    # point so the important part of the photo stays in view.
+    card_aspect = db.Column(db.String(16), default="natural", nullable=False)
+    focal_x = db.Column(db.Integer, default=50, nullable=False)  # 0–100
+    focal_y = db.Column(db.Integer, default=50, nullable=False)  # 0–100
+
     author_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
@@ -317,6 +325,40 @@ class Portrait(db.Model):
         if not self.width or not self.height:
             return None
         return round((self.width * self.height) / 1_000_000, 1)
+
+    # Aspect/crop helpers used by card thumbnails on home, list, and related
+    # sections. CARD_ASPECT_CHOICES is also consumed by the admin form.
+    CARD_ASPECT_CHOICES: tuple[tuple[str, str], ...] = (
+        ("natural", "Match image"),
+        ("1:1", "Square (1:1)"),
+        ("4:5", "Portrait (4:5)"),
+        ("3:4", "Portrait (3:4)"),
+        ("4:3", "Landscape (4:3)"),
+        ("16:9", "Landscape (16:9)"),
+    )
+
+    @property
+    def card_aspect_css(self) -> str:
+        """Returns the CSS `aspect-ratio` value for portrait cards."""
+        choice = (self.card_aspect or "natural").lower()
+        if choice == "natural":
+            if self.width and self.height:
+                return f"{self.width} / {self.height}"
+            return "4 / 5"  # sensible portrait default
+        if ":" in choice:
+            try:
+                a, b = choice.split(":", 1)
+                return f"{int(a)} / {int(b)}"
+            except ValueError:
+                pass
+        return "4 / 5"
+
+    @property
+    def card_object_position(self) -> str:
+        """`object-position` value derived from focal point (0–100 in each axis)."""
+        x = max(0, min(100, int(self.focal_x if self.focal_x is not None else 50)))
+        y = max(0, min(100, int(self.focal_y if self.focal_y is not None else 50)))
+        return f"{x}% {y}%"
 
     @property
     def all_views(self) -> list[dict]:

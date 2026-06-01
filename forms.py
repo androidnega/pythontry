@@ -7,6 +7,7 @@ from flask_wtf.file import FileAllowed, FileField, MultipleFileField
 from wtforms import (
     BooleanField,
     DecimalField,
+    IntegerField,
     PasswordField,
     SelectField,
     StringField,
@@ -278,6 +279,29 @@ class PortraitForm(FlaskForm):
             ),
         ],
         description="Add up to 5 more shots — close-ups, alternate angles, behind-the-scenes — so buyers can see the work from every side.",
+    )
+    card_aspect = SelectField(
+        "Card shape",
+        choices=[
+            ("natural", "Match image (no crop)"),
+            ("1:1", "Square (1:1)"),
+            ("4:5", "Portrait (4:5)"),
+            ("3:4", "Portrait (3:4)"),
+            ("4:3", "Landscape (4:3)"),
+            ("16:9", "Landscape (16:9)"),
+        ],
+        default="natural",
+        description="How portrait cards display on the home page, list and related sections.",
+    )
+    focal_x = IntegerField(
+        "Focal X",
+        default=50,
+        validators=[Optional(), NumberRange(min=0, max=100)],
+    )
+    focal_y = IntegerField(
+        "Focal Y",
+        default=50,
+        validators=[Optional(), NumberRange(min=0, max=100)],
     )
     is_featured = BooleanField("Feature on homepage")
     status = SelectField(

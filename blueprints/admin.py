@@ -456,6 +456,14 @@ def portrait_edit(portrait_id: int | None = None):
         portrait.currency = current_app.config.get("PAYSTACK_CURRENCY", "GHS")
         portrait.is_featured = bool(form.is_featured.data)
         portrait.status = form.status.data
+        portrait.card_aspect = (form.card_aspect.data or "natural").strip().lower()
+        try:
+            fx = int(form.focal_x.data) if form.focal_x.data is not None else 50
+            fy = int(form.focal_y.data) if form.focal_y.data is not None else 50
+        except (TypeError, ValueError):
+            fx, fy = 50, 50
+        portrait.focal_x = max(0, min(100, fx))
+        portrait.focal_y = max(0, min(100, fy))
 
         if not portrait.slug:
             base = slugify(portrait.title)
