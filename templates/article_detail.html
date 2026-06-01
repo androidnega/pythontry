@@ -7,7 +7,7 @@
 {% block head_extra %}
   <meta property="og:title" content="{{ article.title }}" />
   <meta property="og:description" content="{{ article.summary or (article.body|excerpt(160)) }}" />
-  {% if article.cover_image %}<meta property="og:image" content="{{ url_for('static', filename=article.cover_image, _external=True) }}" />{% endif %}
+  {% if article.cover_image %}<meta property="og:image" content="{{ cover_url(article.cover_image, external=True) }}" />{% endif %}
   <meta property="og:type" content="article" />
 {% endblock %}
 
@@ -19,7 +19,8 @@
 {% set share_url = url_for('public.article_detail', slug=article.slug, _external=True) %}
 {% set share_text = article.title %}
 
-<article class="mx-auto max-w-3xl">
+<article class="mx-auto max-w-6xl">
+<div class="mx-auto max-w-3xl">
   <nav class="mb-4 text-xs text-subtle">
     <a href="{{ url_for('public.home') }}" class="hover:text-muted">Home</a>
     <span class="mx-1">/</span>
@@ -73,7 +74,7 @@
 
   {% if article.cover_image %}
     <figure class="mt-7 overflow-hidden rounded-2xl border border-app">
-      <img src="{{ url_for('static', filename=article.cover_image) }}" alt="" class="w-full" />
+      <img src="{{ article.cover_image|cover_url }}" alt="" class="w-full" />
     </figure>
   {% endif %}
 
@@ -133,9 +134,10 @@
       </div>
     </section>
   {% endif %}
+</div>
 </article>
 
-<section class="mx-auto mt-12 max-w-5xl">
+<section class="mx-auto mt-12 max-w-6xl">
   <div class="grid gap-10 lg:grid-cols-[2fr,1fr]">
     <div>
       {% if more_by_author and article.author %}

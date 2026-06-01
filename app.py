@@ -20,7 +20,7 @@ from flask import Flask, render_template
 
 from config import Config
 from extensions import csrf, db, login_manager
-from utils import excerpt, render_markdown
+from utils import cover_url, excerpt, render_markdown
 
 
 def create_app(config_object: type[Config] = Config) -> Flask:
@@ -44,6 +44,8 @@ def create_app(config_object: type[Config] = Config) -> Flask:
 
     app.jinja_env.filters["markdown"] = render_markdown
     app.jinja_env.filters["excerpt"] = excerpt
+    app.jinja_env.filters["cover_url"] = cover_url
+    app.jinja_env.globals["cover_url"] = cover_url
 
     @app.context_processor
     def inject_site() -> dict:
@@ -201,6 +203,7 @@ _DEMO_ARTICLES: tuple[dict, ...] = (
         "featured": True,
         "days_ago": 1,
         "tags": ["busua", "festival", "culture"],
+        "cover_image": "https://images.unsplash.com/photo-1547499678-e02a8df5c3ee?auto=format&fit=crop&w=1600&q=80",
         "body": (
             "## A festival rooted in memory\n\n"
             "From the first beats of the **fontomfrom** at dawn to the late-"
@@ -235,6 +238,7 @@ _DEMO_ARTICLES: tuple[dict, ...] = (
         "featured": True,
         "days_ago": 2,
         "tags": ["dixcove", "infrastructure", "fishing"],
+        "cover_image": "https://images.unsplash.com/photo-1559825481-12a05cc00344?auto=format&fit=crop&w=1600&q=80",
         "body": (
             "Work begins next month on the long-overdue upgrade of the "
             "Dixcove fishing harbour, after the Ministry of Roads signed "
@@ -266,6 +270,7 @@ _DEMO_ARTICLES: tuple[dict, ...] = (
         "featured": True,
         "days_ago": 4,
         "tags": ["education", "youth", "technology"],
+        "cover_image": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1600&q=80",
         "body": (
             "Forty young people from Agona Nkwanta, Princess Town and "
             "Apowa walked out of the Ahanta Youth Coding Bootcamp last "
@@ -295,6 +300,7 @@ _DEMO_ARTICLES: tuple[dict, ...] = (
         "featured": False,
         "days_ago": 5,
         "tags": ["environment", "busua", "community"],
+        "cover_image": "https://images.unsplash.com/photo-1618477462146-050d2767eac4?auto=format&fit=crop&w=1600&q=80",
         "body": (
             "The largest single-day cleanup ever organised at Busua beach "
             "wrapped up at noon on Saturday with **1,212 kilograms** of "
@@ -318,6 +324,7 @@ _DEMO_ARTICLES: tuple[dict, ...] = (
         "featured": False,
         "days_ago": 7,
         "tags": ["heritage", "princess-town", "tourism"],
+        "cover_image": "https://images.unsplash.com/photo-1602513985279-e436b89ee9af?auto=format&fit=crop&w=1600&q=80",
         "body": (
             "On a quiet bluff overlooking the Atlantic, the small "
             "Brandenburg fort at Princess Town is getting the most careful "
@@ -341,6 +348,7 @@ _DEMO_ARTICLES: tuple[dict, ...] = (
             "from chiefs to fishmongers to first-year university students."
         ),
         "category": "Community",
+        "cover_image": "https://images.unsplash.com/photo-1581368135153-a506cf13b1e1?auto=format&fit=crop&w=1600&q=80",
         "featured": False,
         "days_ago": 9,
         "tags": ["podcast", "media"],
@@ -364,6 +372,7 @@ _DEMO_ARTICLES: tuple[dict, ...] = (
         "featured": False,
         "days_ago": 11,
         "tags": ["agona-nkwanta", "safety"],
+        "cover_image": "https://images.unsplash.com/photo-1605792657660-596af9009e82?auto=format&fit=crop&w=1600&q=80",
         "body": (
             "A fire that broke out shortly before midnight on Sunday "
             "destroyed twenty-two stalls in the eastern wing of the Agona "
@@ -398,8 +407,16 @@ def seed_demo_articles() -> int:
         return 0
 
     created = 0
+    backfilled = 0
     for spec in _DEMO_ARTICLES:
-        if db.session.query(Article).filter_by(slug=spec["slug"]).first():
+        existing = db.session.query(Article).filter_by(slug=spec["slug"]).first()
+        if existing is not None:
+            # Idempotent re-run: leave existing rows alone except for
+            # filling in a missing cover image so older demo seeds get
+            # picked up automatically next deploy.
+            if not existing.cover_image and spec.get("cover_image"):
+                existing.cover_image = spec["cover_image"]
+                backfilled += 1
             continue
 
         category = (
@@ -417,6 +434,7 @@ def seed_demo_articles() -> int:
             title=spec["title"],
             summary=spec.get("summary"),
             body=spec["body"],
+            cover_image=spec.get("cover_image"),
             status=Article.STATUS_PUBLISHED,
             is_featured=bool(spec.get("featured")),
             category_id=category.id if category else None,
@@ -436,8 +454,10 @@ def seed_demo_articles() -> int:
                 article.tags.append(tag)
         created += 1
 
-    if created:
+    if created or backfilled:
         db.session.commit()
+        if backfilled:
+            print(f"Backfilled cover images on {backfilled} existing demo article(s).")
     return created
 
 

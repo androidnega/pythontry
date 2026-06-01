@@ -42,7 +42,7 @@
     <div class="space-y-3 rounded-xl border border-app bg-surface p-5">
       <p class="text-xs uppercase tracking-[0.16em] text-subtle">Thumbnail / cover</p>
       {% if item and item.thumbnail_path %}
-        <img src="{{ url_for('static', filename=item.thumbnail_path) }}" alt="" class="w-full rounded-md border border-app" />
+        <img src="{{ item.thumbnail_path|cover_url }}" alt="" class="w-full rounded-md border border-app" />
         {{ check(form.remove_thumbnail) }}
       {% endif %}
       {{ fileinput(form.thumbnail) }}

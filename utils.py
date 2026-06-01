@@ -263,6 +263,29 @@ def excerpt(text: str | None, limit: int = 180) -> str:
     return cleaned[: limit - 1].rstrip() + "\u2026"
 
 
+def cover_url(value: str | None, external: bool = False) -> str | None:
+    """Resolve a stored image reference to a URL ready to use in `<img src>`.
+
+    Storage values can be either:
+      - a relative path inside the static folder (e.g. ``uploads/foo.jpg``), or
+      - an absolute http(s) URL (e.g. an Unsplash photo).
+
+    Absolute URLs pass through unchanged. Relative paths are resolved with
+    Flask's ``url_for("static")``; pass ``external=True`` to receive an
+    absolute URL (useful for OpenGraph meta tags).
+    Returns ``None`` when nothing is set.
+    """
+    if not value:
+        return None
+    v = str(value).strip()
+    if not v:
+        return None
+    if v.startswith(("http://", "https://", "//", "data:")):
+        return v
+    from flask import url_for
+    return url_for("static", filename=v.lstrip("/"), _external=external)
+
+
 def reading_time_minutes(text: str | None, wpm: int = 220) -> int:
     """Estimate reading time in minutes (minimum 1) for the given Markdown text."""
     if not text:

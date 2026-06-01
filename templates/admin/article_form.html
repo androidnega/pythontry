@@ -48,10 +48,10 @@
       {{ check(form.is_featured) }}
     </div>
     <div class="card p-5 space-y-4">
-      {% if article and article.cover_image %}
+      {% if article and article.cover_image %}{# show external URL or static upload preview #}
         <div class="space-y-2">
           <p class="text-xs uppercase tracking-[0.16em] text-subtle">Current cover</p>
-          <img src="{{ url_for('static', filename=article.cover_image) }}" alt="" class="w-full rounded-md border border-app" />
+          <img src="{{ article.cover_image|cover_url }}" alt="" class="w-full rounded-md border border-app" />
           {{ check(form.remove_cover) }}
         </div>
       {% endif %}

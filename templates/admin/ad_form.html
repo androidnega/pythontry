@@ -34,7 +34,7 @@
     <div class="space-y-3 rounded-xl border border-app bg-surface p-5">
       <p class="text-xs uppercase tracking-[0.16em] text-subtle">Image</p>
       {% if ad and ad.image_path %}
-        <img src="{{ url_for('static', filename=ad.image_path) }}" alt="" class="w-full rounded-md border border-app" />
+        <img src="{{ ad.image_path|cover_url }}" alt="" class="w-full rounded-md border border-app" />
         {{ check(form.remove_image) }}
       {% endif %}
       {{ fileinput(form.image) }}

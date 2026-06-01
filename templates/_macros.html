@@ -6,7 +6,7 @@
     <a href="{{ url_for('public.article_detail', slug=article.slug) }}" class="block">
       <div class="relative aspect-[16/9] w-full overflow-hidden bg-muted">
         {% if article.cover_image %}
-          <img src="{{ url_for('static', filename=article.cover_image) }}" alt="" loading="lazy"
+          <img src="{{ article.cover_image|cover_url }}" alt="" loading="lazy"
             class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
         {% else %}
           <div class="flex h-full w-full items-center justify-center text-subtle">
@@ -54,7 +54,7 @@
     <a href="{{ url_for('public.video_detail' if item.kind == 'video' else 'public.audio_detail', slug=item.slug) }}" class="block">
       <div class="relative aspect-[16/9] w-full overflow-hidden bg-muted">
         {% if item.thumbnail_path %}
-          <img src="{{ url_for('static', filename=item.thumbnail_path) }}" alt="" loading="lazy"
+          <img src="{{ item.thumbnail_path|cover_url }}" alt="" loading="lazy"
             class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
         {% else %}
           <div class="flex h-full w-full items-center justify-center text-subtle">
@@ -83,7 +83,7 @@
     <a href="{{ url_for('public.ad_detail', slug=ad.slug) }}" class="block">
       <div class="aspect-[4/3] w-full overflow-hidden bg-muted">
         {% if ad.image_path %}
-          <img src="{{ url_for('static', filename=ad.image_path) }}" alt="" loading="lazy"
+          <img src="{{ ad.image_path|cover_url }}" alt="" loading="lazy"
             class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
         {% else %}
           <div class="flex h-full w-full items-center justify-center text-subtle">
@@ -117,7 +117,7 @@
   <a href="{{ url_for('public.article_detail', slug=article.slug) }}" class="group flex items-start gap-3 rounded-lg p-2 -mx-2 hover:bg-hover">
     <div class="relative h-16 w-20 shrink-0 overflow-hidden rounded-md bg-muted">
       {% if article.cover_image %}
-        <img src="{{ url_for('static', filename=article.cover_image) }}" alt="" loading="lazy" class="h-full w-full object-cover" />
+        <img src="{{ article.cover_image|cover_url }}" alt="" loading="lazy" class="h-full w-full object-cover" />
       {% endif %}
     </div>
     <div class="min-w-0">
