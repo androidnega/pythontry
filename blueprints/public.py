@@ -112,19 +112,12 @@ def home():
     featured = _featured_articles(limit=3)
     exclude = [a.id for a in featured]
     latest = _latest_articles(limit=8, exclude_ids=exclude)
-    portraits = (
-        Portrait.query.filter_by(status=Portrait.STATUS_PUBLISHED)
-        .order_by(Portrait.is_featured.desc(), Portrait.created_at.desc())
-        .limit(3)
-        .all()
-    )
     return render_template(
         "home.html",
         featured=featured,
         latest=latest,
         videos=_latest_media(kind=MediaItem.KIND_VIDEO, limit=4),
         ads=_latest_ads(limit=4),
-        portraits=portraits,
         categories=_categories(kind="news"),
     )
 

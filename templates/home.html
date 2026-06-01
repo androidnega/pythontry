@@ -38,7 +38,7 @@
   </div>
 </section>
 
-{% set has_content = featured or latest or videos or ads or portraits %}
+{% set has_content = featured or latest or videos or ads %}
 
 {# ============ Featured carousel ============ #}
 {% if featured %}
@@ -125,40 +125,6 @@
   </div>
   <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
     {% for ad in ads %}{{ ad_card(ad) }}{% endfor %}
-  </div>
-</section>
-{% endif %}
-
-{# ============ Portraits ============ #}
-{% if portraits %}
-<section class="mt-14">
-  <div class="mb-4 flex items-end justify-between">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Portraits</p>
-      <h2 class="font-serif-news mt-1 text-2xl font-semibold sm:text-3xl">Buy original photography</h2>
-    </div>
-    <a href="{{ url_for('public.portraits_list') }}" class="text-sm text-accent hover:text-accent-strong">All portraits &rarr;</a>
-  </div>
-  <div class="grid items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    {% for p in portraits %}
-      <article class="card card-hover group overflow-hidden">
-        <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="portrait-thumb no-save-zone"
-           style="aspect-ratio: {{ p.card_aspect_css }};">
-          {% if p.preview_path %}
-            <img src="{{ url_for('static', filename=p.preview_path) }}" alt=""
-                 class="no-save transition duration-500 group-hover:scale-[1.03]"
-                 style="object-position: {{ p.card_object_position }};"
-                 loading="lazy" draggable="false" />
-          {% endif %}
-        </a>
-        <div class="flex items-baseline justify-between gap-2 p-4">
-          <h3 class="text-base font-semibold leading-snug">
-            <a href="{{ url_for('public.portrait_detail', slug=p.slug) }}" class="text-fg hover:text-accent">{{ p.title }}</a>
-          </h3>
-          <span class="chip chip-accent !text-xs shrink-0">{{ p.currency }} {{ p.price_display }}</span>
-        </div>
-      </article>
-    {% endfor %}
   </div>
 </section>
 {% endif %}
