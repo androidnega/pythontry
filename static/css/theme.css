@@ -652,7 +652,9 @@ main > .hero-fullbleed:first-child {
 
 /* Bottom card strip — previews the slides.
    Pinned to the inner-content right edge so it lines up with the rest
-   of the page even though the hero is full-bleed. */
+   of the page even though the hero is full-bleed.
+   `align-items: end` keeps every card flush with the hero's bottom edge
+   so the active card can grow upward without nudging its siblings. */
 .hero-cards {
   position: absolute;
   bottom: 0;
@@ -661,6 +663,7 @@ main > .hero-fullbleed:first-child {
   max-width: 72rem; /* lines up with the rest of the site */
   display: grid;
   grid-template-columns: 1fr;
+  align-items: end;
   z-index: 3;
   padding: 0; /* override generic padding */
 }
@@ -684,16 +687,36 @@ main > .hero-fullbleed:first-child {
   padding: 1.1rem 1.1rem 1.25rem;
   border-right: 1px solid rgba(15, 23, 42, 0.08);
   cursor: pointer;
-  transition: background .2s ease, color .2s ease;
+  transition: background .2s ease, color .2s ease, padding .25s ease, box-shadow .25s ease;
   min-height: 92px;
+  align-self: end;   /* sit on the bottom rail */
 }
 .hero-card:last-child { border-right: 0; }
 .hero-card:hover { background: rgba(255, 255, 255, 1); }
 .hero-card.is-active {
   background: var(--accent);
   color: var(--accent-on);
+  /* Extend upward so the active tile rises above the strip (matches
+     the InHype pink "02" reference). Only do this on sm+ where the
+     cards sit side-by-side — on mobile they stack vertically. */
+  box-shadow: 0 -8px 24px -8px rgba(0, 0, 0, 0.18);
 }
 .hero-card.is-active:hover { background: var(--accent-strong); }
+
+@media (min-width: 640px) {
+  .hero-card.is-active {
+    padding-top: 2.25rem;
+    padding-bottom: 1.6rem;
+    min-height: 124px;
+  }
+}
+@media (min-width: 1024px) {
+  .hero-card.is-active {
+    padding-top: 2.75rem;
+    padding-bottom: 1.75rem;
+    min-height: 144px;
+  }
+}
 
 .hero-card-num {
   display: block;
