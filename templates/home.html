@@ -6,7 +6,73 @@
 
 {% block content %}
 
-{# ============ Hero ============ #}
+{# ============ Hero slider (InHype-style) ============ #}
+{% set hero = featured | selectattr('cover_image') | list %}
+{% if hero %}
+<section class="hero-slider" data-hero-slider aria-label="Featured stories">
+  <div class="hero-stage">
+    {% for a in hero %}
+      <article class="hero-slide {% if loop.first %}is-active{% endif %}"
+               data-hero-slide
+               style="background-image: url('{{ a.cover_image|cover_url }}');">
+        <a class="hero-slide-link" href="{{ url_for('public.article_detail', slug=a.slug) }}"
+           aria-label="Read {{ a.title }}"></a>
+        <div class="hero-content">
+          <div class="hero-pills">
+            {% if a.category %}
+              <span class="hero-pill">{{ a.category.name|lower }}</span>
+            {% endif %}
+            {% for t in a.tags[:1] %}
+              <span class="hero-pill is-tag">{{ t.name|lower }}</span>
+            {% endfor %}
+          </div>
+          <h2 class="hero-title">
+            <a href="{{ url_for('public.article_detail', slug=a.slug) }}">{{ a.title }}</a>
+          </h2>
+          <p class="hero-meta">
+            <span>By {{ a.author.name if a.author else 'Staff' }}</span>
+            <span class="dot" aria-hidden="true"></span>
+            {% if a.published_at %}
+              <time datetime="{{ a.published_at.isoformat() }}">{{ a.published_at.strftime('%B %d, %Y') }}</time>
+              <span class="dot" aria-hidden="true"></span>
+            {% endif %}
+            <span>{{ a.body|reading_time }} Mins read</span>
+          </p>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+
+  {% if hero|length > 1 %}
+    <button type="button" class="hero-arrow hero-arrow-prev" data-hero-prev aria-label="Previous story">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button type="button" class="hero-arrow hero-arrow-next" data-hero-next aria-label="Next story">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+
+    <div class="hero-dots" role="tablist" aria-label="Slide selector">
+      {% for a in hero %}
+        <button type="button" class="hero-dot {% if loop.first %}is-active{% endif %}"
+                data-hero-dot="{{ loop.index0 }}" aria-label="Go to slide {{ loop.index }}"></button>
+      {% endfor %}
+    </div>
+
+    <div class="hero-cards" data-hero-cards>
+      {% for a in hero[:3] %}
+        <button type="button"
+                class="hero-card {% if loop.first %}is-active{% endif %}"
+                data-hero-card="{{ loop.index0 }}"
+                aria-label="Show slide {{ loop.index }}: {{ a.title }}">
+          <span class="hero-card-num">{{ '%02d'|format(loop.index) }}</span>
+          <span class="hero-card-title">{{ a.title }}</span>
+        </button>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+{% else %}
+{# Fallback when no featured stories have a cover image. #}
 <section class="card overflow-hidden">
   <div class="grid items-center gap-8 p-6 sm:p-10 md:grid-cols-[1.5fr,1fr]">
     <div>
@@ -19,8 +85,8 @@
         <span class="text-accent">Our community.</span>
       </h1>
       <p class="mt-4 max-w-xl text-base leading-relaxed text-muted">
-        AhantaPulse is your home for news, stories and videos from across the Ahanta —
-        and a friendly marketplace where local businesses meet local people.
+        News, stories and videos from the Ahanta — plus a community marketplace where local
+        businesses meet local people.
       </p>
       <div class="mt-6 flex flex-wrap gap-2.5">
         <a href="{{ url_for('public.news_list') }}" class="btn-primary inline-flex items-center gap-2">
@@ -28,7 +94,6 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
         <a href="{{ url_for('public.videos_list') }}" class="btn-secondary">Watch videos</a>
-        <a href="{{ url_for('public.portraits_list') }}" class="btn-secondary">Portraits</a>
       </div>
     </div>
     <div class="relative hidden justify-center md:flex">
@@ -37,35 +102,9 @@
     </div>
   </div>
 </section>
+{% endif %}
 
 {% set has_content = featured or latest or videos or ads %}
-
-{# ============ Featured carousel ============ #}
-{% if featured %}
-<section class="mt-12" data-carousel>
-  <div class="mb-4 flex items-end justify-between gap-3">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Featured</p>
-      <h2 class="font-serif-news mt-1 text-2xl font-semibold sm:text-3xl">Top stories right now</h2>
-    </div>
-    <div class="flex items-center gap-2">
-      <button type="button" data-carousel-prev class="btn-secondary !p-2" aria-label="Previous slide">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <button type="button" data-carousel-next class="btn-secondary !p-2" aria-label="Next slide">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <div class="carousel -mx-4 px-4 sm:mx-0 sm:px-0">
-    {% for a in featured %}
-      <div class="carousel-item w-[88%] sm:w-[60%] lg:w-[44%]">{{ article_card(a, size='lg') }}</div>
-    {% endfor %}
-  </div>
-  <div data-carousel-dots class="mt-4 flex justify-center gap-2"></div>
-</section>
-{% endif %}
 
 {# ============ Latest news (grid) + Popular sidebar (stack) ============ #}
 {% if latest %}

@@ -140,6 +140,69 @@
   }
   document.querySelectorAll('[data-carousel]').forEach(initCarousel);
 
+  // ---------- Hero slider (InHype-style featured stories) ----------
+  function initHero(root) {
+    var slides = Array.prototype.slice.call(root.querySelectorAll('[data-hero-slide]'));
+    if (slides.length <= 1) return;
+    var cards  = Array.prototype.slice.call(root.querySelectorAll('[data-hero-card]'));
+    var dots   = Array.prototype.slice.call(root.querySelectorAll('[data-hero-dot]'));
+    var prev   = root.querySelector('[data-hero-prev]');
+    var next   = root.querySelector('[data-hero-next]');
+
+    var idx = 0;
+    var timer = null;
+    var INTERVAL = 7000;
+
+    function show(i) {
+      idx = (i + slides.length) % slides.length;
+      slides.forEach(function (s, n) { s.classList.toggle('is-active', n === idx); });
+      // Cards may be fewer than slides (we cap at 3); only highlight matching index.
+      cards.forEach(function (c, n) { c.classList.toggle('is-active', n === idx); });
+      dots.forEach(function (d, n) { d.classList.toggle('is-active', n === idx); });
+    }
+    function tick() { show(idx + 1); }
+    function start() { stop(); timer = setInterval(tick, INTERVAL); }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+    if (prev) prev.addEventListener('click', function () { show(idx - 1); start(); });
+    if (next) next.addEventListener('click', function () { show(idx + 1); start(); });
+    cards.forEach(function (c, n) {
+      c.addEventListener('click', function () { show(n); start(); });
+    });
+    dots.forEach(function (d, n) {
+      d.addEventListener('click', function () { show(n); start(); });
+    });
+
+    root.addEventListener('mouseenter', stop);
+    root.addEventListener('mouseleave', start);
+    // Pause when the tab is hidden
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stop(); else start();
+    });
+
+    // Touch swipe
+    var sx = 0, sy = 0, tracking = false;
+    root.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1) return;
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+    root.addEventListener('touchend', function (e) {
+      if (!tracking) return;
+      tracking = false;
+      var t = e.changedTouches[0];
+      var dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+        if (dx < 0) show(idx + 1); else show(idx - 1);
+        start();
+      }
+    });
+
+    show(0);
+    start();
+  }
+  document.querySelectorAll('[data-hero-slider]').forEach(initHero);
+
   // ---------- Image protection (best-effort) ----------
   // Disables right-click, dragging, long-press save and text-selection on
   // protected images. Screenshots cannot be prevented by a web page; the

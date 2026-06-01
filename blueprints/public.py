@@ -109,7 +109,9 @@ def _popular_articles(limit: int = 5, exclude_id: int | None = None):
 
 @bp.route("/")
 def home():
-    featured = _featured_articles(limit=3)
+    # Pull up to 5 featured so the hero slider has more than 3 to rotate
+    # through while the bottom card strip stays capped at 3 in the template.
+    featured = _featured_articles(limit=5)
     exclude = [a.id for a in featured]
     latest = _latest_articles(limit=8, exclude_ids=exclude)
     return render_template(

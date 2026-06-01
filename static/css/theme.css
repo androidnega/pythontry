@@ -503,3 +503,204 @@ body.lightbox-open { overflow: hidden; }
   box-shadow: 0 -4px 16px rgba(0,0,0,0.05);
 }
 @media (min-width: 1024px) { .buy-bar { display: none; } }
+
+/* ───── InHype-style hero slider ───── */
+.hero-slider {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--bg-muted);
+  isolation: isolate;
+}
+.hero-stage {
+  position: relative;
+  min-height: 420px;
+  height: 56vw;
+  max-height: 620px;
+}
+@media (min-width: 768px) { .hero-stage { min-height: 480px; } }
+@media (min-width: 1024px) { .hero-stage { min-height: 540px; } }
+
+.hero-slide {
+  position: absolute; inset: 0;
+  opacity: 0;
+  transition: opacity .6s ease;
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+}
+.hero-slide.is-active { opacity: 1; pointer-events: auto; z-index: 1; }
+.hero-slide::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(0, 0, 0, 0.78) 0%,
+    rgba(0, 0, 0, 0.55) 38%,
+    rgba(0, 0, 0, 0.15) 70%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+}
+.hero-slide-link {
+  position: absolute; inset: 0;
+  z-index: 1;
+}
+
+.hero-content {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  bottom: 0;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 1.5rem 1.5rem 7.5rem;
+  color: #fff;
+  z-index: 2;
+  pointer-events: none;
+}
+.hero-content > * { pointer-events: auto; }
+@media (min-width: 640px) {
+  .hero-content { padding: 2rem 2.25rem 8rem; }
+}
+@media (min-width: 1024px) {
+  .hero-content { padding: 2.5rem 3rem 9rem; max-width: 56%; }
+}
+
+.hero-pills { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.hero-pill {
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: lowercase;
+}
+.hero-pill::before {
+  content: ''; width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent);
+}
+.hero-pill.is-tag::before { background: #a855f7; } /* purple-500 for tags */
+
+.hero-title {
+  font-family: 'Source Serif 4', ui-serif, Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(1.6rem, 4.2vw, 3rem);
+  line-height: 1.1;
+  margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  color: #fff;
+}
+.hero-title a { color: inherit; text-decoration: none; }
+.hero-title a:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+
+.hero-meta {
+  margin-top: 1rem;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex; flex-wrap: wrap; align-items: center; gap: .55rem;
+}
+.hero-meta .dot { width: 3px; height: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.65); display: inline-block; }
+
+.hero-arrow {
+  position: absolute; top: calc(50% - 64px);
+  transform: translateY(-50%);
+  width: 42px; height: 42px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  display: grid; place-items: center;
+  z-index: 4;
+  transition: background .15s ease, transform .15s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.hero-arrow:hover { background: rgba(15, 23, 42, 0.8); }
+.hero-arrow:active { transform: translateY(-50%) scale(0.96); }
+.hero-arrow-prev { left: 14px; }
+.hero-arrow-next { right: 14px; }
+
+/* Bottom card strip — previews the slides */
+.hero-cards {
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  z-index: 3;
+}
+@media (min-width: 640px) {
+  .hero-cards { grid-template-columns: repeat(3, 1fr); width: 78%; max-width: 720px; }
+}
+.hero-card {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+  padding: 1.1rem 1.1rem 1.25rem;
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease;
+  min-height: 92px;
+}
+.hero-card:last-child { border-right: 0; }
+.hero-card:hover { background: rgba(255, 255, 255, 1); }
+.hero-card.is-active {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+.hero-card.is-active:hover { background: var(--accent-strong); }
+
+.hero-card-num {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  opacity: 0.55;
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.02em;
+}
+.hero-card.is-active .hero-card-num { opacity: 0.9; color: var(--accent-on); }
+
+.hero-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-weight: 600;
+  font-size: 0.86rem;
+  line-height: 1.32;
+}
+
+/* Hide the bottom cards strip on very small screens — they'd overlap text.
+   Replace with dot indicators instead (rendered in markup, hidden ≥640px). */
+.hero-dots {
+  position: absolute;
+  left: 1.5rem; bottom: 1.25rem;
+  display: flex; gap: 7px;
+  z-index: 3;
+}
+@media (min-width: 640px) { .hero-dots { display: none; } }
+.hero-dot {
+  width: 8px; height: 8px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 0;
+}
+.hero-dot.is-active { background: #fff; }
+
+/* On small screens, drop the cards strip (we show dots instead). */
+@media (max-width: 639px) {
+  .hero-cards { display: none; }
+  .hero-content { padding-bottom: 4.5rem; }
+  .hero-arrow { top: 50%; }
+}
+
+/* Dark mode: cards keep their light background by default to stay
+   high-contrast against the dark photo, but soften the active state
+   on dark mode so the accent doesn't blow out. */
+[data-theme="dark"] .hero-card {
+  background: rgba(255, 255, 255, 0.94);
+}
+[data-theme="dark"] .hero-card.is-active {
+  background: var(--accent);
+  color: var(--accent-on);
+}
