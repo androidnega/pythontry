@@ -139,4 +139,67 @@
     if (next) next.addEventListener('click', function () { step(1); });
   }
   document.querySelectorAll('[data-carousel]').forEach(initCarousel);
+
+  // ---------- Image protection (best-effort) ----------
+  // Disables right-click, dragging, long-press save and text-selection on
+  // protected images. Screenshots cannot be prevented by a web page; the
+  // real defense is the watermark burned into previews on the server.
+  function block(e) { e.preventDefault(); e.stopPropagation(); return false; }
+
+  function protectMedia(target) {
+    var nodes = [];
+    if (!target) {
+      nodes = Array.prototype.slice.call(document.querySelectorAll('.no-save'));
+    } else if (target.nodeType === 1) {
+      nodes = [target];
+      if (!target.classList.contains('no-save')) {
+        // Protect children too
+        nodes = nodes.concat(Array.prototype.slice.call(target.querySelectorAll('.no-save')));
+      }
+    }
+    nodes.forEach(function (el) {
+      if (el.__protected) return;
+      el.__protected = true;
+      el.setAttribute('draggable', 'false');
+      el.addEventListener('contextmenu', block);
+      el.addEventListener('dragstart', block);
+      // Long-press save on iOS Safari
+      el.style.webkitTouchCallout = 'none';
+    });
+  }
+  window.protectMedia = protectMedia;
+
+  // Run once on load
+  protectMedia();
+
+  // Re-run when dynamic content (e.g. lightbox) is added.
+  if (typeof MutationObserver === 'function') {
+    var mo = new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var m = mutations[i];
+        for (var j = 0; j < m.addedNodes.length; j++) {
+          var n = m.addedNodes[j];
+          if (n.nodeType !== 1) continue;
+          if (n.matches && n.matches('.no-save')) protectMedia(n);
+          else if (n.querySelectorAll) protectMedia(n);
+        }
+      }
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // Block context menu inside any element marked .no-save-zone (e.g. lightbox)
+  document.addEventListener('contextmenu', function (e) {
+    var zone = e.target.closest && e.target.closest('.no-save-zone, .no-save');
+    if (zone) { e.preventDefault(); return false; }
+  });
+
+  // Belt-and-suspenders: block common "save" shortcut while pointer is over
+  // a protected image. This does not prevent OS-level screenshots.
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+      var hover = document.querySelector('.no-save:hover');
+      if (hover) { e.preventDefault(); }
+    }
+  });
 })();

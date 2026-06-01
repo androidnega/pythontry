@@ -17,7 +17,7 @@
     var pinchStartDist = 0, pinchStartScale = 1;
 
     var backdrop = document.createElement("div");
-    backdrop.className = "lightbox-backdrop";
+    backdrop.className = "lightbox-backdrop no-save-zone";
     backdrop.setAttribute("role", "dialog");
     backdrop.setAttribute("aria-modal", "true");
     backdrop.innerHTML = [
@@ -37,7 +37,7 @@
       '</div>',
       '<div class="lightbox-stage" data-lb-stage>',
       '  <div class="lightbox-image-wrap" data-lb-wrap>',
-      '    <img alt="" data-lb-img />',
+      '    <img alt="" data-lb-img class="no-save" draggable="false" />',
       '  </div>',
       '  <button type="button" class="lightbox-side-btn lightbox-prev" data-action="prev" aria-label="Previous">',
       '    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
@@ -67,12 +67,17 @@
     views.forEach(function (v, i) {
       var t = document.createElement("button");
       t.type = "button";
-      t.className = "lightbox-foot-thumb";
+      t.className = "lightbox-foot-thumb no-save-zone";
       t.dataset.idx = String(i);
-      t.innerHTML = '<img alt="" src="' + v.src + '">';
+      t.innerHTML = '<img alt="" class="no-save" draggable="false" src="' + v.src + '">';
       t.addEventListener("click", function () { go(i); });
       footer.appendChild(t);
     });
+
+    // Apply best-effort save protection to dynamic content
+    if (typeof window.protectMedia === "function") {
+      window.protectMedia(backdrop);
+    }
 
     function applyTransform() {
       wrap.style.transform = "translate(" + tx + "px, " + ty + "px)";

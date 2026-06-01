@@ -457,6 +457,18 @@ details > summary::-webkit-details-marker { display: none; }
 
 body.lightbox-open { overflow: hidden; }
 
+/* Image protection (paired with .no-save JS handlers in app.js) */
+.no-save {
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  pointer-events: auto;
+}
+.no-save-zone { -webkit-touch-callout: none; }
+
 /* Sticky mobile buy bar */
 .buy-bar {
   position: sticky; bottom: 0; z-index: 30;
