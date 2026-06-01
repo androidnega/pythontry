@@ -237,6 +237,7 @@
     {% set _ = _seen.ids.append(a.id) %}
   {% endif %}
 {% endfor %}
+{% set trending_ids = _trending|map(attribute='id')|list %}
 {% if _trending|length == 3 %}
 <section class="mt-14 lg:mt-16" aria-label="Trending stories">
   <header class="section-head">
@@ -279,6 +280,75 @@
         {% endif %}
       </article>
     {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ============ Today Highlights — auto-sliding row ============ #}
+{# Build the highlights pool: every published item with a cover image,
+   prefer ones not already shown in the spotlight/trending so the row
+   feels fresh. Up to 12 — the row scrolls horizontally with autoplay. #}
+{% set _hp_seen = [spotlight.id if spotlight else 0] + (trending_ids or []) %}
+{% set _hp_pool = ((latest or []) + (featured or []) + (shortcuts or [])) | selectattr('cover_image') | list %}
+{% set highlights = [] %}
+{% set _hl_seen = namespace(ids=_hp_seen) %}
+{% for a in _hp_pool %}
+  {% if a.id not in _hl_seen.ids and highlights|length < 12 %}
+    {% set _ = highlights.append(a) %}
+    {% set _ = _hl_seen.ids.append(a.id) %}
+  {% endif %}
+{% endfor %}
+{# If we still don't have at least 5, fall back to also including the
+   already-shown items so the row never looks empty. #}
+{% if highlights|length < 5 %}
+  {% set _all_with_cover = ((featured or []) + (latest or [])) | selectattr('cover_image') | list %}
+  {% for a in _all_with_cover %}
+    {% if a.id not in _hl_seen.ids and highlights|length < 7 %}
+      {% set _ = highlights.append(a) %}
+      {% set _ = _hl_seen.ids.append(a.id) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{% if highlights|length >= 3 %}
+<section class="mt-14 lg:mt-16" aria-label="Today highlights">
+  <header class="section-head">
+    <h2 class="section-title-xl">Today Highlights</h2>
+    <p class="section-eyebrow">Top of the week</p>
+  </header>
+  <div class="highlights-wrap">
+    <button type="button" class="highlights-arrow highlights-arrow-prev" data-highlights-prev aria-label="Previous">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="highlights-track" data-highlights>
+      {% for a in highlights %}
+        {% set _ci = (a.category.slug|sum_of_chars % 8) if a.category and a.category.slug else (loop.index0 % 8) %}
+        <article class="highlight-card">
+          <div class="highlight-media no-save-zone">
+            <img src="{{ a.cover_image|cover_url }}" alt="{{ a.title }}" class="no-save" draggable="false" />
+            <a class="highlight-link" href="{{ url_for('public.article_detail', slug=a.slug) }}"
+               aria-label="Read {{ a.title }}"></a>
+          </div>
+          <div class="highlight-pills">
+            {% if a.category %}
+              <span class="story-pill" data-c="{{ _ci }}">{{ a.category.name|lower }}</span>
+            {% endif %}
+          </div>
+          <h3 class="highlight-title">
+            <a href="{{ url_for('public.article_detail', slug=a.slug) }}">{{ a.title }}</a>
+          </h3>
+          <p class="highlight-meta">
+            {% if a.published_at %}
+              <time datetime="{{ a.published_at.isoformat() }}">{{ a.published_at.strftime('%B %d, %Y') }}</time>
+              <span class="dot" aria-hidden="true"></span>
+            {% endif %}
+            <span>{{ a.body|reading_time }} Mins read</span>
+          </p>
+        </article>
+      {% endfor %}
+    </div>
+    <button type="button" class="highlights-arrow highlights-arrow-next" data-highlights-next aria-label="Next">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
   </div>
 </section>
 {% endif %}

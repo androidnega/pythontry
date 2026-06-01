@@ -203,6 +203,68 @@
   }
   document.querySelectorAll('[data-hero-slider]').forEach(initHero);
 
+  // ---------- Highlights carousel (horizontal auto-slide) ----------
+  function initHighlights(track) {
+    if (!track) return;
+    var wrap = track.closest('.highlights-wrap');
+    var prev = wrap && wrap.querySelector('[data-highlights-prev]');
+    var next = wrap && wrap.querySelector('[data-highlights-next]');
+
+    function stride() {
+      var card = track.querySelector('.highlight-card');
+      if (!card) return track.clientWidth;
+      var styles = window.getComputedStyle(track);
+      var gap = parseFloat(styles.columnGap || styles.gap || '24') || 24;
+      return card.getBoundingClientRect().width + gap;
+    }
+    function maxScroll() {
+      return Math.max(0, track.scrollWidth - track.clientWidth - 2);
+    }
+    function nudge(dir) {
+      var max = maxScroll();
+      if (max <= 0) return;
+      var s = stride();
+      var target = track.scrollLeft + dir * s;
+      if (dir > 0 && target > max - 4) target = 0;        // wrap to start
+      if (dir < 0 && target < 4) target = max;            // wrap to end
+      track.scrollTo({ left: target, behavior: 'smooth' });
+    }
+
+    var timer = null;
+    var INTERVAL = 4500;
+    function start() { stop(); if (maxScroll() > 0) timer = setInterval(function () { nudge(1); }, INTERVAL); }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+    if (prev) prev.addEventListener('click', function () { nudge(-1); start(); });
+    if (next) next.addEventListener('click', function () { nudge(1);  start(); });
+
+    track.addEventListener('mouseenter', stop);
+    track.addEventListener('mouseleave', start);
+    // Manual scroll (drag, swipe) also pauses briefly then resumes.
+    var scrollPauseTimer;
+    track.addEventListener('scroll', function () {
+      stop();
+      clearTimeout(scrollPauseTimer);
+      scrollPauseTimer = setTimeout(start, 2500);
+    }, { passive: true });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stop(); else start();
+    });
+
+    // Only start when the section is actually visible to the user.
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) start(); else stop();
+        });
+      }, { threshold: 0.1 });
+      io.observe(track);
+    } else {
+      start();
+    }
+  }
+  document.querySelectorAll('[data-highlights]').forEach(initHighlights);
+
   // ---------- Image protection (best-effort) ----------
   // Disables right-click, dragging, long-press save and text-selection on
   // protected images. Screenshots cannot be prevented by a web page; the
