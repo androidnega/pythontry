@@ -34,14 +34,17 @@
 
   var initialHTML = bodyInput.value || '';
 
-  // Custom toolbar config — keep it focused.
+  // Traditional WYSIWYG toolbar — headings, formatting, lists, indents,
+  // alignment, link + image + video, and our AI helper.
   var toolbarOptions = [
-    [{ header: [2, 3, false] }],
+    [{ header: [2, 3, 4, false] }],
     ['bold', 'italic', 'underline', 'strike'],
+    [{ color: [] }, { background: [] }],
     [{ list: 'ordered' }, { list: 'bullet' }],
-    ['blockquote', 'code-block'],
+    [{ indent: '-1' }, { indent: '+1' }],
     [{ align: [] }],
-    ['link', 'image'],
+    ['blockquote', 'code-block'],
+    ['link', 'image', 'video'],
     ['clean'],
     ['ai'],     // custom button rendered by article_form.html (label "AI ✨")
   ];
@@ -55,6 +58,189 @@
   if (initialHTML) {
     quill.clipboard.dangerouslyPasteHTML(0, initialHTML);
   }
+
+  // ───────── Drag-to-resize for images and embedded videos ─────────
+  // Click an image or iframe inside the editor → an overlay frame appears
+  // with 4 corner handles and an alignment toolbar. Drag any handle to
+  // resize (aspect ratio preserved). Click outside or press Esc to deselect.
+  (function attachResize() {
+    var ICON_LEFT   = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="13" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+    var ICON_CENTER = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+    var ICON_RIGHT  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="11" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+    var ICON_FULL   = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="1"/></svg>';
+    var ICON_DEL    = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'ql-resize';
+    overlay.style.display = 'none';
+    overlay.innerHTML =
+      '<div class="ql-resize-frame">' +
+        '<span class="ql-resize-handle" data-h="tl"></span>' +
+        '<span class="ql-resize-handle" data-h="tr"></span>' +
+        '<span class="ql-resize-handle" data-h="bl"></span>' +
+        '<span class="ql-resize-handle" data-h="br"></span>' +
+        '<span class="ql-resize-size" data-size></span>' +
+      '</div>' +
+      '<div class="ql-resize-bar">' +
+        '<button type="button" data-act="left"   title="Float left">'   + ICON_LEFT   + '</button>' +
+        '<button type="button" data-act="center" title="Center">'      + ICON_CENTER + '</button>' +
+        '<button type="button" data-act="right"  title="Float right">' + ICON_RIGHT  + '</button>' +
+        '<button type="button" data-act="full"   title="Full width">'  + ICON_FULL   + '</button>' +
+        '<button type="button" data-act="delete" title="Remove">'      + ICON_DEL    + '</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    var target = null;
+    var sizeEl = overlay.querySelector('[data-size]');
+
+    function place() {
+      if (!target) return;
+      var r = target.getBoundingClientRect();
+      overlay.style.position = 'fixed';
+      overlay.style.top    = r.top + 'px';
+      overlay.style.left   = r.left + 'px';
+      overlay.style.width  = r.width + 'px';
+      overlay.style.height = r.height + 'px';
+      sizeEl.textContent = Math.round(r.width) + ' × ' + Math.round(r.height);
+    }
+    function show(el) {
+      target = el;
+      overlay.style.display = 'block';
+      place();
+      syncBody();
+    }
+    function hide() {
+      target = null;
+      overlay.style.display = 'none';
+    }
+
+    // Click to select (images and iframes)
+    quill.root.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && (t.tagName === 'IMG' || t.tagName === 'IFRAME')) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Place the cursor right after the element so other actions still work.
+        var blot = Quill.find(t);
+        if (blot) {
+          var idx = quill.getIndex(blot);
+          quill.setSelection(idx + 1, 0, 'silent');
+        }
+        show(t);
+      } else if (target && !overlay.contains(t)) {
+        hide();
+      }
+    }, true);
+
+    // Click anywhere else dismisses
+    document.addEventListener('mousedown', function (e) {
+      if (!target) return;
+      if (overlay.contains(e.target)) return;
+      if (e.target === target) return;
+      hide();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && target) hide();
+    });
+
+    // Keep the frame attached when the page scrolls or resizes
+    window.addEventListener('scroll',  place, true);
+    window.addEventListener('resize',  place);
+
+    // Hide while the user types text edits
+    quill.on('text-change', function (delta, _old, source) {
+      // Don't hide for our own resize-driven width/height changes
+      if (source === 'silent') return;
+      hide();
+    });
+
+    // ── Drag-to-resize from each corner ──
+    Array.prototype.forEach.call(overlay.querySelectorAll('[data-h]'), function (handle) {
+      handle.addEventListener('mousedown', function (e) {
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        var which = handle.getAttribute('data-h');
+        var startX = e.clientX;
+        var startRect = target.getBoundingClientRect();
+        var startW = startRect.width;
+        var startH = startRect.height;
+        var ratio  = startW / Math.max(1, startH);
+        var growsRight = (which === 'br' || which === 'tr');
+
+        function onMove(ev) {
+          var dx = ev.clientX - startX;
+          var newW = growsRight ? (startW + dx) : (startW - dx);
+          newW = Math.max(64, newW);
+          // Constrain to the editor's content width so users can't push it past the page.
+          var editorWidth = quill.root.clientWidth;
+          if (newW > editorWidth) newW = editorWidth;
+          var newH = Math.round(newW / ratio);
+          target.setAttribute('width',  Math.round(newW));
+          target.setAttribute('height', newH);
+          target.style.width  = Math.round(newW) + 'px';
+          target.style.height = newH + 'px';
+          place();
+        }
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          syncBody();
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',  onUp);
+      });
+    });
+
+    // ── Alignment / delete buttons ──
+    overlay.querySelectorAll('[data-act]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        if (!target) return;
+        e.preventDefault();
+        var act = btn.getAttribute('data-act');
+        if (act === 'delete') {
+          var blot = Quill.find(target);
+          if (blot) {
+            var idx = quill.getIndex(blot);
+            quill.deleteText(idx, 1, 'user');
+          }
+          hide();
+          syncBody();
+          return;
+        }
+        // Reset all alignment-related styles before applying the new one
+        target.style.float = '';
+        target.style.display = '';
+        target.style.marginLeft = '';
+        target.style.marginRight = '';
+
+        if (act === 'left') {
+          target.style.float = 'left';
+          target.style.marginRight = '1rem';
+          target.style.marginBottom = '0.5rem';
+        } else if (act === 'right') {
+          target.style.float = 'right';
+          target.style.marginLeft = '1rem';
+          target.style.marginBottom = '0.5rem';
+        } else if (act === 'center') {
+          target.style.display = 'block';
+          target.style.marginLeft = 'auto';
+          target.style.marginRight = 'auto';
+        } else if (act === 'full') {
+          target.style.display = 'block';
+          target.style.width = '100%';
+          target.style.height = 'auto';
+          target.style.marginLeft = '0';
+          target.style.marginRight = '0';
+          target.removeAttribute('width');
+          target.removeAttribute('height');
+        }
+        place();
+        syncBody();
+      });
+    });
+  })();
 
   // Sync editor → hidden textarea on every change and on submit.
   function syncBody() {

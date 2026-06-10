@@ -181,7 +181,24 @@ body, .bg-page, .bg-surface, .bg-elevated, .bg-muted, .border-app, .border-soft,
 .prose-news p { margin: 0.85rem 0; color: var(--text-base); }
 .prose-news a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .prose-news a:hover { color: var(--accent-strong); }
-.prose-news img { max-width: 100%; height: auto; border-radius: 0.6rem; margin: 1.2rem 0; }
+/* Honour the editor's inline width/float/margin while staying responsive.
+   `height: auto` is forced so portrait scaling keeps the natural ratio
+   instead of being distorted by a stale inline height. */
+.prose-news img,
+.prose-news iframe {
+  max-width: 100%;
+  border-radius: 0.6rem;
+  margin: 1.2rem 0;
+  display: block;
+}
+.prose-news img { height: auto !important; }
+/* When the editor sets float, restore vertical margins so wrapped text
+   doesn't crash into the image edges. */
+.prose-news img[style*="float"],
+.prose-news iframe[style*="float"] {
+  margin-top: 0.4rem;
+  margin-bottom: 0.4rem;
+}
 .prose-news blockquote {
   border-left: 3px solid var(--accent);
   background: var(--bg-muted);
@@ -266,7 +283,10 @@ details > summary::-webkit-details-marker { display: none; }
 .editor-wrap .ql-editor a  { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .editor-wrap .ql-editor blockquote { border-left: 3px solid var(--accent); background: var(--bg-muted); padding: 0.6rem 1rem; color: var(--text-muted); margin: 0.8rem 0; border-radius: 0 6px 6px 0; font-style: italic; }
 .editor-wrap .ql-editor pre  { background: var(--code-bg); border-radius: 6px; padding: 0.7rem 0.9rem; }
-.editor-wrap .ql-editor img  { max-width: 100%; height: auto; border-radius: 6px; }
+.editor-wrap .ql-editor img,
+.editor-wrap .ql-editor iframe { max-width: 100%; border-radius: 6px; cursor: pointer; }
+.editor-wrap .ql-editor img { height: auto; }
+.editor-wrap .ql-editor iframe { display: block; background: #000; }
 
 /* Toolbar icons — flip in dark mode */
 .editor-wrap .ql-snow .ql-stroke { stroke: var(--text-muted); }
@@ -276,6 +296,70 @@ details > summary::-webkit-details-marker { display: none; }
 .editor-wrap .ql-snow .ql-picker-options { background: var(--bg-surface); border-color: var(--border-base); color: var(--text-base); }
 .editor-wrap .ql-snow .ql-tooltip { background: var(--bg-surface); border-color: var(--border-base); color: var(--text-base); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
 .editor-wrap .ql-snow .ql-tooltip input[type=text] { background: var(--bg-page); color: var(--text-base); border: 1px solid var(--border-base); border-radius: 6px; }
+
+/* ───── Editor resize overlay (custom) ─────
+   Shown over an image or iframe inside the WYSIWYG when clicked. */
+.ql-resize {
+  position: fixed; z-index: 9999;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+.ql-resize-frame {
+  position: absolute; inset: 0;
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(0, 132, 199, 0.15);
+}
+.ql-resize-handle {
+  position: absolute;
+  width: 12px; height: 12px;
+  background: #fff;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  pointer-events: auto;
+}
+.ql-resize-handle[data-h="tl"] { top: -7px;   left: -7px;   cursor: nwse-resize; }
+.ql-resize-handle[data-h="tr"] { top: -7px;   right: -7px;  cursor: nesw-resize; }
+.ql-resize-handle[data-h="bl"] { bottom: -7px; left: -7px;  cursor: nesw-resize; }
+.ql-resize-handle[data-h="br"] { bottom: -7px; right: -7px; cursor: nwse-resize; }
+.ql-resize-size {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  bottom: -28px;
+  background: var(--text-base);
+  color: var(--bg-page);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.ql-resize-bar {
+  position: absolute;
+  top: -42px; left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-base);
+  border-radius: 8px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  pointer-events: auto;
+}
+.ql-resize-bar button {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  background: transparent;
+  color: var(--text-muted);
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.ql-resize-bar button:hover { background: var(--bg-hover); color: var(--text-base); }
+.ql-resize-bar button[data-act="delete"]:hover { background: #fee2e2; color: #b91c1c; }
 .editor-wrap .ql-snow.ql-toolbar button:hover .ql-stroke,
 .editor-wrap .ql-snow.ql-toolbar button.ql-active .ql-stroke,
 .editor-wrap .ql-snow.ql-toolbar button:hover .ql-fill,

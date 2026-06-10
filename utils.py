@@ -19,6 +19,7 @@ from typing import Iterable
 from urllib.parse import quote, urlparse
 
 import bleach
+from bleach.css_sanitizer import CSSSanitizer
 import markdown as md_lib
 import requests
 from flask import abort, current_app
@@ -38,11 +39,23 @@ _ALLOWED_TAGS = sorted(
     }
 )
 _ALLOWED_ATTRS = {
-    "*": ["class"],
+    "*": ["class", "style"],
     "a": ["href", "title", "rel", "target"],
-    "img": ["src", "alt", "title", "width", "height", "loading"],
-    "iframe": ["src", "width", "height", "frameborder", "allow", "allowfullscreen", "loading"],
+    "img": ["src", "alt", "title", "width", "height", "loading", "style"],
+    "iframe": [
+        "src", "width", "height", "frameborder", "allow",
+        "allowfullscreen", "loading", "style",
+    ],
 }
+# Only allow a small whitelist of style properties — the WYSIWYG editor
+# emits these when the user resizes or aligns an image / iframe.
+_CSS_SANITIZER = CSSSanitizer(allowed_css_properties=[
+    "width", "height",
+    "max-width", "max-height", "min-width", "min-height",
+    "float", "clear",
+    "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+    "display", "text-align", "vertical-align",
+])
 
 # Quick check: does this look like HTML the editor produced (vs. plain markdown)?
 _HTML_HINT = re.compile(r"<\s*(p|h[1-6]|ol|ul|blockquote|figure|table|div|br|hr|img)\b", re.I)
@@ -83,7 +96,13 @@ def render_markdown(text: str | None) -> str:
             extensions=["extra", "sane_lists", "nl2br", "tables", "fenced_code"],
             output_format="html",
         )
-    cleaned = bleach.clean(html, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS, strip=True)
+    cleaned = bleach.clean(
+        html,
+        tags=_ALLOWED_TAGS,
+        attributes=_ALLOWED_ATTRS,
+        css_sanitizer=_CSS_SANITIZER,
+        strip=True,
+    )
     return bleach.linkify(cleaned)
 
 

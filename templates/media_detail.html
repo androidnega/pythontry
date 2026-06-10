@@ -4,6 +4,23 @@
 {% block title %}{{ item.title }} &middot; {{ SITE_NAME }}{% endblock %}
 {% block description %}{{ item.description|excerpt(160) if item.description }}{% endblock %}
 
+{% block og_meta %}
+  {% set _share_image = cover_url(item.thumbnail_path, external=True)
+                         if item.thumbnail_path
+                         else url_for('static', filename='img/logo.png', _external=True) %}
+  {% set _share_desc = (item.description|excerpt(160)) if item.description else SITE_TAGLINE %}
+  <meta property="og:site_name" content="{{ SITE_NAME }}" />
+  <meta property="og:title" content="{{ item.title }}" />
+  <meta property="og:description" content="{{ _share_desc }}" />
+  <meta property="og:image" content="{{ _share_image }}" />
+  <meta property="og:type" content="video.other" />
+  <meta property="og:url" content="{{ request.url }}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{ item.title }}" />
+  <meta name="twitter:description" content="{{ _share_desc }}" />
+  <meta name="twitter:image" content="{{ _share_image }}" />
+{% endblock %}
+
 {% block content %}
 <div class="mx-auto max-w-6xl">
   <div class="text-xs font-semibold uppercase tracking-[0.22em] text-accent">

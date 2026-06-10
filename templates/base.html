@@ -7,10 +7,29 @@
   <meta name="description" content="{% block description %}{{ SITE_TAGLINE }}{% endblock %}" />
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}" />
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo.png') }}" />
-  <meta property="og:title" content="{{ SITE_NAME }} — {{ SITE_SLOGAN }}" />
-  <meta property="og:description" content="{{ SITE_TAGLINE }}" />
-  <meta property="og:image" content="{{ url_for('static', filename='img/logo.png', _external=True) }}" />
-  <meta property="og:type" content="website" />
+
+  {# ─── Social-share meta. Child templates override `og_meta` to supply
+       their own title/description/image (e.g. an article's cover photo).
+       This is one centralised block so we never emit duplicate og:image
+       tags — which previously made Facebook/Twitter prefer the site
+       logo instead of the article hero. ─── #}
+  {% block og_meta %}
+    {% set _og_title = self.title()|trim or SITE_NAME %}
+    {% set _og_desc  = self.description()|trim or SITE_TAGLINE %}
+    {% set _og_image = url_for('static', filename='img/logo.png', _external=True) %}
+    {% set _og_url   = request.url %}
+    <meta property="og:site_name" content="{{ SITE_NAME }}" />
+    <meta property="og:title" content="{{ _og_title }}" />
+    <meta property="og:description" content="{{ _og_desc }}" />
+    <meta property="og:image" content="{{ _og_image }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ _og_url }}" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ _og_title }}" />
+    <meta name="twitter:description" content="{{ _og_desc }}" />
+    <meta name="twitter:image" content="{{ _og_image }}" />
+  {% endblock %}
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#161a26" />
 
@@ -35,7 +54,7 @@
 </head>
 <body class="min-h-full bg-page text-fg">
 
-<header class="sticky top-0 z-40 border-b border-app bg-page/95 backdrop-blur">
+<header class="sticky top-0 z-40 border-b border-app bg-page">
   <div class="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
     <a href="{{ url_for('public.home') }}" class="flex items-center gap-2.5 shrink-0">
       <img src="{{ url_for('static', filename='img/logo.png') }}" alt="{{ SITE_NAME }} logo" class="h-10 w-10 object-contain" />
