@@ -19,7 +19,15 @@ from typing import Iterable
 from urllib.parse import quote, urlparse
 
 import bleach
-from bleach.css_sanitizer import CSSSanitizer
+try:
+    # `bleach[css]` ships tinycss2; without it the import below blows up
+    # at module load time and the entire WSGI app fails to start. Make it
+    # tolerant: if the optional dependency isn't installed we fall back
+    # to dropping the `style` attribute instead of allowing un-sanitised
+    # inline CSS through.
+    from bleach.css_sanitizer import CSSSanitizer
+except Exception:  # pragma: no cover - environment-dependent
+    CSSSanitizer = None  # type: ignore[assignment]
 import markdown as md_lib
 import requests
 from flask import abort, current_app
@@ -38,24 +46,31 @@ _ALLOWED_TAGS = sorted(
         "span", "div", "s", "u", "iframe",
     }
 )
+# Only allow `style` when we can actually sanitise it; otherwise drop the
+# attribute entirely so a missing `tinycss2` install can't let raw CSS
+# through.
+if CSSSanitizer is not None:
+    _CSS_SANITIZER = CSSSanitizer(allowed_css_properties=[
+        "width", "height",
+        "max-width", "max-height", "min-width", "min-height",
+        "float", "clear",
+        "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+        "display", "text-align", "vertical-align",
+    ])
+    _STYLE_ATTRS = ["style"]
+else:
+    _CSS_SANITIZER = None
+    _STYLE_ATTRS = []
+
 _ALLOWED_ATTRS = {
-    "*": ["class", "style"],
+    "*": ["class"] + _STYLE_ATTRS,
     "a": ["href", "title", "rel", "target"],
-    "img": ["src", "alt", "title", "width", "height", "loading", "style"],
+    "img": ["src", "alt", "title", "width", "height", "loading"] + _STYLE_ATTRS,
     "iframe": [
         "src", "width", "height", "frameborder", "allow",
-        "allowfullscreen", "loading", "style",
-    ],
+        "allowfullscreen", "loading",
+    ] + _STYLE_ATTRS,
 }
-# Only allow a small whitelist of style properties — the WYSIWYG editor
-# emits these when the user resizes or aligns an image / iframe.
-_CSS_SANITIZER = CSSSanitizer(allowed_css_properties=[
-    "width", "height",
-    "max-width", "max-height", "min-width", "min-height",
-    "float", "clear",
-    "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
-    "display", "text-align", "vertical-align",
-])
 
 # Quick check: does this look like HTML the editor produced (vs. plain markdown)?
 _HTML_HINT = re.compile(r"<\s*(p|h[1-6]|ol|ul|blockquote|figure|table|div|br|hr|img)\b", re.I)
@@ -96,13 +111,10 @@ def render_markdown(text: str | None) -> str:
             extensions=["extra", "sane_lists", "nl2br", "tables", "fenced_code"],
             output_format="html",
         )
-    cleaned = bleach.clean(
-        html,
-        tags=_ALLOWED_TAGS,
-        attributes=_ALLOWED_ATTRS,
-        css_sanitizer=_CSS_SANITIZER,
-        strip=True,
-    )
+    clean_kwargs = dict(tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS, strip=True)
+    if _CSS_SANITIZER is not None:
+        clean_kwargs["css_sanitizer"] = _CSS_SANITIZER
+    cleaned = bleach.clean(html, **clean_kwargs)
     return bleach.linkify(cleaned)
 
 
