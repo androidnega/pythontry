@@ -155,7 +155,11 @@ body, .bg-page, .bg-surface, .bg-elevated, .bg-muted, .border-app, .border-soft,
   font-size: 0.72rem; font-weight: 600;
   letter-spacing: 0.02em;
 }
-.chip-accent { background-color: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.chip-accent  { background-color: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.chip-success { background-color: var(--success-bg);  color: var(--success-text); border-color: transparent; }
+.chip-warn    { background-color: var(--warn-bg);     color: var(--warn-text);    border-color: transparent; }
+.chip-muted   { background-color: var(--bg-muted);    color: var(--text-muted);   border-color: transparent; }
+.chip-danger  { background-color: var(--danger-bg);   color: var(--danger-text);  border-color: transparent; }
 
 /* Flash bubbles */
 .flash { border: 1px solid var(--border-base); border-radius: 10px; padding: 0.55rem 0.85rem; font-size: 0.875rem; }

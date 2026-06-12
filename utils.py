@@ -730,6 +730,27 @@ def _as_bool(v) -> bool:
     return str(v).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def get_tinymce_key() -> str:
+    """Return the TinyMCE Cloud API key.
+
+    DB setting `tinymce_api_key` wins; otherwise we fall back to the value
+    baked into Flask config (env var TINYMCE_API_KEY or the source default).
+    Returning an empty string disables the editor — the admin form falls
+    back to a plain textarea automatically.
+    """
+    try:
+        val = (get_app_setting("tinymce_api_key") or "").strip()
+    except Exception:
+        # Settings table may not be ready yet (during init-db) — be defensive.
+        val = ""
+    if val:
+        return val
+    try:
+        return (current_app.config.get("TINYMCE_API_KEY", "") or "").strip()
+    except Exception:
+        return ""
+
+
 SMTP_KEYS = (
     "smtp_enabled", "smtp_host", "smtp_port", "smtp_username", "smtp_password",
     "smtp_use_tls", "smtp_use_ssl", "smtp_from_email", "smtp_from_name",

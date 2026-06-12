@@ -32,6 +32,7 @@ from forms import (
     PortraitForm,
     SmtpSettingsForm,
     TestEmailForm,
+    TinymceSettingsForm,
     UserAdminForm,
     UserCreateForm,
 )
@@ -57,7 +58,9 @@ from utils import (
     can_edit,
     delete_original,
     delete_upload,
+    get_app_setting,
     get_smtp_config,
+    get_tinymce_key,
     make_watermarked_preview,
     parse_tags,
     render_markdown,
@@ -796,8 +799,16 @@ def settings():
         from_name=cfg["from_name"],
     )
     test_form = TestEmailForm()
+    tinymce_form = TinymceSettingsForm(api_key=get_app_setting("tinymce_api_key") or "")
 
-    if form.submit.data and form.validate_on_submit():
+    # TinyMCE editor key — handle first so its POST isn't swallowed by the
+    # SMTP form (whose fields are all Optional and would otherwise validate).
+    if "submit_tinymce" in request.form and tinymce_form.validate_on_submit():
+        set_app_setting("tinymce_api_key", (tinymce_form.api_key.data or "").strip())
+        flash("Editor key saved. Reload the article form to see it apply.", "success")
+        return redirect(url_for("admin.settings"))
+
+    if form.submit.data and "submit_tinymce" not in request.form and form.validate_on_submit():
         set_app_setting("smtp_enabled",   "1" if form.enabled.data else "0")
         set_app_setting("smtp_host",      (form.host.data or "").strip())
         set_app_setting("smtp_port",      str(form.port.data or 0))
@@ -825,12 +836,16 @@ def settings():
         return redirect(url_for("admin.settings"))
 
     subscriber_count = NotifySignup.query.filter(NotifySignup.unsubscribed_at.is_(None)).count()
+    user_count = User.query.count()
     return render_template(
         "admin/settings.html",
         form=form,
         test_form=test_form,
+        tinymce_form=tinymce_form,
+        tinymce_key_set=bool((tinymce_form.api_key.data or "").strip()),
         smtp_cfg=cfg,
         subscriber_count=subscriber_count,
+        user_count=user_count,
     )
 
 

@@ -5,9 +5,75 @@
 {% block admin_content %}
 <header class="mb-5">
   <h1 class="font-serif-news text-2xl font-semibold">Site settings</h1>
-  <p class="text-sm text-muted">Configure outgoing email so subscribers get notified when you publish a story.</p>
+  <p class="text-sm text-muted">Configure the writing editor, outgoing email and your team accounts.</p>
 </header>
 
+{# ───────────────────────────── Row 1: editor key + team ───────────────────────────── #}
+<div class="grid gap-5 lg:grid-cols-2 mb-6">
+  {# ── TinyMCE editor key ─────────────────────────────────────────── #}
+  <form method="post" class="card p-5 space-y-4">
+    {{ tinymce_form.csrf_token }}
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-semibold">WYSIWYG editor (TinyMCE)</h2>
+        <p class="mt-0.5 text-xs text-subtle">
+          Paste your TinyMCE Cloud API key so writers see the rich editor on the article form.
+        </p>
+      </div>
+      <span class="chip {% if tinymce_key_set %}chip-success{% else %}chip-warn{% endif %}">
+        {% if tinymce_key_set %}Configured{% else %}Not set{% endif %}
+      </span>
+    </div>
+
+    <div>
+      <label class="lbl">{{ tinymce_form.api_key.label.text }}</label>
+      {{ tinymce_form.api_key(
+            class_="input w-full font-mono text-sm",
+            placeholder="e.g. ps3oq2yzvy43l968b2wgxtcegt0exfvjwv0hak1zqrkqszje",
+            autocomplete="off") }}
+      <p class="mt-1 text-[11px] text-subtle">
+        Get a free key at
+        <a class="text-accent hover:underline" href="https://www.tiny.cloud/auth/signup/" target="_blank" rel="noopener">tiny.cloud</a>,
+        then add <code class="rounded bg-muted px-1.5 py-0.5">ahantapulse.online</code>
+        and <code class="rounded bg-muted px-1.5 py-0.5">localhost</code> to its allowed domains.
+        Leave blank to fall back to the plain textarea editor.
+      </p>
+      {% for e in tinymce_form.api_key.errors %}<p class="text-xs text-red-500">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div class="pt-1">
+      {{ tinymce_form.submit_tinymce(class_="btn-primary") }}
+    </div>
+  </form>
+
+  {# ── Team / Users summary ────────────────────────────────────────── #}
+  <section class="card p-5">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-semibold">Team &amp; accounts</h2>
+        <p class="mt-0.5 text-xs text-subtle">
+          Create writer or admin accounts. Writers can publish their own stories;
+          admins manage everything (users, settings, payments).
+        </p>
+      </div>
+      <span class="chip chip-muted">{{ user_count }} {% if user_count == 1 %}member{% else %}members{% endif %}</span>
+    </div>
+
+    <ul class="mt-4 space-y-1.5 text-sm text-muted">
+      <li class="flex items-start gap-2"><span class="text-accent">•</span>
+        <span><strong class="text-fg">Admin</strong> — full control: users, settings, portraits, orders, content.</span></li>
+      <li class="flex items-start gap-2"><span class="text-accent">•</span>
+        <span><strong class="text-fg">Writer</strong> — can create, edit and publish their own articles only.</span></li>
+    </ul>
+
+    <div class="mt-4 flex flex-wrap gap-2">
+      <a href="{{ url_for('admin.user_new') }}" class="btn-primary text-sm">+ New account</a>
+      <a href="{{ url_for('admin.users') }}" class="btn-ghost text-sm">Manage team</a>
+    </div>
+  </section>
+</div>
+
+{# ───────────────────────────── Row 2: SMTP + side panel ───────────────────────────── #}
 <div class="grid gap-5 lg:grid-cols-3">
   {# ── SMTP form ────────────────────────────────────────────────── #}
   <form method="post" class="card p-5 space-y-4 lg:col-span-2">

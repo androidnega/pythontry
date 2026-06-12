@@ -55,9 +55,16 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             "SITE_TAGLINE": app.config["SITE_TAGLINE"],
             "SITE_REGION": app.config["SITE_REGION"],
             "ALLOW_REGISTRATION": app.config["ALLOW_REGISTRATION"],
-            "TINYMCE_API_KEY": app.config.get("TINYMCE_API_KEY", ""),
+            "TINYMCE_API_KEY": _safe_tinymce_key(),
             "now_year": lambda: datetime.now(timezone.utc).year,
         }
+
+    def _safe_tinymce_key() -> str:
+        from utils import get_tinymce_key
+        try:
+            return get_tinymce_key()
+        except Exception:
+            return app.config.get("TINYMCE_API_KEY", "") or ""
 
     @app.errorhandler(403)
     def forbidden(_e):

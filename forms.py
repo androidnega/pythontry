@@ -349,6 +349,16 @@ class SmtpSettingsForm(FlaskForm):
     submit = SubmitField("Save SMTP settings")
 
 
+class TinymceSettingsForm(FlaskForm):
+    """Admin form to paste / rotate the TinyMCE Cloud API key."""
+    api_key = StringField(
+        "TinyMCE API key",
+        validators=[Optional(), Length(max=128)],
+        description="Get a free key at tiny.cloud and add ahantapulse.online to its allowed domains.",
+    )
+    submit_tinymce = SubmitField("Save editor key")
+
+
 class TestEmailForm(FlaskForm):
     to_addr = StringField(
         "Send a test email to",
