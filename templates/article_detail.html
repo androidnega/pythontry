@@ -127,6 +127,37 @@
 <div class="mx-auto mt-8 grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr),320px]">
   <article class="min-w-0">
 
+  {# Quick-edit pill for logged-in admins / the article's author. #}
+  {% if current_user.is_authenticated and can_edit(article) %}
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-2.5 text-sm
+                dark:border-amber-400/30 dark:bg-amber-900/20">
+      <p class="flex items-center gap-2 text-amber-900 dark:text-amber-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        You can edit this article.
+        <span class="text-amber-700/80 dark:text-amber-200/70">
+          {% if article.status != 'published' %}· <strong>Draft</strong>{% endif %}
+          {% if article.author and article.author_id == current_user.id %}· You're the author{% endif %}
+        </span>
+      </p>
+      <div class="flex items-center gap-2">
+        <a href="{{ url_for('admin.article_edit', article_id=article.id) }}"
+           class="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          Edit article
+        </a>
+        <a href="{{ url_for('admin.articles') }}" class="text-xs text-amber-800 hover:underline dark:text-amber-200">
+          All articles
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
   <div id="share-rail" class="mb-6 flex flex-wrap items-center gap-2">
     <span class="text-xs uppercase tracking-[0.16em] text-subtle">Share</span>
     <a href="https://wa.me/?text={{ (share_text + ' — ' + share_url)|urlencode }}" target="_blank" rel="noopener"

@@ -20,7 +20,7 @@ from flask import Flask, render_template
 
 from config import Config
 from extensions import csrf, db, login_manager
-from utils import cover_url, excerpt, render_markdown
+from utils import can_edit, cover_url, excerpt, render_markdown
 
 
 def create_app(config_object: type[Config] = Config) -> Flask:
@@ -46,6 +46,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     app.jinja_env.filters["excerpt"] = excerpt
     app.jinja_env.filters["cover_url"] = cover_url
     app.jinja_env.globals["cover_url"] = cover_url
+    app.jinja_env.globals["can_edit"] = can_edit
 
     # Per-file mtime cache so each static asset can be cache-busted on its
     # own schedule: <link href="{{ static_v('css/theme.css') }}"> etc.

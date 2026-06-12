@@ -243,21 +243,28 @@
         // Mark "saved" each time TinyMCE's autosave plugin writes to storage.
         editor.on('StoreDraft', function () { lastSaved = Date.now(); updateStatus(); });
 
-        // If TinyMCE locks the editor (invalid origin / wrong key) show a
-        // clear in-page banner so the admin doesn't have to check the
-        // browser console to understand why typing isn't working.
+        // If TinyMCE locks the editor (invalid origin / wrong key) we
+        // destroy the broken instance and reveal the textarea fallback so
+        // the author can ALWAYS see and edit their article content. A
+        // banner explains exactly what's wrong.
         editor.on('init', function () {
           setTimeout(function () {
             try {
               var locked = editor.mode && editor.mode.get && editor.mode.get() === 'readonly';
-              if (locked) showEditorWarning(
-                "TinyMCE refused to start. The most common cause is a missing domain " +
-                "in your tiny.cloud account — log in at tiny.cloud → API keys, and " +
-                "add this site's domain (e.g. ahantapulse.online) to the Approved " +
-                "Domains list, then reload."
+              if (!locked) return;
+              // 1. show the warning above the editor
+              showEditorWarning(
+                "TinyMCE refused to start (invalid origin or key). Falling back to " +
+                "a plain HTML editor so you can still see and edit your article. " +
+                "Fix: log in at tiny.cloud → API keys, add this site's domain " +
+                "(e.g. ahantapulse.online) to the Approved Domains list, then reload."
               );
+              // 2. nuke the broken editor and show the raw textarea
+              editor.remove();
+              holder.style.display = 'block';
+              holder.classList.remove('hidden');
             } catch (e) { /* noop */ }
-          }, 800);
+          }, 700);
         });
       },
     });
