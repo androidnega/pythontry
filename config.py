@@ -88,4 +88,11 @@ class Config:
         "ps3oq2yzvy43l968b2wgxtcegt0exfvjwv0hak1zqrkqszje",
     )
 
+    # ── Google OAuth (Sign in with Google) ────────────────────────────
+    # Admins can set these via Dashboard → Settings → Sign-in with Google,
+    # or via env vars on platforms that prefer that. Leaving both blank
+    # disables the Google sign-in flow site-wide.
+    GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
+    GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "")
+
     WTF_CSRF_TIME_LIMIT = None

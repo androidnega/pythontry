@@ -322,6 +322,19 @@
           <a href="{{ url_for('auth.logout') }}" class="text-accent hover:underline">Use a different account</a>
         </p>
       {% else %}
+        {% if GOOGLE_OAUTH_ENABLED %}
+          {% from '_forms.html' import google_button %}
+          <div class="rounded-xl border border-app bg-page p-3 space-y-2">
+            <p class="text-xs text-subtle">Sign in with one click — your name and avatar show up on your comment.</p>
+            {{ google_button(next_url=url_for('public.article_detail', slug=article.slug) ~ '#comments',
+                             label='Continue with Google') }}
+          </div>
+          <div class="relative my-1 flex items-center" aria-hidden="true">
+            <div class="h-px flex-1 bg-app"></div>
+            <span class="px-3 text-[11px] uppercase tracking-[0.16em] text-subtle">or comment as guest</span>
+            <div class="h-px flex-1 bg-app"></div>
+          </div>
+        {% endif %}
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
             <label class="lbl">Your name</label>
@@ -336,7 +349,7 @@
         </div>
         <p class="text-xs text-subtle">
           You can post anonymously — or
-          <a href="{{ url_for('auth.login') }}" class="text-accent hover:underline">sign in</a>
+          <a href="{{ url_for('auth.login', next=url_for('public.article_detail', slug=article.slug) ~ '#comments') }}" class="text-accent hover:underline">sign in with email</a>
           to track your comments.
         </p>
       {% endif %}

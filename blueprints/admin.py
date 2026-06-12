@@ -31,6 +31,7 @@ from forms import (
     MediaForm,
     PortraitForm,
     AiSettingsForm,
+    GoogleOAuthSettingsForm,
     SmtpSettingsForm,
     TestEmailForm,
     TinymceSettingsForm,
@@ -62,6 +63,7 @@ from utils import (
     delete_upload,
     get_ai_config,
     get_app_setting,
+    get_google_oauth_config,
     get_smtp_config,
     get_tinymce_key,
     make_watermarked_preview,
@@ -867,6 +869,10 @@ def settings():
         # api_key field is a password input — never seeded from DB.
     )
 
+    google_cfg = get_google_oauth_config()
+    google_form = GoogleOAuthSettingsForm(client_id=google_cfg["client_id"])
+    google_redirect_uri = url_for("auth.google_callback", _external=True)
+
     # TinyMCE editor key — handle first so its POST isn't swallowed by the
     # SMTP form (whose fields are all Optional and would otherwise validate).
     if "submit_tinymce" in request.form and tinymce_form.validate_on_submit():
@@ -885,9 +891,20 @@ def settings():
         flash("AI settings saved.", "success")
         return redirect(url_for("admin.settings"))
 
+    # Google OAuth (Sign in with Google).
+    if "submit_google" in request.form and google_form.validate_on_submit():
+        set_app_setting("google_oauth_client_id",
+                        (google_form.client_id.data or "").strip())
+        if (google_form.client_secret.data or "").strip():
+            set_app_setting("google_oauth_client_secret",
+                            google_form.client_secret.data.strip())
+        flash("Google sign-in settings saved.", "success")
+        return redirect(url_for("admin.settings"))
+
     if (form.submit.data
             and "submit_tinymce" not in request.form
             and "submit_ai"       not in request.form
+            and "submit_google"   not in request.form
             and form.validate_on_submit()):
         set_app_setting("smtp_enabled",   "1" if form.enabled.data else "0")
         set_app_setting("smtp_host",      (form.host.data or "").strip())
@@ -926,6 +943,10 @@ def settings():
         ai_form=ai_form,
         ai_cfg=ai_cfg,
         ai_key_set=bool((ai_cfg.get("api_key") or "").strip()),
+        google_form=google_form,
+        google_cfg=google_cfg,
+        google_enabled=bool(google_cfg["client_id"] and google_cfg["client_secret"]),
+        google_redirect_uri=google_redirect_uri,
         smtp_cfg=cfg,
         subscriber_count=subscriber_count,
         user_count=user_count,

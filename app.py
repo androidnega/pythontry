@@ -20,7 +20,7 @@ from flask import Flask, render_template
 
 from config import Config
 from extensions import csrf, db, login_manager
-from utils import can_edit, cover_url, excerpt, render_markdown
+from utils import can_edit, cover_url, excerpt, google_oauth_enabled, render_markdown
 
 
 def create_app(config_object: type[Config] = Config) -> Flask:
@@ -77,6 +77,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             "SITE_REGION": app.config["SITE_REGION"],
             "ALLOW_REGISTRATION": app.config["ALLOW_REGISTRATION"],
             "TINYMCE_API_KEY": _safe_tinymce_key(),
+            "GOOGLE_OAUTH_ENABLED": _safe_google_enabled(),
             "now_year": lambda: datetime.now(timezone.utc).year,
         }
 
@@ -86,6 +87,12 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             return get_tinymce_key()
         except Exception:
             return app.config.get("TINYMCE_API_KEY", "") or ""
+
+    def _safe_google_enabled() -> bool:
+        try:
+            return google_oauth_enabled()
+        except Exception:
+            return False
 
     @app.errorhandler(403)
     def forbidden(_e):
@@ -540,6 +547,10 @@ def _apply_lightweight_migrations() -> None:
     _add_columns("notify_signups", [
         ("unsubscribe_token", "VARCHAR(64)"),
         ("unsubscribed_at",   "DATETIME"),
+    ])
+    _add_columns("users", [
+        ("oauth_provider", "VARCHAR(32)"),
+        ("oauth_sub",      "VARCHAR(255)"),
     ])
 
     # Backfill unsubscribe_token for existing rows that don't have one yet.

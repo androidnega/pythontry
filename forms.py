@@ -406,6 +406,20 @@ class AiSettingsForm(FlaskForm):
     submit_ai = SubmitField("Save AI settings")
 
 
+class GoogleOAuthSettingsForm(FlaskForm):
+    """Admin form for Sign-in with Google (OAuth 2.0 / OIDC)."""
+    client_id = StringField(
+        "Client ID",
+        validators=[Optional(), Length(max=255)],
+        description="The OAuth 2.0 Client ID from console.cloud.google.com (Credentials).",
+    )
+    client_secret = PasswordField(
+        "Client secret (leave blank to keep existing)",
+        validators=[Optional(), Length(max=255)],
+    )
+    submit_google = SubmitField("Save Google sign-in")
+
+
 class TestEmailForm(FlaskForm):
     to_addr = StringField(
         "Send a test email to",

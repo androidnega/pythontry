@@ -835,6 +835,36 @@ def get_tinymce_key() -> str:
         return ""
 
 
+def get_google_oauth_config() -> dict:
+    """Return the active Google OAuth client config.
+
+    DB settings `google_oauth_client_id` / `google_oauth_client_secret`
+    take precedence; environment variables (via Flask config) are the
+    fallback. When either id or secret is missing the helper
+    `google_oauth_enabled()` returns False and the UI hides the button.
+    """
+    def _read(name: str, fallback: str = "") -> str:
+        try:
+            v = (get_app_setting(name) or "").strip()
+        except Exception:
+            v = ""
+        return v or fallback
+
+    try:
+        cfg = current_app.config
+    except Exception:
+        cfg = {}
+    return {
+        "client_id":     _read("google_oauth_client_id",     cfg.get("GOOGLE_OAUTH_CLIENT_ID", "")),
+        "client_secret": _read("google_oauth_client_secret", cfg.get("GOOGLE_OAUTH_CLIENT_SECRET", "")),
+    }
+
+
+def google_oauth_enabled() -> bool:
+    cfg = get_google_oauth_config()
+    return bool(cfg["client_id"] and cfg["client_secret"])
+
+
 SMTP_KEYS = (
     "smtp_enabled", "smtp_host", "smtp_port", "smtp_username", "smtp_password",
     "smtp_use_tls", "smtp_use_ssl", "smtp_from_email", "smtp_from_name",

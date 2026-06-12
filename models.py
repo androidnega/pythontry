@@ -28,12 +28,18 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False, index=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(255), nullable=False)
+    # Nullable: users created via OAuth (e.g. Google sign-in) have no
+    # password; their credentials live with the identity provider.
+    password_hash = db.Column(db.String(255), nullable=True)
     role = db.Column(db.String(16), nullable=False, default=ROLE_WRITER)
     display_name = db.Column(db.String(120))
     bio = db.Column(db.Text)
     avatar_path = db.Column(db.String(255))
     is_active_flag = db.Column("is_active", db.Boolean, default=True, nullable=False)
+    # OAuth linkage. `oauth_provider` is e.g. "google"; `oauth_sub` is the
+    # provider's stable user identifier (Google's `sub` claim).
+    oauth_provider = db.Column(db.String(32), index=True)
+    oauth_sub = db.Column(db.String(255), index=True)
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
 
     articles = db.relationship("Article", back_populates="author", lazy="dynamic")
@@ -44,7 +50,13 @@ class User(UserMixin, db.Model):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
+        if not self.password_hash:
+            return False
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def is_oauth_user(self) -> bool:
+        return bool(self.oauth_provider)
 
     @property
     def is_admin(self) -> bool:
