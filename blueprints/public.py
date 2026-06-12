@@ -713,8 +713,37 @@ def api_notify():
     email = (payload.get("email") or request.form.get("email") or "").strip().lower()
     if not email or "@" not in email or "." not in email.split("@", 1)[-1]:
         return jsonify(error="Please enter a valid email address."), 400
+    import secrets as _secrets
     existing = NotifySignup.query.filter_by(email=email).first()
     if existing is None:
-        db.session.add(NotifySignup(email=email))
+        db.session.add(NotifySignup(
+            email=email,
+            unsubscribe_token=_secrets.token_urlsafe(24),
+        ))
         db.session.commit()
+    else:
+        # Re-activate someone who unsubscribed previously and ensure a token exists.
+        changed = False
+        if existing.unsubscribed_at is not None:
+            existing.unsubscribed_at = None
+            changed = True
+        if not existing.unsubscribe_token:
+            existing.unsubscribe_token = _secrets.token_urlsafe(24)
+            changed = True
+        if changed:
+            db.session.commit()
     return jsonify(ok=True, message="You're on the list. We'll let you know about updates.")
+
+
+@bp.route("/unsubscribe/<token>", methods=["GET", "POST"])
+def unsubscribe(token: str):
+    """Public, no-auth unsubscribe via opaque token from notification emails."""
+    sub = NotifySignup.query.filter_by(unsubscribe_token=token).first()
+    if not sub:
+        return render_template("unsubscribe.html", sub=None, done=False), 404
+    if request.method == "POST":
+        from datetime import datetime as _dt, timezone as _tz
+        sub.unsubscribed_at = _dt.now(_tz.utc)
+        db.session.commit()
+        return render_template("unsubscribe.html", sub=sub, done=True)
+    return render_template("unsubscribe.html", sub=sub, done=False)

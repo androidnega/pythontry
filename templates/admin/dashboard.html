@@ -16,7 +16,8 @@
 </div>
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-  {% set tiles = [('articles','Articles','admin.articles'),('videos','Videos','admin.media_list'),('ads','Ads','admin.ads_list'),('portraits','Portraits','admin.portraits_list')] %}
+  {% set tiles = [('articles','Articles','admin.articles'),('videos','Videos','admin.media_list'),('ads','Ads','admin.ads_list')] %}
+  {% if current_user.is_admin %}{% set tiles = tiles + [('portraits','Portraits','admin.portraits_list')] %}{% endif %}
   {% for key, label, endpoint in tiles %}
     <a href="{{ url_for(endpoint) }}" class="rounded-xl border border-app bg-surface p-4 transition hover:border-app hover:bg-elevated">
       <p class="text-xs uppercase tracking-[0.18em] text-subtle">{{ label }}</p>

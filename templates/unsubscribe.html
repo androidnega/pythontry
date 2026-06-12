@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Unsubscribe &middot; {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-md py-12">
+  <div class="card p-8 text-center">
+    {% if not sub %}
+      <h1 class="font-serif-news text-2xl font-semibold">Link not found</h1>
+      <p class="mt-2 text-muted">This unsubscribe link is invalid or has already been used.</p>
+      <a href="{{ url_for('public.home') }}" class="btn-primary mt-6 inline-flex">Back to {{ SITE_NAME }}</a>
+    {% elif done %}
+      <h1 class="font-serif-news text-2xl font-semibold">You're unsubscribed</h1>
+      <p class="mt-2 text-muted">
+        <span class="font-mono text-sm">{{ sub.email }}</span> will no longer get article notifications.
+      </p>
+      <a href="{{ url_for('public.home') }}" class="btn-primary mt-6 inline-flex">Back to {{ SITE_NAME }}</a>
+    {% else %}
+      <h1 class="font-serif-news text-2xl font-semibold">Unsubscribe?</h1>
+      <p class="mt-2 text-muted">
+        Stop sending article notifications to <span class="font-mono text-sm">{{ sub.email }}</span>?
+      </p>
+      <form method="post" class="mt-6 flex justify-center gap-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <a href="{{ url_for('public.home') }}" class="btn-ghost">Keep me subscribed</a>
+        <button type="submit" class="btn-primary">Yes, unsubscribe</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

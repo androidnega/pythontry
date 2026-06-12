@@ -489,23 +489,45 @@ def _apply_lightweight_migrations() -> None:
 
     bind = db.session.get_bind()
     insp = inspect(bind)
-    if not insp.has_table("portraits"):
-        return
 
-    existing_cols = {c["name"] for c in insp.get_columns("portraits")}
-    additions = [
+    def _add_columns(table: str, additions: list[tuple[str, str]]) -> None:
+        if not insp.has_table(table):
+            return
+        existing = {c["name"] for c in insp.get_columns(table)}
+        for name, sql_type in additions:
+            if name in existing:
+                continue
+            try:
+                db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {sql_type}"))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+    _add_columns("portraits", [
         ("card_aspect", "VARCHAR(16) NOT NULL DEFAULT 'natural'"),
         ("focal_x", "INTEGER NOT NULL DEFAULT 50"),
         ("focal_y", "INTEGER NOT NULL DEFAULT 50"),
-    ]
-    for name, sql_type in additions:
-        if name in existing_cols:
-            continue
-        try:
-            db.session.execute(text(f"ALTER TABLE portraits ADD COLUMN {name} {sql_type}"))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
+    ])
+    _add_columns("notify_signups", [
+        ("unsubscribe_token", "VARCHAR(64)"),
+        ("unsubscribed_at",   "DATETIME"),
+    ])
+
+    # Backfill unsubscribe_token for existing rows that don't have one yet.
+    if insp.has_table("notify_signups"):
+        from models import NotifySignup
+        import secrets
+        rows = NotifySignup.query.filter(
+            (NotifySignup.unsubscribe_token.is_(None))
+            | (NotifySignup.unsubscribe_token == "")
+        ).all()
+        for r in rows:
+            r.unsubscribe_token = secrets.token_urlsafe(24)
+        if rows:
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
 
 
 app = create_app()

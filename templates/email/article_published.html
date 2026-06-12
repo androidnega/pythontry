@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ article.title }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f6f8;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Manrope,Arial,sans-serif;color:#1f2430;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f6f8;padding:24px 0;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+        <tr>
+          <td style="padding:18px 24px;border-bottom:1px solid #eef0f3;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#0ea5e9;">{{ site_name }}</span>
+            <div style="margin-top:2px;font-size:12px;color:#6b7280;">{{ site_tagline }}</div>
+          </td>
+        </tr>
+        {% if cover_url %}
+        <tr>
+          <td>
+            <a href="{{ article_url }}" style="display:block;line-height:0;">
+              <img src="{{ cover_url }}" alt="" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;text-decoration:none;" />
+            </a>
+          </td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="padding:24px;">
+            {% if article.category %}
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#0ea5e9;margin-bottom:8px;">{{ article.category.name }}</div>
+            {% endif %}
+            <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.25;color:#0f172a;">
+              <a href="{{ article_url }}" style="color:#0f172a;text-decoration:none;">{{ article.title }}</a>
+            </h1>
+            {% if article.summary %}
+              <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#4b5563;">{{ article.summary }}</p>
+            {% endif %}
+            <div style="text-align:center;margin:16px 0 6px;">
+              <a href="{{ article_url }}"
+                 style="display:inline-block;background:#0ea5e9;color:#ffffff;text-decoration:none;font-weight:600;padding:11px 22px;border-radius:8px;font-size:14px;">
+                Read the full story
+              </a>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:14px 24px 22px;border-top:1px solid #eef0f3;font-size:12px;color:#6b7280;text-align:center;">
+            You're receiving this because you subscribed to {{ site_name }} updates.
+            <br /><a href="{{ unsubscribe_url }}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>.
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

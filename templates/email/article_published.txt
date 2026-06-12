@@ -1,0 +1,11 @@
+{{ site_name }} – new story
+
+{{ article.title }}
+
+{% if article.summary %}{{ article.summary }}
+{% endif %}
+Read it here: {{ article_url }}
+
+—
+You're receiving this because you subscribed to {{ site_name }} updates.
+Unsubscribe: {{ unsubscribe_url }}

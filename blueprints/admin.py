@@ -30,24 +30,43 @@ from forms import (
     DeleteForm,
     MediaForm,
     PortraitForm,
+    SmtpSettingsForm,
+    TestEmailForm,
     UserAdminForm,
     UserCreateForm,
 )
-from models import Ad, Article, Category, MediaItem, Order, Portrait, PortraitImage, Tag, User
+from models import (
+    Ad,
+    Article,
+    Category,
+    MediaItem,
+    NotifySignup,
+    Order,
+    Portrait,
+    PortraitImage,
+    Tag,
+    User,
+)
 from utils import (
     admin_required,
     ai_configured,
     ai_draft_article,
     ai_improve_article,
     ai_seo_meta,
+    broadcast_new_article,
     can_edit,
     delete_original,
     delete_upload,
+    get_smtp_config,
     make_watermarked_preview,
     parse_tags,
     save_original_image,
     save_upload,
+    send_email,
+    set_app_setting,
     slugify,
+    smtp_ready,
+    SMTP_KEYS,
     unique_slug,
 )
 
@@ -109,8 +128,10 @@ def dashboard():
         "articles": _scope(Article).count(),
         "videos": _scope(MediaItem).filter_by(kind=MediaItem.KIND_VIDEO).count(),
         "ads": _scope(Ad).count(),
-        "portraits": _scope(Portrait).count(),
     }
+    if is_admin:
+        # Portraits are monetised so writers never see them in their dashboard.
+        counts["portraits"] = Portrait.query.count()
     recent_articles = (
         _scope(Article).order_by(Article.created_at.desc()).limit(5).all()
     )
@@ -165,7 +186,11 @@ def article_edit(article_id: int | None = None):
         article.category_id = _coerce_category(form.category_id.data)
         article.is_featured = bool(form.is_featured.data)
         new_status = form.status.data
-        if article.status != Article.STATUS_PUBLISHED and new_status == Article.STATUS_PUBLISHED:
+        just_published = (
+            article.status != Article.STATUS_PUBLISHED
+            and new_status == Article.STATUS_PUBLISHED
+        )
+        if just_published:
             article.published_at = datetime.now(timezone.utc)
         article.status = new_status
 
@@ -200,7 +225,19 @@ def article_edit(article_id: int | None = None):
             article.cover_image = rel
 
         db.session.commit()
-        flash("Article saved.", "success")
+
+        # Fire-and-forget email broadcast on first publish (skips silently if
+        # SMTP isn't configured or there are no subscribers).
+        if just_published and smtp_ready():
+            try:
+                broadcast_new_article(current_app._get_current_object(), article.id)
+                flash("Article saved and subscriber broadcast queued.", "success")
+            except Exception:  # noqa: BLE001
+                flash("Article saved (broadcast failed to start).", "warning")
+            else:
+                return redirect(url_for("admin.articles"))
+        else:
+            flash("Article saved.", "success")
         return redirect(url_for("admin.articles"))
 
     return render_template(
@@ -421,6 +458,7 @@ def ad_delete(ad_id: int):
 
 
 @bp.route("/portraits")
+@admin_required
 def portraits_list():
     q = Portrait.query
     if not current_user.is_admin:
@@ -433,6 +471,7 @@ def portraits_list():
 
 @bp.route("/portraits/new", methods=["GET", "POST"])
 @bp.route("/portraits/<int:portrait_id>/edit", methods=["GET", "POST"])
+@admin_required
 def portrait_edit(portrait_id: int | None = None):
     portrait = db.session.get(Portrait, portrait_id) if portrait_id else None
     if portrait:
@@ -572,6 +611,7 @@ def portrait_edit(portrait_id: int | None = None):
 
 
 @bp.post("/portraits/<int:portrait_id>/delete")
+@admin_required
 def portrait_delete(portrait_id: int):
     portrait = db.session.get(Portrait, portrait_id) or abort(404)
     _ensure_can_edit(portrait)
@@ -589,6 +629,7 @@ def portrait_delete(portrait_id: int):
 
 
 @bp.post("/portraits/<int:portrait_id>/images/<int:image_id>/delete")
+@admin_required
 def portrait_image_delete(portrait_id: int, image_id: int):
     portrait = db.session.get(Portrait, portrait_id) or abort(404)
     _ensure_can_edit(portrait)
@@ -728,6 +769,128 @@ def user_delete(user_id: int):
         db.session.commit()
         flash("User deleted.", "success")
     return redirect(url_for("admin.users"))
+
+
+# ──────────────────────────── Settings (admin) ────────────────────────────
+
+
+@bp.route("/settings", methods=["GET", "POST"])
+@admin_required
+def settings():
+    """Email/SMTP settings, plus a quick test-email tool."""
+    cfg = get_smtp_config()
+    form = SmtpSettingsForm(
+        enabled=cfg["enabled"],
+        host=cfg["host"],
+        port=cfg["port"] or 587,
+        username=cfg["username"],
+        use_tls=cfg["use_tls"] if any(cfg.values()) else True,
+        use_ssl=cfg["use_ssl"],
+        from_email=cfg["from_email"],
+        from_name=cfg["from_name"],
+    )
+    test_form = TestEmailForm()
+
+    if form.submit.data and form.validate_on_submit():
+        set_app_setting("smtp_enabled",   "1" if form.enabled.data else "0")
+        set_app_setting("smtp_host",      (form.host.data or "").strip())
+        set_app_setting("smtp_port",      str(form.port.data or 0))
+        set_app_setting("smtp_username",  (form.username.data or "").strip())
+        # Only overwrite the stored password when the admin types a new one.
+        if form.password.data:
+            set_app_setting("smtp_password", form.password.data)
+        set_app_setting("smtp_use_tls",   "1" if form.use_tls.data else "0")
+        set_app_setting("smtp_use_ssl",   "1" if form.use_ssl.data else "0")
+        set_app_setting("smtp_from_email",(form.from_email.data or "").strip())
+        set_app_setting("smtp_from_name", (form.from_name.data or "").strip())
+        flash("SMTP settings saved.", "success")
+        return redirect(url_for("admin.settings"))
+
+    if test_form.submit.data and test_form.validate_on_submit():
+        ok, err = send_email(
+            test_form.to_addr.data.strip(),
+            f"Test email from {current_app.config.get('SITE_NAME','site')}",
+            "<p>If you can read this, your SMTP configuration works.</p>",
+        )
+        if ok:
+            flash("Test email sent successfully.", "success")
+        else:
+            flash(f"Test email failed: {err}", "error")
+        return redirect(url_for("admin.settings"))
+
+    subscriber_count = NotifySignup.query.filter(NotifySignup.unsubscribed_at.is_(None)).count()
+    return render_template(
+        "admin/settings.html",
+        form=form,
+        test_form=test_form,
+        smtp_cfg=cfg,
+        subscriber_count=subscriber_count,
+    )
+
+
+# ──────────────────────────── Subscribers (admin) ─────────────────────────
+
+
+@bp.route("/subscribers")
+@admin_required
+def subscribers():
+    page = request.args.get("page", 1, type=int)
+    show = request.args.get("show", "active")
+    q = NotifySignup.query
+    if show == "active":
+        q = q.filter(NotifySignup.unsubscribed_at.is_(None))
+    elif show == "unsubscribed":
+        q = q.filter(NotifySignup.unsubscribed_at.isnot(None))
+    pagination = q.order_by(NotifySignup.created_at.desc()).paginate(
+        page=page, per_page=50, error_out=False
+    )
+    counts = {
+        "active": NotifySignup.query.filter(NotifySignup.unsubscribed_at.is_(None)).count(),
+        "unsubscribed": NotifySignup.query.filter(NotifySignup.unsubscribed_at.isnot(None)).count(),
+    }
+    return render_template(
+        "admin/subscribers.html",
+        pagination=pagination,
+        subscribers=pagination.items,
+        delete_form=DeleteForm(),
+        show=show,
+        counts=counts,
+    )
+
+
+@bp.post("/subscribers/<int:sub_id>/delete")
+@admin_required
+def subscriber_delete(sub_id: int):
+    sub = db.session.get(NotifySignup, sub_id) or abort(404)
+    form = DeleteForm()
+    if form.validate_on_submit():
+        db.session.delete(sub)
+        db.session.commit()
+        flash("Subscriber removed.", "success")
+    return redirect(url_for("admin.subscribers"))
+
+
+@bp.get("/subscribers.csv")
+@admin_required
+def subscribers_csv():
+    import csv, io
+    rows = NotifySignup.query.order_by(NotifySignup.created_at.desc()).all()
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["email", "status", "subscribed_at", "unsubscribed_at"])
+    for r in rows:
+        w.writerow([
+            r.email,
+            "unsubscribed" if r.unsubscribed_at else "active",
+            (r.created_at.isoformat() if r.created_at else ""),
+            (r.unsubscribed_at.isoformat() if r.unsubscribed_at else ""),
+        ])
+    from flask import Response
+    return Response(
+        buf.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="subscribers.csv"'},
+    )
 
 
 # ───────────────────────── Editor APIs (JSON) ─────────────────────────

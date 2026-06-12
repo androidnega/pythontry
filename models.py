@@ -246,9 +246,31 @@ class NotifySignup(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    # Random token used in unsubscribe links so we never expose ids by email.
+    unsubscribe_token = db.Column(db.String(64), unique=True, index=True)
+    unsubscribed_at = db.Column(db.DateTime)
+
+    @property
+    def is_active(self) -> bool:
+        return self.unsubscribed_at is None
 
     def __repr__(self) -> str:
         return f"<NotifySignup {self.email}>"
+
+
+class AppSetting(db.Model):
+    """Generic site-wide key/value store backed by the database so the admin
+    can edit configuration (SMTP, etc.) without touching env vars or restarts.
+    """
+
+    __tablename__ = "app_settings"
+
+    key = db.Column(db.String(64), primary_key=True)
+    value = db.Column(db.Text)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<AppSetting {self.key}>"
 
 
 class Portrait(db.Model):

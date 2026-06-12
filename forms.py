@@ -321,3 +321,37 @@ class CheckoutForm(FlaskForm):
         "Your name (optional)", validators=[Optional(), Length(max=120)]
     )
     submit = SubmitField("Continue to payment")
+
+
+class SmtpSettingsForm(FlaskForm):
+    """Admin form for SMTP credentials used to email subscribers."""
+    enabled = BooleanField("Enable email sending")
+    host = StringField("SMTP host", validators=[Optional(), Length(max=255)])
+    port = IntegerField(
+        "SMTP port",
+        validators=[Optional(), NumberRange(min=1, max=65535)],
+        default=587,
+    )
+    username = StringField("SMTP username", validators=[Optional(), Length(max=255)])
+    password = PasswordField(
+        "SMTP password (leave blank to keep existing)",
+        validators=[Optional(), Length(max=255)],
+    )
+    use_tls = BooleanField("Use STARTTLS (recommended on port 587)", default=True)
+    use_ssl = BooleanField("Use SSL (typical on port 465)")
+    from_email = StringField(
+        "From email address",
+        validators=[Optional(), Email(), Length(max=255)],
+    )
+    from_name = StringField(
+        "From display name", validators=[Optional(), Length(max=120)]
+    )
+    submit = SubmitField("Save SMTP settings")
+
+
+class TestEmailForm(FlaskForm):
+    to_addr = StringField(
+        "Send a test email to",
+        validators=[DataRequired(), Email(), Length(max=255)],
+    )
+    submit = SubmitField("Send test")

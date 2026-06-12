@@ -1,0 +1,72 @@
+{% extends 'admin/_layout.html' %}
+
+{% block title %}Subscribers &middot; Dashboard{% endblock %}
+
+{% block admin_content %}
+<header class="mb-5 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="font-serif-news text-2xl font-semibold">Email subscribers</h1>
+    <p class="text-sm text-muted">{{ counts.active }} active &middot; {{ counts.unsubscribed }} unsubscribed</p>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="{{ url_for('admin.subscribers', show='active') }}"
+       class="chip {% if show == 'active' %}chip-success{% endif %}">Active</a>
+    <a href="{{ url_for('admin.subscribers', show='unsubscribed') }}"
+       class="chip {% if show == 'unsubscribed' %}chip-warn{% endif %}">Unsubscribed</a>
+    <a href="{{ url_for('admin.subscribers', show='all') }}"
+       class="chip {% if show == 'all' %}chip-info{% endif %}">All</a>
+    <a href="{{ url_for('admin.subscribers_csv') }}" class="btn-ghost">Export CSV</a>
+  </div>
+</header>
+
+<div class="card overflow-hidden">
+  {% if subscribers %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-app bg-elevated text-left text-xs uppercase tracking-[0.18em] text-subtle">
+          <th class="px-4 py-2">Email</th>
+          <th class="px-4 py-2">Joined</th>
+          <th class="px-4 py-2">Status</th>
+          <th class="px-4 py-2"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in subscribers %}
+          <tr class="border-b border-app/60 last:border-0">
+            <td class="px-4 py-2 font-mono text-xs">{{ s.email }}</td>
+            <td class="px-4 py-2 text-muted">{{ s.created_at.strftime('%b %d, %Y') if s.created_at else '' }}</td>
+            <td class="px-4 py-2">
+              {% if s.unsubscribed_at %}
+                <span class="chip chip-warn">Unsubscribed</span>
+              {% else %}
+                <span class="chip chip-success">Active</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2 text-right">
+              <form method="post" action="{{ url_for('admin.subscriber_delete', sub_id=s.id) }}"
+                    onsubmit="return confirm('Remove this subscriber?');" class="inline">
+                {{ delete_form.csrf_token }}
+                <button class="btn-ghost text-red-500">Remove</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="p-8 text-center text-muted">No subscribers yet.</div>
+  {% endif %}
+</div>
+
+{% if pagination and pagination.pages > 1 %}
+  <nav class="mt-4 flex items-center justify-center gap-2 text-sm">
+    {% if pagination.has_prev %}
+      <a class="btn-ghost" href="{{ url_for('admin.subscribers', page=pagination.prev_num, show=show) }}">Prev</a>
+    {% endif %}
+    <span class="text-muted">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+    {% if pagination.has_next %}
+      <a class="btn-ghost" href="{{ url_for('admin.subscribers', page=pagination.next_num, show=show) }}">Next</a>
+    {% endif %}
+  </nav>
+{% endif %}
+{% endblock %}

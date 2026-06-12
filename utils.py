@@ -12,8 +12,13 @@ import hmac
 import os
 import re
 import secrets
+import smtplib
+import ssl
+import threading
 import uuid
 from datetime import datetime, timezone
+from email.message import EmailMessage
+from email.utils import formataddr
 from functools import wraps
 from typing import Iterable
 from urllib.parse import quote, urlparse
@@ -678,3 +683,186 @@ def parse_tags(raw: str | None) -> list[str]:
         seen.add(key)
         out.append(name)
     return out
+
+
+# ──────────────────────────── App settings (DB-backed) ────────────────────────
+
+
+def get_app_setting(key: str, default=None):
+    """Read a value from the `app_settings` key/value table."""
+    from extensions import db  # local to avoid circular import
+    from models import AppSetting
+
+    row = db.session.get(AppSetting, key)
+    return row.value if row and row.value is not None else default
+
+
+def set_app_setting(key: str, value) -> None:
+    from extensions import db
+    from models import AppSetting
+
+    row = db.session.get(AppSetting, key)
+    val = "" if value is None else str(value)
+    if row is None:
+        row = AppSetting(key=key, value=val)
+        db.session.add(row)
+    else:
+        row.value = val
+    db.session.commit()
+
+
+def _as_bool(v) -> bool:
+    if isinstance(v, bool):
+        return v
+    if v is None:
+        return False
+    return str(v).strip().lower() in {"1", "true", "yes", "on"}
+
+
+SMTP_KEYS = (
+    "smtp_enabled", "smtp_host", "smtp_port", "smtp_username", "smtp_password",
+    "smtp_use_tls", "smtp_use_ssl", "smtp_from_email", "smtp_from_name",
+)
+
+
+def get_smtp_config() -> dict:
+    """Return the current SMTP config as a normalised dict."""
+    raw = {k: get_app_setting(k) for k in SMTP_KEYS}
+    try:
+        port = int(raw["smtp_port"] or 0)
+    except (TypeError, ValueError):
+        port = 0
+    return {
+        "enabled":   _as_bool(raw["smtp_enabled"]),
+        "host":      (raw["smtp_host"] or "").strip(),
+        "port":      port,
+        "username":  (raw["smtp_username"] or "").strip(),
+        "password":  raw["smtp_password"] or "",
+        "use_tls":   _as_bool(raw["smtp_use_tls"]),
+        "use_ssl":   _as_bool(raw["smtp_use_ssl"]),
+        "from_email": (raw["smtp_from_email"] or "").strip(),
+        "from_name":  (raw["smtp_from_name"] or "").strip(),
+    }
+
+
+def smtp_ready(cfg: dict | None = None) -> bool:
+    cfg = cfg or get_smtp_config()
+    return bool(cfg["enabled"] and cfg["host"] and cfg["port"] and cfg["from_email"])
+
+
+# ──────────────────────────── Email send ──────────────────────────────────────
+
+
+def send_email(
+    to_addr: str,
+    subject: str,
+    html_body: str,
+    text_body: str | None = None,
+    cfg: dict | None = None,
+) -> tuple[bool, str]:
+    """Send a single email synchronously. Returns (ok, error)."""
+    cfg = cfg or get_smtp_config()
+    if not smtp_ready(cfg):
+        return False, "SMTP is not configured or not enabled."
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    from_addr = formataddr((cfg["from_name"] or "", cfg["from_email"])) if cfg["from_name"] else cfg["from_email"]
+    msg["From"] = from_addr
+    msg["To"] = to_addr
+    if not text_body:
+        text_body = re.sub(r"<[^>]+>", "", html_body or "")
+        text_body = re.sub(r"\s+\n", "\n", text_body).strip()
+    msg.set_content(text_body or "")
+    msg.add_alternative(html_body or "", subtype="html")
+
+    try:
+        if cfg["use_ssl"]:
+            ctx = ssl.create_default_context()
+            with smtplib.SMTP_SSL(cfg["host"], cfg["port"], timeout=20, context=ctx) as s:
+                if cfg["username"]:
+                    s.login(cfg["username"], cfg["password"])
+                s.send_message(msg)
+        else:
+            with smtplib.SMTP(cfg["host"], cfg["port"], timeout=20) as s:
+                s.ehlo()
+                if cfg["use_tls"]:
+                    s.starttls(context=ssl.create_default_context())
+                    s.ehlo()
+                if cfg["username"]:
+                    s.login(cfg["username"], cfg["password"])
+                s.send_message(msg)
+    except Exception as exc:  # noqa: BLE001
+        return False, str(exc)
+    return True, ""
+
+
+def send_email_async(app, to_addr: str, subject: str, html: str, text: str | None = None) -> None:
+    """Fire-and-forget send on a background thread with an app context."""
+    def _worker():
+        with app.app_context():
+            try:
+                send_email(to_addr, subject, html, text)
+            except Exception:  # noqa: BLE001
+                pass
+    threading.Thread(target=_worker, daemon=True).start()
+
+
+def broadcast_new_article(app, article_id: int) -> None:
+    """Email every active subscriber that a new article has been published.
+    Runs on a background thread; safe to call from inside a request handler.
+    """
+    def _worker():
+        with app.app_context():
+            from extensions import db  # noqa: F401  (kept for parity)
+            from flask import render_template, url_for
+            from models import Article, NotifySignup
+
+            article = db.session.get(Article, article_id)
+            if not article or not article.is_published:
+                return
+
+            cfg = get_smtp_config()
+            if not smtp_ready(cfg):
+                return
+
+            subs = (
+                NotifySignup.query.filter(NotifySignup.unsubscribed_at.is_(None))
+                .all()
+            )
+            if not subs:
+                return
+
+            article_url = url_for(
+                "public.article_detail", slug=article.slug, _external=True
+            )
+            cover_external = (
+                cover_url(article.cover_image, external=True)
+                if article.cover_image
+                else url_for("static", filename="img/logo.png", _external=True)
+            )
+            subject = f"{article.title} – {app.config.get('SITE_NAME', 'AhantaPulse')}"
+
+            for sub in subs:
+                if not sub.email or not sub.unsubscribe_token:
+                    continue
+                unsub_url = url_for(
+                    "public.unsubscribe", token=sub.unsubscribe_token, _external=True
+                )
+                ctx = dict(
+                    article=article,
+                    article_url=article_url,
+                    cover_url=cover_external,
+                    unsubscribe_url=unsub_url,
+                    site_name=app.config.get("SITE_NAME", "AhantaPulse"),
+                    site_tagline=app.config.get("SITE_TAGLINE", ""),
+                )
+                try:
+                    html = render_template("email/article_published.html", **ctx)
+                    text = render_template("email/article_published.txt", **ctx)
+                    send_email(sub.email, subject, html, text, cfg=cfg)
+                except Exception:  # noqa: BLE001
+                    # never let one bad address break the whole broadcast
+                    continue
+
+    threading.Thread(target=_worker, daemon=True).start()
