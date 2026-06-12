@@ -970,7 +970,47 @@ main > .hero-fullbleed:first-child {
   .story-shortcut:nth-child(2n) { border-right: 1px solid var(--border-base); }
   .story-shortcut:nth-child(4n) { border-right: 0; }
 }
-.story-shortcut:hover { background: var(--bg-hover); }
+.story-shortcut {
+  transition: background-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+  position: relative;
+}
+
+/* Rotating hover palette — each of the 4 cards gets its own soft tint so
+   the strip feels lively. Reuses the same --soft-N-bg/--soft-N-fg vars
+   defined for Most read so the brand palette is consistent site-wide. */
+.story-shortcut:nth-child(1):hover { background: var(--soft-1-bg); }
+.story-shortcut:nth-child(2):hover { background: var(--soft-2-bg); }
+.story-shortcut:nth-child(3):hover { background: var(--soft-4-bg); }
+.story-shortcut:nth-child(4):hover { background: var(--soft-5-bg); }
+.story-shortcut:nth-child(5):hover { background: var(--soft-3-bg); }
+.story-shortcut:nth-child(6):hover { background: var(--soft-6-bg); }
+
+/* Title color picks up the matching accent on hover. */
+.story-shortcut:nth-child(1):hover .story-title a { color: var(--soft-1-fg); }
+.story-shortcut:nth-child(2):hover .story-title a { color: var(--soft-2-fg); }
+.story-shortcut:nth-child(3):hover .story-title a { color: var(--soft-4-fg); }
+.story-shortcut:nth-child(4):hover .story-title a { color: var(--soft-5-fg); }
+.story-shortcut:nth-child(5):hover .story-title a { color: var(--soft-3-fg); }
+.story-shortcut:nth-child(6):hover .story-title a { color: var(--soft-6-fg); }
+
+/* Thin accent stripe slides up from the bottom on hover for extra polish. */
+.story-shortcut::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 3px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 240ms ease;
+  opacity: 0;
+}
+.story-shortcut:hover::after { transform: scaleX(1); opacity: 0.9; }
+.story-shortcut:nth-child(1):hover::after { color: var(--soft-1-fg); }
+.story-shortcut:nth-child(2):hover::after { color: var(--soft-2-fg); }
+.story-shortcut:nth-child(3):hover::after { color: var(--soft-4-fg); }
+.story-shortcut:nth-child(4):hover::after { color: var(--soft-5-fg); }
+.story-shortcut:nth-child(5):hover::after { color: var(--soft-3-fg); }
+.story-shortcut:nth-child(6):hover::after { color: var(--soft-6-fg); }
 
 .story-pills {
   display: inline-flex; flex-wrap: wrap; gap: .4rem;
@@ -1013,7 +1053,7 @@ main > .hero-fullbleed:first-child {
   overflow: hidden;
 }
 .story-title a { color: inherit; text-decoration: none; }
-.story-shortcut:hover .story-title a { color: var(--accent-strong); }
+/* nth-child rules above already colour the title on hover. */
 
 .story-meta {
   font-size: 0.78rem;
