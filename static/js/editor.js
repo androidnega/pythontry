@@ -85,7 +85,6 @@
     tinymce.init({
       selector: '#body-input',
       license_key: 'gpl',
-      height: 620,
       menubar: 'edit view insert format tools table help',
       branding: false,
       promotion: false,
@@ -103,44 +102,91 @@
         { title: 'Full width', value: 'w-full' },
         { title: 'Left float', value: 'float-left' },
         { title: 'Right float', value: 'float-right' },
+        { title: 'Rounded corners', value: 'rounded-lg' },
       ],
       media_alt_source: false,
       media_poster: false,
       media_dimensions: true,
       automatic_uploads: true,
 
+      // Grow with the content; sticky toolbar so it's always reachable.
+      min_height: 540,
+      autoresize_bottom_margin: 60,
+      autoresize_overflow_padding: 24,
+      toolbar_sticky: true,
+      toolbar_sticky_offset: 120, /* admin header + writer top bar */
+      toolbar_mode: 'sliding',
+      toolbar_location: 'top',
+      statusbar: true,
+      elementpath: false,
+      resize: false,
+
       // Editor visual: light or dark skin to match the dashboard theme.
       skin: isDark ? 'oxide-dark' : 'oxide',
       content_css: isDark ? 'dark' : 'default',
       content_style:
+        "@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Source+Serif+4:wght@500;700&display=swap');" +
         "body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;" +
-        "       font-size: 16.5px; line-height: 1.7; padding: 1rem 1.4rem; }" +
-        "img, iframe { max-width: 100%; height: auto; }" +
-        "blockquote { border-left: 3px solid #0ea5e9; padding: .4rem 1rem; margin: 1rem 0;" +
-        "             font-style: italic; background: rgba(14,165,233,0.06); border-radius: 0 8px 8px 0; }" +
-        "h2 { font-size: 1.6rem; font-weight: 700; margin: 1.2rem 0 .5rem; }" +
-        "h3 { font-size: 1.25rem; font-weight: 700; margin: 1.1rem 0 .4rem; }",
+        "       font-size: 17px; line-height: 1.75; padding: 1.5rem 2rem; max-width: 780px; margin: 0 auto; color: #0f172a; }" +
+        "body.dark-mce { color: #e2e8f0; }" +
+        "h1, h2, h3, h4 { font-family: 'Source Serif 4', Georgia, serif; line-height: 1.3; }" +
+        "h2 { font-size: 1.65rem; font-weight: 700; margin: 1.5rem 0 .5rem; }" +
+        "h3 { font-size: 1.3rem; font-weight: 700; margin: 1.3rem 0 .4rem; }" +
+        "h4 { font-size: 1.1rem; font-weight: 700; margin: 1.1rem 0 .3rem; }" +
+        "p { margin: .75rem 0; }" +
+        "img, iframe, video { max-width: 100%; height: auto; border-radius: 8px; }" +
+        "iframe { background: #000; }" +
+        "blockquote { border-left: 4px solid #0ea5e9; padding: .6rem 1.1rem; margin: 1.2rem 0;" +
+        "             font-style: italic; background: rgba(14,165,233,0.06); border-radius: 0 10px 10px 0; }" +
+        "pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }" +
+        "pre { background: #f1f5f9; padding: .75rem 1rem; border-radius: 8px; overflow:auto; }" +
+        "code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: .92em; }" +
+        "table { border-collapse: collapse; width: 100%; margin: 1rem 0; }" +
+        "table th, table td { border: 1px solid #e2e8f0; padding: .55rem .75rem; }" +
+        "table th { background: #f8fafc; font-weight: 600; text-align: left; }" +
+        "hr { border: 0; border-top: 1px solid #e2e8f0; margin: 1.4rem 0; }" +
+        "a { color: #0284c7; text-decoration: underline; text-underline-offset: 3px; }",
 
       plugins: [
-        'advlist', 'autolink', 'lists', 'link', 'image', 'media', 'charmap',
-        'preview', 'anchor', 'searchreplace', 'visualblocks', 'code',
-        'fullscreen', 'insertdatetime', 'table', 'wordcount', 'emoticons',
-        'codesample', 'quickbars',
+        'advlist', 'autolink', 'autoresize', 'autosave', 'lists', 'link',
+        'image', 'media', 'charmap', 'preview', 'anchor', 'searchreplace',
+        'visualblocks', 'visualchars', 'code', 'fullscreen', 'insertdatetime',
+        'table', 'wordcount', 'emoticons', 'codesample', 'quickbars',
+        'pagebreak', 'nonbreaking', 'directionality', 'help', 'accordion',
       ].join(' '),
 
+      // 3-row sliding toolbar. The "Insert" group is grouped under a dropdown
+      // (toolbar_groups) for less visual noise.
       toolbar: [
-        'undo redo | blocks | bold italic underline strikethrough',
-        'forecolor backcolor removeformat | alignleft aligncenter alignright alignjustify',
-        'bullist numlist outdent indent | link image media table',
-        'blockquote codesample emoticons | aibtn | fullscreen preview code',
+        'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor',
+        'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent',
+        'link image media table | blockquote codesample hr | removeformat | aibtn | searchreplace fullscreen preview code help',
       ].join(' | '),
 
-      block_formats: 'Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4; Blockquote=blockquote; Code=pre',
+      block_formats:
+        'Paragraph=p;' +
+        'Heading 2=h2;' +
+        'Heading 3=h3;' +
+        'Heading 4=h4;' +
+        'Pull-quote=blockquote;' +
+        'Pre-formatted=pre',
+
+      // Word-count goal in the statusbar.
+      statusbar_elements: 'wordcount',
+
+      // Better autosave — TinyMCE's built-in autosave handles restore prompts.
+      autosave_ask_before_unload: true,
+      autosave_interval: '20s',
+      autosave_prefix: window.AHANTA_EDITOR && window.AHANTA_EDITOR.autosaveKey
+        ? window.AHANTA_EDITOR.autosaveKey + '-'
+        : 'ahanta-tinymce-',
+      autosave_restore_when_empty: false,
+      autosave_retention: '60m',
 
       // Quick floating toolbars (image + selection).
-      quickbars_selection_toolbar: 'bold italic link blockquote forecolor',
-      quickbars_image_toolbar: 'alignleft aligncenter alignright | imageoptions',
-      quickbars_insert_toolbar: false,
+      quickbars_selection_toolbar: 'bold italic underline | h2 h3 | blockquote | link forecolor',
+      quickbars_image_toolbar: 'alignleft aligncenter alignright | imageoptions | rotateleft rotateright | flipv fliph',
+      quickbars_insert_toolbar: 'quickimage quicktable hr',
 
       // Upload images to our Flask endpoint instead of inlining base64.
       images_upload_handler: function (blobInfo) {
@@ -177,8 +223,25 @@
             if (m) m.classList.remove('hidden');
           },
         });
-        // Make sure submit-time content is always saved to the textarea.
+
+        // Show "Saved … ago" status in the writer top bar.
+        var statusEl = document.getElementById('autosave-status');
+        var lastSaved = null;
+        function updateStatus() {
+          if (!statusEl) return;
+          if (!lastSaved) { statusEl.textContent = ''; statusEl.classList.add('hidden'); return; }
+          var s = Math.max(1, Math.round((Date.now() - lastSaved) / 1000));
+          var label = s < 60 ? s + 's ago' : (Math.floor(s / 60) + 'm ago');
+          statusEl.textContent = '✓ Draft saved ' + label;
+          statusEl.classList.remove('hidden');
+        }
+        setInterval(updateStatus, 15000);
+
+        // Push to the hidden textarea on every change so a manual submit
+        // always grabs the latest content.
         editor.on('change keyup undo redo', function () { editor.save(); });
+        // Mark "saved" each time TinyMCE's autosave plugin writes to storage.
+        editor.on('StoreDraft', function () { lastSaved = Date.now(); updateStatus(); });
 
         // If TinyMCE locks the editor (invalid origin / wrong key) show a
         // clear in-page banner so the admin doesn't have to check the

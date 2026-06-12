@@ -7,62 +7,97 @@
 {% endblock %}
 
 {% block admin_content %}
-<div class="mb-4 flex items-end justify-between">
-  <h1 class="font-serif-news text-2xl font-semibold text-fg">{% if article and article.id %}Edit article{% else %}New article{% endif %}</h1>
-  <a href="{{ url_for('admin.articles') }}" class="text-sm text-muted hover:text-fg">&larr; Back to list</a>
-</div>
-
-<form id="article-form" method="post" enctype="multipart/form-data" class="grid gap-6 lg:grid-cols-[1fr,320px]">
+<form id="article-form" method="post" enctype="multipart/form-data" class="writer-shell">
   {{ form.hidden_tag() }}
 
-  <div class="space-y-4">
-    <div class="card p-5">
-      {{ text(form.title, placeholder='Headline') }}
-      <div class="mt-4">
-        {{ textarea(form.summary, rows=2, placeholder='One-line summary (shown in lists, previews and Google snippets)') }}
+  {# ───────── Sticky action bar ───────── #}
+  <div class="writer-bar">
+    <div class="flex items-center gap-3 min-w-0">
+      <a href="{{ url_for('admin.articles') }}" class="btn-ghost shrink-0" title="Back to list">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+      </a>
+      <div class="min-w-0">
+        <p class="text-xs uppercase tracking-[0.18em] text-subtle leading-none">
+          {% if article and article.id %}Editing article{% else %}New article{% endif %}
+        </p>
+        <h1 class="font-serif-news mt-0.5 truncate text-lg font-semibold text-fg">
+          {% if article and article.id %}{{ article.title }}{% else %}Untitled draft{% endif %}
+        </h1>
       </div>
     </div>
-
-    <div class="card p-0">
-      <div class="flex items-center justify-between gap-2 border-b border-app px-4 py-2">
-        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-subtle">Article body</p>
-        <button type="button" class="btn-secondary !py-1 !px-2 text-xs" onclick="document.getElementById('ai-modal').classList.remove('hidden')">
-          ✨ AI assist
-        </button>
-      </div>
-      {# TinyMCE replaces this textarea in place. If TinyMCE's CDN is blocked
-         the textarea stays visible so the author can still write. #}
-      {{ form.body(
-            id='body-input',
-            rows=18,
-            class_='input w-full rounded-none border-0 border-t border-app font-mono text-sm',
-            style='display:block; min-height:380px;',
-            placeholder='Write your article…') }}
+    <div class="flex items-center gap-2 shrink-0">
+      <span id="autosave-status" class="hidden sm:inline text-xs text-subtle"></span>
+      <button type="button" class="btn-secondary !py-1 !px-3 text-sm"
+              onclick="document.getElementById('ai-modal').classList.remove('hidden')">
+        ✨ AI assist
+      </button>
+      <button type="button" id="writer-settings-toggle" class="btn-secondary !py-1 !px-3 text-sm lg:hidden">
+        Settings
+      </button>
+      {{ form.submit(class_='btn-primary !py-1 !px-4 cursor-pointer') }}
     </div>
   </div>
 
-  <aside class="article-form-side lg:sticky lg:top-20 lg:self-start space-y-4">
-    <div class="card p-5 space-y-4">
-      {{ select(form.status) }}
-      {{ select(form.category_id) }}
-      {{ text(form.tags, placeholder='politics, takoradi, fishing') }}
-      <p class="-mt-2 text-[11px] text-subtle">Separate tags with commas. Used for browsing and discovery.</p>
-      {{ check(form.is_featured) }}
-    </div>
-    <div class="card p-5 space-y-4">
-      {% if article and article.cover_image %}{# show external URL or static upload preview #}
-        <div class="space-y-2">
-          <p class="text-xs uppercase tracking-[0.16em] text-subtle">Current cover</p>
-          <img src="{{ article.cover_image|cover_url }}" alt="" class="w-full rounded-md border border-app" />
-          {{ check(form.remove_cover) }}
-        </div>
-      {% endif %}
-      {{ fileinput(form.cover) }}
-    </div>
-    <div class="card p-5 flex items-center justify-between">
-      {{ submit(form.submit) }}
-    </div>
-  </aside>
+  {# ───────── Main grid: editor + side rail ───────── #}
+  <div class="writer-grid">
+    <main class="writer-main min-w-0">
+      {# Title + summary are part of the prose card so they read naturally. #}
+      <div class="card p-5 sm:p-7 mb-4">
+        {{ form.title(
+              class_='input w-full !border-0 !bg-transparent !px-0 !text-2xl sm:!text-3xl font-serif-news font-semibold leading-tight focus:outline-none',
+              placeholder='Headline…',
+              autocomplete='off') }}
+        {% for e in form.title.errors %}<p class="text-xs text-red-500 mt-1">{{ e }}</p>{% endfor %}
+        {{ form.summary(
+              class_='input w-full !border-0 !bg-transparent !px-0 !text-base text-muted mt-2',
+              rows=2,
+              placeholder='One-line summary (shown in lists, previews and Google snippets)') }}
+        {% for e in form.summary.errors %}<p class="text-xs text-red-500 mt-1">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# TinyMCE replaces this textarea in place. If TinyMCE's CDN is blocked
+         the textarea stays visible so the author can still write. #}
+      <div class="card p-0 overflow-hidden">
+        {{ form.body(
+              id='body-input',
+              rows=20,
+              class_='input w-full rounded-none border-0 font-mono text-sm',
+              style='display:block; min-height:520px;',
+              placeholder='Tell the story…') }}
+        {% for e in form.body.errors %}<p class="px-4 py-2 text-xs text-red-500 border-t border-app">{{ e }}</p>{% endfor %}
+      </div>
+    </main>
+
+    {# Side rail with article settings — sticky on desktop, slide-in on mobile. #}
+    <aside id="writer-side" class="writer-side">
+      <div class="card p-5 space-y-4">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-subtle">Publishing</h3>
+        {{ select(form.status) }}
+        {{ select(form.category_id) }}
+        {{ text(form.tags, placeholder='politics, takoradi, fishing') }}
+        <p class="-mt-2 text-[11px] text-subtle">Separate tags with commas.</p>
+        {{ check(form.is_featured) }}
+      </div>
+      <div class="card p-5 space-y-4">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-subtle">Cover image</h3>
+        {% if article and article.cover_image %}
+          <div class="space-y-2">
+            <img src="{{ article.cover_image|cover_url }}" alt="" class="w-full rounded-md border border-app" />
+            {{ check(form.remove_cover) }}
+          </div>
+        {% endif %}
+        {{ fileinput(form.cover) }}
+        <p class="text-[11px] text-subtle">Used for social shares (1200×630 looks best).</p>
+      </div>
+      <div class="card p-5 flex items-center justify-end gap-2">
+        <a href="{{ url_for('admin.articles') }}" class="btn-ghost">Cancel</a>
+        {{ submit(form.submit) }}
+      </div>
+    </aside>
+  </div>
 </form>
 
 {# ───────── AI assistant modal ───────── #}
@@ -76,7 +111,7 @@
             Powered by {{ ai_model }}.
           {% else %}
             <span style="color: var(--warn-text)">AI is not configured on the server yet.</span>
-            Set <code>OPENAI_API_KEY</code> (or <code>AI_API_KEY</code>) and restart.
+            Add a key at <a href="{{ url_for('admin.settings') }}" class="underline">Dashboard → Settings → AI assistant</a>.
           {% endif %}
         </p>
       </div>
@@ -140,17 +175,24 @@
       draft:   {{ url_for('admin.api_ai_draft')|tojson }},
       improve: {{ url_for('admin.api_ai_improve')|tojson }},
       seo:     {{ url_for('admin.api_ai_seo')|tojson }}
-    }
+    },
+    autosaveKey: 'ahanta_article_draft_{{ (article.id if article else "new")|tojson }}'
   };
+
+  // Mobile side-rail toggle — slide the publishing rail in/out on small screens.
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn  = document.getElementById('writer-settings-toggle');
+    var side = document.getElementById('writer-side');
+    if (btn && side) {
+      btn.addEventListener('click', function () { side.classList.toggle('is-open'); });
+    }
+  });
 </script>
 {% if TINYMCE_API_KEY %}
 <script src="https://cdn.tiny.cloud/1/{{ TINYMCE_API_KEY }}/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
 {% endif %}
 <script src="{{ static_v('js/editor.js') }}"></script>
 <style>
-  /* Highlight the currently-selected tab. */
   [data-ai-tab].active-tab { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
-  /* Make TinyMCE blend into our card edges. */
-  .tox-tinymce { border: 0 !important; border-top: 1px solid var(--border-base) !important; border-radius: 0 !important; }
 </style>
 {% endblock %}

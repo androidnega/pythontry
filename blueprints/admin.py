@@ -232,6 +232,7 @@ def article_edit(article_id: int | None = None):
                     form=form, article=article,
                     ai_ready=ai_configured(),
                     ai_model=get_ai_config().get("model") or "",
+                    writer_mode=True,
                 )
             delete_upload(article.cover_image)
             article.cover_image = rel
@@ -257,6 +258,7 @@ def article_edit(article_id: int | None = None):
         form=form, article=article,
         ai_ready=ai_configured(),
         ai_model=get_ai_config().get("model") or "",
+        writer_mode=True,
     )
 
 

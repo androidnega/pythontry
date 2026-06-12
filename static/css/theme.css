@@ -312,17 +312,96 @@ details > summary::-webkit-details-marker { display: none; }
 .ql-indent-3 { padding-left: 9em; }
 .ql-indent-4 { padding-left: 12em; }
 
+/* ────────────── Writer mode: distraction-free article editor ──────────────
+   Triggered by `writer_mode=True` in the view. The dashboard sidebar
+   collapses (handled in _layout.html); this gives the editor a full,
+   uncramped canvas with a sticky action bar on top. */
+
+.writer-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.writer-bar {
+  position: sticky;
+  top: 56px;                /* sits below the dashboard header */
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .55rem .75rem;
+  background: var(--bg-page);
+  border: 1px solid var(--border-base);
+  border-radius: 14px;
+  box-shadow: 0 1px 0 rgba(0,0,0,.02);
+  margin-bottom: 1rem;
+}
+@media (max-width: 640px) {
+  .writer-bar { padding: .5rem .55rem; gap: .5rem; }
+  .writer-bar h1 { font-size: 1rem; }
+}
+
+.writer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+@media (min-width: 1024px) {
+  .writer-grid { grid-template-columns: minmax(0, 1fr) 340px; }
+}
+
+.writer-main { min-width: 0; }
+
+.writer-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+@media (min-width: 1024px) {
+  .writer-side {
+    position: sticky;
+    top: 116px;                /* dashboard header + writer bar */
+    align-self: start;
+    max-height: calc(100vh - 132px);
+    overflow-y: auto;
+    padding-bottom: 1rem;
+  }
+}
+/* On mobile we hide the rail by default; the "Settings" button toggles it. */
+@media (max-width: 1023px) {
+  .writer-side {
+    position: fixed;
+    inset: 0 0 0 auto;
+    width: min(360px, 88vw);
+    transform: translateX(100%);
+    transition: transform 220ms ease;
+    background: var(--bg-elevated);
+    z-index: 50;
+    padding: 1rem;
+    overflow-y: auto;
+    box-shadow: -8px 0 24px rgba(0,0,0,.18);
+  }
+  .writer-side.is-open { transform: translateX(0); }
+}
+
+/* Title input inside the main card — magazine feel. */
+.writer-main input[name="title"]::placeholder,
+.writer-main textarea[name="summary"]::placeholder {
+  color: var(--text-subtle);
+}
+
 /* ───── TinyMCE WYSIWYG (admin article form) ───── */
 /* Until the script loads the textarea is visible — give it a nice look. */
 #body-input {
   display: block;
   width: 100%;
-  min-height: 380px;
-  padding: 1rem 1.25rem;
+  min-height: 520px;
+  padding: 1.25rem 1.5rem;
   background: var(--bg-surface);
   color: var(--text-base);
   border: 0;
-  border-top: 1px solid var(--border-base);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.92rem;
   line-height: 1.65;
@@ -331,15 +410,24 @@ details > summary::-webkit-details-marker { display: none; }
 /* TinyMCE renders an iframe — make sure its outer chrome blends with our card */
 .tox.tox-tinymce {
   border: 0 !important;
-  border-top: 1px solid var(--border-base) !important;
   border-radius: 0 !important;
   background: var(--bg-surface);
 }
 .tox .tox-edit-area__iframe { background: var(--bg-surface) !important; }
 .tox .tox-toolbar,
 .tox .tox-toolbar__overflow,
-.tox .tox-toolbar__primary { background: var(--bg-elevated) !important; }
-.tox .tox-statusbar { border-top-color: var(--border-base) !important; background: var(--bg-elevated) !important; }
+.tox .tox-toolbar__primary {
+  background: var(--bg-elevated) !important;
+  border-bottom: 1px solid var(--border-base) !important;
+}
+.tox.tox-tinymce--toolbar-sticky-on .tox-editor-header {
+  box-shadow: 0 2px 6px rgba(0,0,0,.04);
+}
+.tox .tox-statusbar {
+  border-top-color: var(--border-base) !important;
+  background: var(--bg-elevated) !important;
+  font-size: 11.5px;
+}
 .tox .tox-toolbar__group { border-color: var(--border-base) !important; }
 /* Custom "AI" toolbar button — make it pop. */
 .tox .tox-tbtn[aria-label="AI writing assistant"] {
@@ -347,7 +435,8 @@ details > summary::-webkit-details-marker { display: none; }
   color: var(--accent);
   font-weight: 600;
   border-radius: 6px;
-  padding: 0 .5rem;
+  padding: 0 .55rem;
+  margin: 0 2px;
 }
 .tox .tox-tbtn[aria-label="AI writing assistant"]:hover { background: var(--accent); color: var(--accent-on); }
 
