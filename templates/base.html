@@ -45,6 +45,19 @@
     })();
   </script>
 
+  <script>
+    // Silence the Tailwind Play CDN production-warning ("cdn.tailwindcss.com
+    // should not be used in production…") so it doesn't clutter the browser
+    // console for end users. Must run before the CDN script loads.
+    (function () {
+      var _warn = console.warn.bind(console);
+      console.warn = function () {
+        var msg = arguments && arguments[0] != null ? String(arguments[0]) : '';
+        if (msg.indexOf('cdn.tailwindcss.com should not be used in production') !== -1) return;
+        return _warn.apply(console, arguments);
+      };
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
