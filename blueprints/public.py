@@ -21,7 +21,7 @@ from sqlalchemy import or_
 
 from extensions import csrf, db
 from forms import CheckoutForm
-from models import Ad, Article, Category, MediaItem, NotifySignup, Order, Portrait, Tag
+from models import Ad, Article, Category, MediaItem, NotifySignup, Order, Portrait, Tag, article_tags
 from utils import (
     detect_embed,
     new_download_token,
@@ -190,12 +190,47 @@ def article_detail(slug: str):
         .all()
     )
     popular = _popular_articles(limit=5, exclude_id=article.id)
+    recent_articles = _latest_articles(limit=5, exclude_ids=[article.id])
+
+    # Categories with article counts — for the sidebar browse-by-section card.
+    from sqlalchemy import func
+    cat_rows = (
+        db.session.query(Category, func.count(Article.id).label("n"))
+        .outerjoin(
+            Article,
+            (Article.category_id == Category.id)
+            & (Article.status == Article.STATUS_PUBLISHED),
+        )
+        .filter(Category.kind.in_([Category.KIND_NEWS, Category.KIND_ALL]))
+        .group_by(Category.id)
+        .order_by(func.count(Article.id).desc(), Category.name.asc())
+        .limit(8)
+        .all()
+    )
+    sidebar_categories = [{"category": c, "count": int(n or 0)} for (c, n) in cat_rows]
+
+    # Popular tags — top by article count across the whole site.
+    tag_rows = (
+        db.session.query(Tag, func.count(Article.id).label("n"))
+        .join(article_tags, Tag.id == article_tags.c.tag_id)
+        .join(Article, Article.id == article_tags.c.article_id)
+        .filter(Article.status == Article.STATUS_PUBLISHED)
+        .group_by(Tag.id)
+        .order_by(func.count(Article.id).desc(), Tag.name.asc())
+        .limit(18)
+        .all()
+    )
+    sidebar_tags = [{"tag": t, "count": int(n or 0)} for (t, n) in tag_rows]
+
     return render_template(
         "article_detail.html",
         article=article,
         related=related,
         more_by_author=more_by_author,
         popular=popular,
+        recent_articles=recent_articles,
+        sidebar_categories=sidebar_categories,
+        sidebar_tags=sidebar_tags,
     )
 
 

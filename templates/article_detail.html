@@ -48,7 +48,8 @@
 {% set share_url = url_for('public.article_detail', slug=article.slug, _external=True) %}
 {% set share_text = article.title %}
 
-<article class="mx-auto max-w-6xl">
+{# ──────────── HEAD: breadcrumbs, headline, byline, cover ─────────── #}
+<div class="mx-auto max-w-6xl">
   <nav class="mb-4 text-xs text-subtle">
     <a href="{{ url_for('public.home') }}" class="hover:text-muted">Home</a>
     <span class="mx-1">/</span>
@@ -105,8 +106,13 @@
       <img src="{{ article.cover_image|cover_url }}" alt="" class="w-full" />
     </figure>
   {% endif %}
+</div>
 
-  <div id="share-rail" class="mb-6 mt-6 flex flex-wrap items-center gap-2">
+{# ──────────── BODY + STICKY SIDEBAR ─────────── #}
+<div class="mx-auto mt-8 grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr),320px]">
+  <article class="min-w-0">
+
+  <div id="share-rail" class="mb-6 flex flex-wrap items-center gap-2">
     <span class="text-xs uppercase tracking-[0.16em] text-subtle">Share</span>
     <a href="https://wa.me/?text={{ (share_text + ' — ' + share_url)|urlencode }}" target="_blank" rel="noopener"
       class="inline-flex items-center gap-1.5 rounded-full border border-app bg-surface px-3 py-1.5 text-xs text-fg hover:border-emerald-500/40 hover:text-emerald-300">
@@ -162,56 +168,119 @@
       </div>
     </section>
   {% endif %}
-</article>
 
-<section class="mx-auto mt-12 max-w-6xl">
-  <div class="grid gap-10 lg:grid-cols-[2fr,1fr]">
-    <div>
-      {% if more_by_author and article.author %}
-        <h2 class="font-serif-news mb-5 text-xl font-semibold text-fg sm:text-2xl">More from {{ article.author.name }}</h2>
-        <div class="grid gap-5 sm:grid-cols-2">
-          {% for a in more_by_author %}{{ article_card(a) }}{% endfor %}
-        </div>
-      {% endif %}
+  {% if more_by_author and article.author %}
+    <section class="mt-12">
+      <h2 class="font-serif-news mb-5 text-xl font-semibold text-fg sm:text-2xl">More from {{ article.author.name }}</h2>
+      <div class="grid gap-5 sm:grid-cols-2">
+        {% for a in more_by_author %}{{ article_card(a) }}{% endfor %}
+      </div>
+    </section>
+  {% endif %}
 
-      {% if related %}
-        <h2 class="font-serif-news mb-5 mt-12 text-xl font-semibold text-fg sm:text-2xl">Related stories</h2>
-        <div class="grid gap-5 sm:grid-cols-2">
-          {% for a in related %}{{ article_card(a) }}{% endfor %}
-        </div>
-      {% endif %}
+  {% if related %}
+    <section class="mt-12">
+      <h2 class="font-serif-news mb-5 text-xl font-semibold text-fg sm:text-2xl">Related stories</h2>
+      <div class="grid gap-5 sm:grid-cols-2">
+        {% for a in related %}{{ article_card(a) }}{% endfor %}
+      </div>
+    </section>
+  {% endif %}
+  </article>
+
+  {# ──────────── STICKY SIDEBAR ─────────── #}
+  <aside class="article-sidebar lg:sticky lg:top-20 lg:self-start space-y-5">
+    {# Auto-generated table of contents — only shown when the article body
+       contains 2+ h2/h3 headings; populated by the inline JS below. #}
+    <div id="article-toc" class="rounded-2xl border border-app bg-surface p-5 hidden">
+      <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-muted">On this page</h3>
+      <nav id="article-toc-nav" class="mt-3 space-y-1.5 text-sm"></nav>
     </div>
 
-    <aside class="space-y-6">
-      {% if popular %}
-        <div class="rounded-2xl border border-app bg-surface p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Most read</h3>
-          <ol class="mt-4 space-y-4">
-            {% for p in popular %}
-              <li class="flex items-start gap-3">
-                <span class="font-serif-news text-2xl font-semibold leading-none text-accent">{{ loop.index }}</span>
-                <div class="min-w-0">
-                  <a href="{{ url_for('public.article_detail', slug=p.slug) }}" class="line-clamp-2 text-sm font-medium leading-snug text-fg hover:text-accent">{{ p.title }}</a>
-                  <p class="mt-0.5 text-xs text-subtle">{{ p.body|reading_time }} min &middot; {{ p.view_count }} views</p>
-                </div>
-              </li>
-            {% endfor %}
-          </ol>
-        </div>
-      {% endif %}
-
-      <div class="rounded-2xl border border-app bg-muted p-5">
-        <h3 class="font-serif-news text-lg font-semibold text-fg">Don't miss a story</h3>
-        <p class="mt-1 text-sm text-muted">Get email updates when we publish.</p>
-        <form id="article-notify" class="mt-3 flex gap-2">
-          <input id="article-notify-email" name="email" type="email" required placeholder="you@example.com" class="input flex-1" />
-          <button class="btn-primary shrink-0" type="submit">Notify</button>
-        </form>
-        <p id="article-notify-msg" class="mt-2 hidden text-xs"></p>
+    {% if popular %}
+      <div class="rounded-2xl border border-app bg-surface p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Most read</h3>
+        <ol class="mt-4 space-y-4">
+          {% for p in popular %}
+            <li class="flex items-start gap-3">
+              <span class="font-serif-news text-2xl font-semibold leading-none text-accent">{{ loop.index }}</span>
+              <div class="min-w-0">
+                <a href="{{ url_for('public.article_detail', slug=p.slug) }}" class="line-clamp-2 text-sm font-medium leading-snug text-fg hover:text-accent">{{ p.title }}</a>
+                <p class="mt-0.5 text-xs text-subtle">{{ p.body|reading_time }} min &middot; {{ p.view_count }} views</p>
+              </div>
+            </li>
+          {% endfor %}
+        </ol>
       </div>
-    </aside>
-  </div>
-</section>
+    {% endif %}
+
+    {% if recent_articles %}
+      <div class="rounded-2xl border border-app bg-surface p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Recent stories</h3>
+        <ul class="mt-4 space-y-3.5">
+          {% for a in recent_articles %}
+            <li class="flex items-start gap-3">
+              {% if a.cover_image %}
+                <a href="{{ url_for('public.article_detail', slug=a.slug) }}" class="shrink-0">
+                  <img src="{{ a.cover_image|cover_url }}" alt="" class="h-14 w-14 rounded-lg object-cover" loading="lazy" />
+                </a>
+              {% endif %}
+              <div class="min-w-0">
+                <a href="{{ url_for('public.article_detail', slug=a.slug) }}" class="line-clamp-2 text-sm font-medium leading-snug text-fg hover:text-accent">{{ a.title }}</a>
+                {% if a.published_at %}
+                  <p class="mt-0.5 text-xs text-subtle">
+                    <time datetime="{{ a.published_at.isoformat() }}">{{ a.published_at.strftime('%b %d, %Y') }}</time>
+                  </p>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if sidebar_categories %}
+      <div class="rounded-2xl border border-app bg-surface p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Browse by section</h3>
+        <ul class="mt-3 divide-y divide-app">
+          {% for row in sidebar_categories %}
+            <li>
+              <a href="{{ url_for('public.news_list', category=row.category.slug) }}"
+                 class="flex items-center justify-between py-2 text-sm text-fg hover:text-accent">
+                <span>{{ row.category.name }}</span>
+                <span class="rounded-full bg-muted px-2 py-0.5 text-xs text-subtle">{{ row.count }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if sidebar_tags %}
+      <div class="rounded-2xl border border-app bg-surface p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Popular tags</h3>
+        <div class="mt-3 flex flex-wrap gap-1.5">
+          {% for row in sidebar_tags %}
+            <a href="{{ url_for('public.tag_detail', slug=row.tag.slug) }}"
+               class="rounded-full border border-app bg-page px-2.5 py-1 text-xs text-fg hover:border-accent hover:text-accent">
+              #{{ row.tag.name }}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="rounded-2xl border border-app bg-muted p-5">
+      <h3 class="font-serif-news text-lg font-semibold text-fg">Don't miss a story</h3>
+      <p class="mt-1 text-sm text-muted">Get email updates when we publish.</p>
+      <form id="article-notify" class="mt-3 flex gap-2">
+        <input id="article-notify-email" name="email" type="email" required placeholder="you@example.com" class="input flex-1" />
+        <button class="btn-primary shrink-0" type="submit">Notify</button>
+      </form>
+      <p id="article-notify-msg" class="mt-2 hidden text-xs"></p>
+    </div>
+  </aside>
+</div>
 
 <script>
 (function () {
@@ -225,6 +294,52 @@
   window.addEventListener('scroll', update, { passive: true });
   window.addEventListener('resize', update);
   update();
+
+  // ─── Auto table of contents: turn h2/h3 inside .prose-news into a
+  //     sticky-sidebar nav. Only shows if there are ≥2 headings. ───
+  (function buildToc() {
+    var tocBox = document.getElementById('article-toc');
+    var tocNav = document.getElementById('article-toc-nav');
+    var body   = document.querySelector('.prose-news');
+    if (!tocBox || !tocNav || !body) return;
+    var headings = body.querySelectorAll('h2, h3');
+    if (headings.length < 2) return;
+    var used = {};
+    function slug(s) {
+      var base = String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'section';
+      var id = base, n = 2;
+      while (used[id]) { id = base + '-' + (n++); }
+      used[id] = true;
+      return id;
+    }
+    headings.forEach(function (h) {
+      if (!h.id) h.id = slug(h.textContent);
+      var a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      a.className = 'block text-fg hover:text-accent' + (h.tagName === 'H3' ? ' pl-3 text-subtle hover:text-accent text-[13px]' : '');
+      tocNav.appendChild(a);
+    });
+    tocBox.classList.remove('hidden');
+
+    // Highlight current section on scroll.
+    var links = tocNav.querySelectorAll('a');
+    if ('IntersectionObserver' in window) {
+      var byId = {};
+      links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          var a = byId[e.target.id];
+          if (!a) return;
+          if (e.isIntersecting) {
+            links.forEach(function (l) { l.classList.remove('text-accent', 'font-semibold'); });
+            a.classList.add('text-accent', 'font-semibold');
+          }
+        });
+      }, { rootMargin: '-30% 0px -60% 0px' });
+      headings.forEach(function (h) { io.observe(h); });
+    }
+  })();
 
   var copyBtn = document.getElementById('copy-link');
   if (copyBtn) {

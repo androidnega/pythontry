@@ -1113,6 +1113,23 @@ main > .hero-fullbleed:first-child {
   background: var(--text-subtle);
 }
 
+/* ───── Article sidebar (sticky on ≥lg) ───── */
+@media (min-width: 1024px) {
+  .article-sidebar {
+    /* When the stack of cards is taller than the viewport, scroll inside
+       the sidebar instead of letting it disappear above the fold. */
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    scrollbar-width: thin;
+  }
+  .article-sidebar::-webkit-scrollbar { width: 6px; }
+  .article-sidebar::-webkit-scrollbar-thumb {
+    background: var(--border-base); border-radius: 999px;
+  }
+}
+
 /* ───── Section header (eyebrow + big title) ───── */
 .section-head {
   margin-bottom: 1.5rem;
