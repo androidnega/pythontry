@@ -1189,12 +1189,56 @@ main > .hero-fullbleed:first-child {
   transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 .soft-row:hover {
-  background-color: var(--bg-muted);
   transform: translateY(-1px);
   box-shadow: 0 6px 18px -12px rgba(15, 23, 42, 0.25);
+  filter: brightness(0.985);
 }
 [data-theme="dark"] .soft-row:hover {
   box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.55);
+  filter: brightness(1.08);
+}
+
+/* ────── Most-read list: rotating soft pastel per row ───────
+   Each row gets its own gentle tint so the list feels like a stack
+   of distinct cards instead of a single block. Numbers pick up the
+   row's accent tone too. Six values cover lists up to 6; we cycle
+   with :nth-child(n+7) just in case. */
+.most-read .soft-row:nth-child(1) { background-color: var(--soft-1-bg); }
+.most-read .soft-row:nth-child(2) { background-color: var(--soft-2-bg); }
+.most-read .soft-row:nth-child(3) { background-color: var(--soft-3-bg); }
+.most-read .soft-row:nth-child(4) { background-color: var(--soft-4-bg); }
+.most-read .soft-row:nth-child(5) { background-color: var(--soft-5-bg); }
+.most-read .soft-row:nth-child(6) { background-color: var(--soft-6-bg); }
+.most-read .soft-row:nth-child(7) { background-color: var(--soft-1-bg); }
+.most-read .soft-row:nth-child(8) { background-color: var(--soft-2-bg); }
+
+.most-read .soft-row:nth-child(1) .most-read-num { color: var(--soft-1-fg); }
+.most-read .soft-row:nth-child(2) .most-read-num { color: var(--soft-2-fg); }
+.most-read .soft-row:nth-child(3) .most-read-num { color: var(--soft-3-fg); }
+.most-read .soft-row:nth-child(4) .most-read-num { color: var(--soft-4-fg); }
+.most-read .soft-row:nth-child(5) .most-read-num { color: var(--soft-5-fg); }
+.most-read .soft-row:nth-child(6) .most-read-num { color: var(--soft-6-fg); }
+.most-read .soft-row:nth-child(7) .most-read-num { color: var(--soft-1-fg); }
+.most-read .soft-row:nth-child(8) .most-read-num { color: var(--soft-2-fg); }
+
+/* Light-mode palette: tints from Tailwind's *-50 family. */
+:root {
+  --soft-1-bg: #fef3f2; --soft-1-fg: #be123c; /* rose      */
+  --soft-2-bg: #fff7ed; --soft-2-fg: #c2410c; /* orange    */
+  --soft-3-bg: #fffbeb; --soft-3-fg: #b45309; /* amber     */
+  --soft-4-bg: #ecfdf5; --soft-4-fg: #047857; /* emerald   */
+  --soft-5-bg: #eff6ff; --soft-5-fg: #1d4ed8; /* blue      */
+  --soft-6-bg: #f5f3ff; --soft-6-fg: #6d28d9; /* violet    */
+}
+/* Dark-mode palette: low-saturation hues on top of the surface so
+   the rows feel like coloured shadows rather than coloured blocks. */
+[data-theme="dark"] {
+  --soft-1-bg: #2a2128; --soft-1-fg: #fda4af;
+  --soft-2-bg: #2b2521; --soft-2-fg: #fdba74;
+  --soft-3-bg: #2a2820; --soft-3-fg: #fcd34d;
+  --soft-4-bg: #1f2a25; --soft-4-fg: #6ee7b7;
+  --soft-5-bg: #1f242e; --soft-5-fg: #93c5fd;
+  --soft-6-bg: #25212f; --soft-6-fg: #c4b5fd;
 }
 
 /* ───── Section header (eyebrow + big title) ───── */

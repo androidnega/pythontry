@@ -4,10 +4,10 @@
 {% if popular %}
   <div class="rounded-2xl border border-app bg-surface p-5">
     <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Most read</h3>
-    <ol class="mt-4 space-y-2.5">
+    <ol class="most-read mt-4 space-y-2.5">
       {% for p in popular %}
         <li class="soft-row flex items-start gap-3 rounded-xl p-3">
-          <span class="font-serif-news text-2xl font-semibold leading-none text-accent">{{ loop.index }}</span>
+          <span class="most-read-num font-serif-news text-2xl font-semibold leading-none">{{ loop.index }}</span>
           <div class="min-w-0">
             <a href="{{ url_for('public.article_detail', slug=p.slug) }}" class="line-clamp-2 text-sm font-medium leading-snug text-fg hover:text-accent">{{ p.title }}</a>
             <p class="mt-0.5 text-xs text-subtle">{{ p.body|reading_time }} min &middot; {{ p.view_count }} views</p>
