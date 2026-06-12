@@ -34,8 +34,14 @@
       <div class="editor-wrap">
         <div id="editor" data-upload-url="{{ url_for('admin.api_upload_image') }}"></div>
       </div>
-      {# Hidden input that the editor JS keeps in sync; this is what actually submits. #}
-      {{ form.body(id='body-input', class_='hidden', style='display:none') }}
+      {# Fallback textarea: stays visible until editor.js mounts Quill, so the
+         author can always see and edit the body even if the CDN is blocked. #}
+      {{ form.body(
+            id='body-input',
+            rows=18,
+            class_='input w-full rounded-none border-0 border-t border-app font-mono text-sm',
+            style='display:block; min-height:380px;',
+            placeholder='Write your article…') }}
     </div>
   </div>
 

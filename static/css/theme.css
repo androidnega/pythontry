@@ -310,6 +310,9 @@ details > summary::-webkit-details-marker { display: none; }
 
 /* ───── Quill editor (admin form) — themed wrapper ───── */
 .editor-wrap { border: 1px solid var(--border-base); border-radius: 12px; overflow: hidden; background: var(--bg-surface); }
+/* Reserve space for the editor before Quill mounts so the body card never
+   visually collapses while the CDN is still loading. */
+.editor-wrap > #editor:empty { min-height: 380px; display: block; }
 .editor-wrap .ql-toolbar.ql-snow,
 .editor-wrap .ql-container.ql-snow { border: 0; }
 .editor-wrap .ql-toolbar.ql-snow {

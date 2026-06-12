@@ -3,7 +3,10 @@
 
 (function () {
   if (typeof window.Quill !== 'function') {
-    console.warn('Quill not loaded; editor will not initialize.');
+    // Quill failed to load (CDN blocked, slow network, ad blocker, etc.).
+    // Leave the plain textarea visible so the author can still edit; just
+    // bail out of the rich-editor setup.
+    console.warn('Quill not loaded; falling back to plain textarea.');
     return;
   }
 
@@ -56,6 +59,12 @@
     placeholder: 'Tell the story…',
     modules: { toolbar: { container: toolbarOptions } },
   });
+
+  // Quill mounted successfully — hide the plain-textarea fallback now.
+  // (We leave it in the DOM as a hidden field so submission still picks up
+  // syncBody() output.)
+  bodyInput.style.display = 'none';
+  bodyInput.classList.add('hidden');
 
   // Seed Quill with the existing article body. Quill 2 accepts both signatures
   // (html) and (index, html); we use the 2-arg form for forward-compat and
