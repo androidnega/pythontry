@@ -8,10 +8,31 @@
   <p class="text-sm text-muted">Configure the writing editor, outgoing email and your team accounts.</p>
 </header>
 
+{# Big, impossible-to-miss notice when no TinyMCE key is configured. #}
+{% if not tinymce_key_set %}
+  <div class="mb-5 flex items-start gap-3 rounded-2xl border-l-4 border-amber-500 bg-amber-50 p-4 text-sm
+              dark:bg-amber-900/20 dark:border-amber-400">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+         class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400">
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <div class="text-amber-900 dark:text-amber-100">
+      <strong class="font-semibold">No WYSIWYG editor key is set yet.</strong>
+      Without it the article-edit page falls back to a plain textarea.
+      Paste your TinyMCE Cloud key in the <em>"WYSIWYG editor"</em> card below
+      to enable rich formatting, image upload and AI assistance.
+    </div>
+  </div>
+{% endif %}
+
 {# ───────────────────────────── Row 1: editor key + team ───────────────────────────── #}
 <div class="grid gap-5 lg:grid-cols-2 mb-6">
   {# ── TinyMCE editor key ─────────────────────────────────────────── #}
-  <form method="post" class="card p-5 space-y-4">
+  <form method="post" id="tinymce-card" class="card p-5 space-y-4
+              {% if not tinymce_key_set %}ring-2 ring-amber-500/60 dark:ring-amber-400/50{% endif %}">
     {{ tinymce_form.csrf_token }}
     <div class="flex items-center justify-between gap-3">
       <div>
