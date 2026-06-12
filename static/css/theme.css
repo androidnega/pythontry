@@ -1207,19 +1207,23 @@ main > .hero-fullbleed:first-child {
   background: var(--text-subtle);
 }
 
-/* ───── Article sidebar (sticky on ≥lg) ───── */
+/* ───── Sticky sidebars (article page + admin form) ─────
+   Same behaviour for the public reading sidebar and the admin
+   article-form right column: stick on lg+, scroll internally if
+   taller than the viewport so nothing disappears above the fold. */
 @media (min-width: 1024px) {
-  .article-sidebar {
-    /* When the stack of cards is taller than the viewport, scroll inside
-       the sidebar instead of letting it disappear above the fold. */
+  .article-sidebar,
+  .article-form-side {
     max-height: calc(100vh - 6rem);
     overflow-y: auto;
     overscroll-behavior: contain;
     padding-right: 4px;
     scrollbar-width: thin;
   }
-  .article-sidebar::-webkit-scrollbar { width: 6px; }
-  .article-sidebar::-webkit-scrollbar-thumb {
+  .article-sidebar::-webkit-scrollbar,
+  .article-form-side::-webkit-scrollbar { width: 6px; }
+  .article-sidebar::-webkit-scrollbar-thumb,
+  .article-form-side::-webkit-scrollbar-thumb {
     background: var(--border-base); border-radius: 999px;
   }
 }
