@@ -40,6 +40,7 @@ from models import (
     Ad,
     Article,
     Category,
+    Comment,
     MediaItem,
     NotifySignup,
     Order,
@@ -778,6 +779,59 @@ def user_delete(user_id: int):
         db.session.commit()
         flash("User deleted.", "success")
     return redirect(url_for("admin.users"))
+
+
+# ──────────────────────────── Comments (admin) ────────────────────────────
+
+
+@bp.route("/comments")
+@admin_required
+def comments_list():
+    """Recent comments with quick approve/hide/delete controls."""
+    show = request.args.get("show", "all")  # all | hidden | approved
+    page = request.args.get("page", 1, type=int)
+    q = Comment.query
+    if show == "hidden":
+        q = q.filter(Comment.is_approved.is_(False))
+    elif show == "approved":
+        q = q.filter(Comment.is_approved.is_(True))
+    q = q.order_by(Comment.created_at.desc())
+    pagination = q.paginate(page=max(page, 1), per_page=25, error_out=False)
+    counts = {
+        "all":      Comment.query.count(),
+        "approved": Comment.query.filter_by(is_approved=True).count(),
+        "hidden":   Comment.query.filter_by(is_approved=False).count(),
+    }
+    return render_template(
+        "admin/comments_list.html",
+        pagination=pagination,
+        comments=pagination.items,
+        show=show,
+        counts=counts,
+        delete_form=DeleteForm(),
+    )
+
+
+@bp.post("/comments/<int:comment_id>/toggle")
+@admin_required
+def comment_toggle(comment_id: int):
+    c = db.session.get(Comment, comment_id) or abort(404)
+    c.is_approved = not c.is_approved
+    db.session.commit()
+    flash(f"Comment {'approved' if c.is_approved else 'hidden'}.", "success")
+    return redirect(request.referrer or url_for("admin.comments_list"))
+
+
+@bp.post("/comments/<int:comment_id>/delete")
+@admin_required
+def comment_delete(comment_id: int):
+    c = db.session.get(Comment, comment_id) or abort(404)
+    form = DeleteForm()
+    if form.validate_on_submit():
+        db.session.delete(c)
+        db.session.commit()
+        flash("Comment deleted.", "success")
+    return redirect(request.referrer or url_for("admin.comments_list"))
 
 
 # ──────────────────────────── Settings (admin) ────────────────────────────

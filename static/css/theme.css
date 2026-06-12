@@ -1212,6 +1212,24 @@ main > .hero-fullbleed:first-child {
   --soft-6-bg: #382c4d; --soft-6-fg: #c4b5fd;
 }
 
+/* ─────────── 5-star rating buttons ─────────── */
+.star-btn {
+  background: transparent;
+  border: 0;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: var(--border-base);
+  transition: color 120ms ease, transform 120ms ease;
+  line-height: 0;
+}
+.star-btn:hover { transform: translateY(-1px); }
+.star-btn.is-on { color: #f59e0b; }  /* amber-500 */
+.star-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
 /* Coloured left stripe per row in "Most read" — guarantees a clearly
    distinct boundary between cards even on bright surfaces. */
 .most-read .soft-row { border-left: 4px solid transparent; padding-left: 0.85rem; }

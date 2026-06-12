@@ -349,6 +349,26 @@ class SmtpSettingsForm(FlaskForm):
     submit = SubmitField("Save SMTP settings")
 
 
+class CommentForm(FlaskForm):
+    """Reader comment form — works for logged-in users and guests.
+
+    `author_name` and `author_email` are only required when no one is
+    logged in (enforced in the view, since FlaskForm validators don't
+    have request context). `website` is a hidden honeypot field that
+    must stay empty; bots fill it and we silently drop those.
+    """
+    author_name = StringField("Your name", validators=[Optional(), Length(max=120)])
+    author_email = StringField("Email (optional, not published)",
+                               validators=[Optional(), Email(), Length(max=255)])
+    body = TextAreaField(
+        "Your comment",
+        validators=[DataRequired(), Length(min=2, max=4000)],
+    )
+    # Honeypot: real humans leave this blank.
+    website = StringField("Website", validators=[Optional(), Length(max=255)])
+    submit = SubmitField("Post comment")
+
+
 class TinymceSettingsForm(FlaskForm):
     """Admin form to paste / rotate the TinyMCE Cloud API key."""
     api_key = StringField(

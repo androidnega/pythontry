@@ -273,6 +273,84 @@ class AppSetting(db.Model):
         return f"<AppSetting {self.key}>"
 
 
+class Comment(db.Model):
+    """Reader comment on an article.
+
+    Anonymous comments allowed (`user_id` is NULL); the author must still
+    provide a display name. Admins can hide or delete via the moderation UI.
+    """
+
+    __tablename__ = "comments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    article_id = db.Column(
+        db.Integer, db.ForeignKey("articles.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True, index=True,
+    )
+    author_name = db.Column(db.String(120), nullable=False)
+    author_email = db.Column(db.String(255))  # optional; not shown publicly
+    body = db.Column(db.Text, nullable=False)
+    is_approved = db.Column(db.Boolean, default=True, nullable=False)
+    ip_hash = db.Column(db.String(64))  # for rate-limit / abuse moderation
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+    article = db.relationship(
+        "Article",
+        backref=db.backref("comments", lazy="dynamic", cascade="all, delete-orphan"),
+    )
+    user = db.relationship("User")
+
+    @property
+    def display_name(self) -> str:
+        if self.user is not None:
+            return self.user.name
+        return self.author_name or "Anonymous"
+
+    def __repr__(self) -> str:
+        return f"<Comment article={self.article_id} by={self.display_name!r}>"
+
+
+class ArticleRating(db.Model):
+    """A 1-5 star rating left on an article.
+
+    `voter_key` uniquely identifies a voter: "u:<user_id>" for logged-in
+    users, or "anon:<sha256(ip+ua+session_id)>" for guests, so we can
+    accept one rating per voter while allowing them to change their mind.
+    """
+
+    __tablename__ = "article_ratings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    article_id = db.Column(
+        db.Integer, db.ForeignKey("articles.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    voter_key = db.Column(db.String(80), nullable=False, index=True)
+    value = db.Column(db.SmallInteger, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("article_id", "voter_key", name="uq_rating_per_voter"),
+    )
+
+    article = db.relationship(
+        "Article",
+        backref=db.backref("ratings", lazy="dynamic", cascade="all, delete-orphan"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<ArticleRating article={self.article_id} value={self.value}>"
+
+
 class Portrait(db.Model):
     """A digital portrait/photo sold via Paystack.
 

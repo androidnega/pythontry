@@ -99,6 +99,21 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       {{ article.view_count }} views
     </span>
+    {% if rating_count %}
+      <span class="text-subtle">|</span>
+      <a href="#rate" class="inline-flex items-center gap-1.5 hover:text-accent">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21z"/></svg>
+        {{ '%.1f'|format(rating_avg) }} ({{ rating_count }})
+      </a>
+    {% endif %}
+    {% set _ccount = comments|length %}
+    {% if _ccount %}
+      <span class="text-subtle">|</span>
+      <a href="#comments" class="inline-flex items-center gap-1.5 hover:text-accent">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        {{ _ccount }} comment{{ '' if _ccount == 1 else 's' }}
+      </a>
+    {% endif %}
   </div>
 
   {% if article.cover_image %}
@@ -186,6 +201,129 @@
       </div>
     </section>
   {% endif %}
+
+  {# ───────────────── Rate this article ───────────────── #}
+  <section id="rate" class="mt-12 rounded-2xl border border-app bg-surface p-5"
+           data-rate-url="{{ url_for('public.article_rate', slug=article.slug) }}"
+           data-my-rating="{{ my_rating or 0 }}">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 class="font-serif-news text-xl font-semibold text-fg">Rate this story</h2>
+        <p class="text-sm text-muted">Your vote helps us know which stories matter most.</p>
+      </div>
+      <div class="text-right">
+        <div class="text-3xl font-bold text-fg leading-none" id="rating-avg">
+          {{ '%.1f'|format(rating_avg) if rating_count else '—' }}
+        </div>
+        <div class="mt-1 text-xs text-subtle">
+          based on <span id="rating-count">{{ rating_count }}</span>
+          rating{{ '' if rating_count == 1 else 's' }}
+        </div>
+      </div>
+    </div>
+    <div class="mt-4 flex items-center gap-2">
+      <div id="star-rate" class="flex items-center gap-1" role="radiogroup" aria-label="Rate this article">
+        {% for i in range(1, 6) %}
+          <button type="button" class="star-btn" role="radio" aria-checked="false"
+                  aria-label="{{ i }} star{{ '' if i == 1 else 's' }}" data-value="{{ i }}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"
+                 stroke="currentColor" stroke-width="0.75" stroke-linejoin="round">
+              <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+          </button>
+        {% endfor %}
+      </div>
+      <span id="rate-msg" class="ml-3 text-xs text-muted"></span>
+    </div>
+  </section>
+
+  {# ───────────────── Comments ───────────────── #}
+  <section id="comments" class="mt-12">
+    <div class="mb-5 flex items-end justify-between">
+      <h2 class="font-serif-news text-2xl font-semibold text-fg">
+        {{ comments|length }} comment{{ '' if comments|length == 1 else 's' }}
+      </h2>
+      <a href="#comment-form" class="text-xs uppercase tracking-[0.16em] text-accent hover:underline">
+        Join the conversation ↓
+      </a>
+    </div>
+
+    {% if comments %}
+      <ol class="space-y-4">
+        {% for c in comments %}
+          <li id="comment-{{ c.id }}"
+              class="rounded-2xl border border-app bg-surface p-4 sm:p-5">
+            <div class="flex items-start gap-3">
+              <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-muted text-sm font-bold text-fg">
+                {{ (c.display_name[:1] or '?')|upper }}
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span class="font-semibold text-fg">{{ c.display_name }}</span>
+                  {% if c.user_id %}
+                    <span class="chip chip-accent text-[10px] uppercase tracking-[0.14em]">Member</span>
+                  {% endif %}
+                  <time datetime="{{ c.created_at.isoformat() }}" class="text-xs text-subtle">
+                    {{ c.created_at.strftime('%b %d, %Y · %H:%M') }}
+                  </time>
+                </div>
+                <p class="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-fg">{{ c.body }}</p>
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="mb-5 rounded-2xl border border-dashed border-app bg-page p-5 text-center text-sm text-muted">
+        No comments yet — be the first to share your thoughts.
+      </p>
+    {% endif %}
+
+    <form id="comment-form"
+          method="post"
+          action="{{ url_for('public.article_comment', slug=article.slug) }}"
+          class="mt-6 rounded-2xl border border-app bg-surface p-5 space-y-3">
+      {{ comment_form.csrf_token }}
+      <h3 class="font-serif-news text-lg font-semibold text-fg">Leave a comment</h3>
+      {% if current_user.is_authenticated %}
+        <p class="text-xs text-subtle">
+          Posting as <strong>{{ current_user.name }}</strong>.
+          <a href="{{ url_for('auth.logout') }}" class="text-accent hover:underline">Use a different account</a>
+        </p>
+      {% else %}
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label class="lbl">Your name</label>
+            {{ comment_form.author_name(class_="input w-full", placeholder="e.g. Ama from Takoradi") }}
+            {% for e in comment_form.author_name.errors %}<p class="text-xs text-red-500">{{ e }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="lbl">Email (optional — never shown)</label>
+            {{ comment_form.author_email(class_="input w-full", placeholder="you@example.com", autocomplete="email") }}
+            {% for e in comment_form.author_email.errors %}<p class="text-xs text-red-500">{{ e }}</p>{% endfor %}
+          </div>
+        </div>
+        <p class="text-xs text-subtle">
+          You can post anonymously — or
+          <a href="{{ url_for('auth.login') }}" class="text-accent hover:underline">sign in</a>
+          to track your comments.
+        </p>
+      {% endif %}
+      <div>
+        <label class="lbl sr-only">Your comment</label>
+        {{ comment_form.body(class_="input w-full", rows=4, placeholder="Share your thoughts. Be kind and respectful.") }}
+        {% for e in comment_form.body.errors %}<p class="text-xs text-red-500">{{ e }}</p>{% endfor %}
+      </div>
+      {# Honeypot — kept off-screen so bots fill it and we can drop their submissions. #}
+      <div class="hidden" aria-hidden="true">
+        {{ comment_form.website(tabindex="-1", autocomplete="off") }}
+      </div>
+      <div class="flex items-center justify-between">
+        <p class="text-xs text-subtle">Be respectful — abusive comments are removed.</p>
+        {{ comment_form.submit(class_="btn-primary") }}
+      </div>
+    </form>
+  </section>
   </article>
 
   {# ──────────── STICKY SIDEBAR ─────────── #}
@@ -310,6 +448,64 @@
       });
     });
   }
+
+  // ─── 5-star rating widget ───
+  (function () {
+    var box = document.getElementById('rate');
+    if (!box) return;
+    var stars = box.querySelectorAll('.star-btn');
+    if (!stars.length) return;
+    var url  = box.getAttribute('data-rate-url');
+    var my   = parseInt(box.getAttribute('data-my-rating') || '0', 10) || 0;
+    var msg  = document.getElementById('rate-msg');
+    var avgE = document.getElementById('rating-avg');
+    var cntE = document.getElementById('rating-count');
+
+    function paint(active) {
+      stars.forEach(function (s) {
+        var v = parseInt(s.getAttribute('data-value'), 10);
+        s.classList.toggle('is-on', v <= active);
+        s.setAttribute('aria-checked', v === active ? 'true' : 'false');
+      });
+    }
+    function setMsg(text, kind) {
+      if (!msg) return;
+      msg.textContent = text || '';
+      msg.style.color = kind === 'err' ? 'var(--danger-text)' :
+                        kind === 'ok'  ? 'var(--success-text)' : 'var(--text-muted)';
+    }
+
+    paint(my);
+    if (my) setMsg('You rated this ' + my + ' / 5.');
+
+    stars.forEach(function (s) {
+      s.addEventListener('mouseenter', function () { paint(parseInt(s.getAttribute('data-value'), 10)); });
+      s.addEventListener('mouseleave', function () { paint(my); });
+      s.addEventListener('click', function () {
+        var v = parseInt(s.getAttribute('data-value'), 10);
+        setMsg('Saving…');
+        fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ value: v })
+        })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok, body: j }; }); })
+          .then(function (res) {
+            if (!res.ok) {
+              setMsg((res.body && res.body.error) || 'Could not save your rating.', 'err');
+              return;
+            }
+            my = res.body.my || v;
+            paint(my);
+            if (avgE) avgE.textContent = res.body.count ? Number(res.body.avg).toFixed(1) : '—';
+            if (cntE) cntE.textContent = res.body.count;
+            setMsg('Thanks — your rating is in.', 'ok');
+          })
+          .catch(function (err) { setMsg(err.message || 'Network error.', 'err'); });
+      });
+    });
+  })();
 })();
 </script>
 

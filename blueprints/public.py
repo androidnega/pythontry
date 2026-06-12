@@ -19,18 +19,27 @@ from flask import (
 )
 from sqlalchemy import or_
 
+from flask_login import current_user
+
 from extensions import csrf, db
-from forms import CheckoutForm
-from models import Ad, Article, Category, MediaItem, NotifySignup, Order, Portrait, Tag, article_tags
+from forms import CheckoutForm, CommentForm
+from models import (
+    Ad, Article, ArticleRating, Category, Comment, MediaItem,
+    NotifySignup, Order, Portrait, Tag, article_tags,
+)
 from utils import (
+    client_ip_hash,
     detect_embed,
+    existing_user_rating,
     new_download_token,
     new_payment_reference,
     paystack_configured,
     paystack_initialize,
     paystack_verify,
+    rating_stats,
     reading_time_minutes,
     verify_paystack_signature,
+    voter_key_from_request,
 )
 
 bp = Blueprint("public", __name__)
@@ -248,13 +257,123 @@ def article_detail(slug: str):
     # override what the generic helper produced for that one key.
     sidebar_ctx["popular"] = _popular_articles(limit=5, exclude_id=article.id)
 
+    # Comments + rating context.
+    comments = (
+        Comment.query.filter_by(article_id=article.id, is_approved=True)
+        .order_by(Comment.created_at.desc())
+        .all()
+    )
+    rstats = rating_stats(article.id)
+    vkey = voter_key_from_request(request, current_user)
+    my_rating = existing_user_rating(article.id, vkey)
+    comment_form = CommentForm()
+    if current_user.is_authenticated:
+        comment_form.author_name.data = current_user.name
+        comment_form.author_email.data = current_user.email
+
     return render_template(
         "article_detail.html",
         article=article,
         related=related,
         more_by_author=more_by_author,
+        comments=comments,
+        comment_form=comment_form,
+        rating_avg=rstats["avg"],
+        rating_count=rstats["count"],
+        my_rating=my_rating,
         **sidebar_ctx,
     )
+
+
+# ─────────────────────── Comments + ratings ───────────────────────
+
+
+@bp.post("/news/<slug>/comments")
+def article_comment(slug: str):
+    """Accept a reader comment (logged-in or anonymous)."""
+    article = Article.query.filter_by(slug=slug).first_or_404()
+    if not article.is_published:
+        abort(404)
+
+    form = CommentForm()
+    if not form.validate_on_submit():
+        flash("Couldn't post your comment — please check the form.", "error")
+        return redirect(url_for("public.article_detail", slug=slug) + "#comments")
+
+    # Honeypot: bots fill this hidden field; silently drop them.
+    if (form.website.data or "").strip():
+        return redirect(url_for("public.article_detail", slug=slug) + "#comments")
+
+    if current_user.is_authenticated:
+        user_id = current_user.id
+        name = current_user.name
+        email = current_user.email
+    else:
+        user_id = None
+        name = (form.author_name.data or "").strip() or "Anonymous"
+        email = (form.author_email.data or "").strip() or None
+
+    # Very simple rate-limit: at most 1 comment from the same IP/article
+    # in the last 20 seconds (slows down floods without nagging real users).
+    ip_h = client_ip_hash(request)
+    recent_cutoff = datetime.now(timezone.utc) - timedelta(seconds=20)
+    recent = (
+        Comment.query.filter_by(article_id=article.id, ip_hash=ip_h)
+        .filter(Comment.created_at >= recent_cutoff)
+        .first()
+    )
+    if recent:
+        flash("You just posted a comment — give it a moment before posting again.", "warn")
+        return redirect(url_for("public.article_detail", slug=slug) + "#comments")
+
+    c = Comment(
+        article_id=article.id,
+        user_id=user_id,
+        author_name=name[:120],
+        author_email=email,
+        body=(form.body.data or "").strip()[:4000],
+        is_approved=True,
+        ip_hash=ip_h,
+    )
+    db.session.add(c)
+    db.session.commit()
+    flash("Comment posted — thanks for joining the conversation.", "success")
+    return redirect(url_for("public.article_detail", slug=slug) + f"#comment-{c.id}")
+
+
+@bp.post("/news/<slug>/rate")
+@csrf.exempt  # rating is a single-click JSON action; we still scope by voter_key
+def article_rate(slug: str):
+    """Submit (or update) a 1-5 star rating. JSON, called from a tiny fetch()."""
+    article = Article.query.filter_by(slug=slug).first_or_404()
+    if not article.is_published:
+        return jsonify(ok=False, error="Article not available."), 404
+
+    try:
+        value = int((request.get_json(silent=True) or request.form).get("value", 0))
+    except (TypeError, ValueError):
+        value = 0
+    if not 1 <= value <= 5:
+        return jsonify(ok=False, error="Rating must be 1-5."), 400
+
+    vkey = voter_key_from_request(request, current_user)
+    user_id = current_user.id if current_user.is_authenticated else None
+
+    rating = ArticleRating.query.filter_by(
+        article_id=article.id, voter_key=vkey,
+    ).first()
+    if rating is None:
+        rating = ArticleRating(
+            article_id=article.id, voter_key=vkey, user_id=user_id, value=value,
+        )
+        db.session.add(rating)
+    else:
+        rating.value = value
+        rating.user_id = user_id or rating.user_id
+    db.session.commit()
+
+    stats = rating_stats(article.id)
+    return jsonify(ok=True, my=value, avg=round(stats["avg"], 2), count=stats["count"])
 
 
 @bp.route("/tag/<slug>")

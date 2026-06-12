@@ -730,6 +730,63 @@ def _as_bool(v) -> bool:
     return str(v).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def hash_voter_fingerprint(*parts) -> str:
+    """SHA256 a stable identifier composed of `parts` (ip + ua + maybe id).
+
+    Used so anonymous comments/ratings can be lightly de-duplicated and
+    rate-limited without us storing personally identifying data.
+    """
+    import hashlib
+    h = hashlib.sha256()
+    for p in parts:
+        if p is None:
+            continue
+        h.update(str(p).encode("utf-8", "replace"))
+        h.update(b"|")
+    return h.hexdigest()
+
+
+def voter_key_from_request(req, user) -> str:
+    """Build the per-voter key used by the ArticleRating uniqueness constraint."""
+    if user is not None and getattr(user, "is_authenticated", False):
+        return f"u:{user.id}"
+    ip = (req.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+          or req.remote_addr or "")
+    ua = req.user_agent.string if req.user_agent else ""
+    return "anon:" + hash_voter_fingerprint(ip, ua)[:48]
+
+
+def client_ip_hash(req) -> str:
+    """Salted hash of the client IP, for storing alongside comments."""
+    ip = (req.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+          or req.remote_addr or "")
+    return hash_voter_fingerprint(ip)[:32]
+
+
+def rating_stats(article_id: int) -> dict:
+    """Return {'avg': float, 'count': int} for an article (avg=0 if no ratings)."""
+    from extensions import db
+    from models import ArticleRating
+    from sqlalchemy import func
+
+    row = (
+        db.session.query(
+            func.coalesce(func.avg(ArticleRating.value), 0.0).label("avg"),
+            func.count(ArticleRating.id).label("count"),
+        )
+        .filter(ArticleRating.article_id == article_id)
+        .first()
+    )
+    return {"avg": float(row.avg or 0.0), "count": int(row.count or 0)}
+
+
+def existing_user_rating(article_id: int, voter_key: str) -> int | None:
+    """Return the voter's current rating value for an article, if any."""
+    from models import ArticleRating
+    r = ArticleRating.query.filter_by(article_id=article_id, voter_key=voter_key).first()
+    return r.value if r else None
+
+
 def get_tinymce_key() -> str:
     """Return the TinyMCE Cloud API key.
 
