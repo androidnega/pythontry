@@ -116,6 +116,59 @@ def _popular_articles(limit: int = 5, exclude_id: int | None = None):
     )
 
 
+def _article_sidebar_ctx(exclude_ids: list[int] | None = None) -> dict:
+    """Build the data used by templates/_article_sidebar.html so we can
+    plug the same sticky sidebar into article detail, the news index,
+    category pages, and tag pages."""
+    from sqlalchemy import func as _func
+
+    excl = exclude_ids or []
+    popular_q = Article.query.filter_by(status=Article.STATUS_PUBLISHED)
+    if excl:
+        popular_q = popular_q.filter(~Article.id.in_(excl))
+    popular = (
+        popular_q.order_by(Article.view_count.desc(), Article.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    recent = _latest_articles(limit=5, exclude_ids=excl)
+
+    cat_rows = (
+        db.session.query(Category, _func.count(Article.id).label("n"))
+        .outerjoin(
+            Article,
+            (Article.category_id == Category.id)
+            & (Article.status == Article.STATUS_PUBLISHED),
+        )
+        .filter(Category.kind.in_([Category.KIND_NEWS, Category.KIND_ALL]))
+        .group_by(Category.id)
+        .order_by(_func.count(Article.id).desc(), Category.name.asc())
+        .limit(8)
+        .all()
+    )
+    sidebar_categories = [{"category": c, "count": int(n or 0)} for (c, n) in cat_rows]
+
+    tag_rows = (
+        db.session.query(Tag, _func.count(Article.id).label("n"))
+        .join(article_tags, Tag.id == article_tags.c.tag_id)
+        .join(Article, Article.id == article_tags.c.article_id)
+        .filter(Article.status == Article.STATUS_PUBLISHED)
+        .group_by(Tag.id)
+        .order_by(_func.count(Article.id).desc(), Tag.name.asc())
+        .limit(18)
+        .all()
+    )
+    sidebar_tags = [{"tag": t, "count": int(n or 0)} for (t, n) in tag_rows]
+
+    return {
+        "popular": popular,
+        "recent_articles": recent,
+        "sidebar_categories": sidebar_categories,
+        "sidebar_tags": sidebar_tags,
+    }
+
+
 @bp.route("/")
 def home():
     # Hero slider always shows the 3 newest published articles — never more,
@@ -161,6 +214,7 @@ def news_list():
         categories=_categories(kind="news"),
         active_category=active_category,
         popular_tags=popular_tags,
+        **_article_sidebar_ctx(),
     )
 
 
@@ -189,48 +243,17 @@ def article_detail(slug: str):
         .limit(4)
         .all()
     )
-    popular = _popular_articles(limit=5, exclude_id=article.id)
-    recent_articles = _latest_articles(limit=5, exclude_ids=[article.id])
-
-    # Categories with article counts — for the sidebar browse-by-section card.
-    from sqlalchemy import func
-    cat_rows = (
-        db.session.query(Category, func.count(Article.id).label("n"))
-        .outerjoin(
-            Article,
-            (Article.category_id == Category.id)
-            & (Article.status == Article.STATUS_PUBLISHED),
-        )
-        .filter(Category.kind.in_([Category.KIND_NEWS, Category.KIND_ALL]))
-        .group_by(Category.id)
-        .order_by(func.count(Article.id).desc(), Category.name.asc())
-        .limit(8)
-        .all()
-    )
-    sidebar_categories = [{"category": c, "count": int(n or 0)} for (c, n) in cat_rows]
-
-    # Popular tags — top by article count across the whole site.
-    tag_rows = (
-        db.session.query(Tag, func.count(Article.id).label("n"))
-        .join(article_tags, Tag.id == article_tags.c.tag_id)
-        .join(Article, Article.id == article_tags.c.article_id)
-        .filter(Article.status == Article.STATUS_PUBLISHED)
-        .group_by(Tag.id)
-        .order_by(func.count(Article.id).desc(), Tag.name.asc())
-        .limit(18)
-        .all()
-    )
-    sidebar_tags = [{"tag": t, "count": int(n or 0)} for (t, n) in tag_rows]
+    sidebar_ctx = _article_sidebar_ctx(exclude_ids=[article.id])
+    # The article-detail "Most read" card excludes the current piece, so
+    # override what the generic helper produced for that one key.
+    sidebar_ctx["popular"] = _popular_articles(limit=5, exclude_id=article.id)
 
     return render_template(
         "article_detail.html",
         article=article,
         related=related,
         more_by_author=more_by_author,
-        popular=popular,
-        recent_articles=recent_articles,
-        sidebar_categories=sidebar_categories,
-        sidebar_tags=sidebar_tags,
+        **sidebar_ctx,
     )
 
 
@@ -249,6 +272,7 @@ def tag_detail(slug: str):
         tag=tag,
         pagination=pagination,
         articles=pagination.items,
+        **_article_sidebar_ctx(),
     )
 
 

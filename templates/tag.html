@@ -10,14 +10,51 @@
   <p class="mt-1 text-sm text-muted">{{ pagination.total }} stor{{ 'y' if pagination.total == 1 else 'ies' }} tagged with this.</p>
 </header>
 
-{% if articles %}
-  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    {% for a in articles %}{{ article_card(a) }}{% endfor %}
+<div class="grid gap-10 lg:grid-cols-[minmax(0,1fr),320px]">
+  <div class="min-w-0">
+    {% if articles %}
+      <div class="grid gap-6 sm:grid-cols-2">
+        {% for a in articles %}{{ article_card(a) }}{% endfor %}
+      </div>
+      {{ pagination_nav(pagination, 'public.tag_detail', extra={'slug': tag.slug}) }}
+    {% else %}
+      <div class="rounded-xl border border-dashed border-app bg-surface p-8 text-center text-muted">
+        Nothing tagged with #{{ tag.name }} yet.
+      </div>
+    {% endif %}
   </div>
-  {{ pagination_nav(pagination, 'public.tag_detail', extra={'slug': tag.slug}) }}
-{% else %}
-  <div class="rounded-xl border border-dashed border-app bg-surface p-8 text-center text-muted">
-    Nothing tagged with #{{ tag.name }} yet.
-  </div>
-{% endif %}
+
+  <aside class="article-sidebar lg:sticky lg:top-20 lg:self-start space-y-5">
+    {% include '_article_sidebar.html' %}
+  </aside>
+</div>
+
+<script>
+(function () {
+  var form = document.getElementById('article-notify');
+  if (!form) return;
+  var msg = document.getElementById('article-notify-msg');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = document.getElementById('article-notify-email').value.trim();
+    fetch('{{ url_for("public.api_notify") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ email: email })
+    }).then(function (r) {
+      return r.json().then(function (j) { return { ok: r.ok, body: j }; });
+    }).then(function (res) {
+      msg.classList.remove('hidden', 'text-emerald-400', 'text-red-400');
+      if (res.ok && res.body.ok) {
+        msg.textContent = res.body.message || "You're on the list.";
+        msg.classList.add('text-emerald-400');
+        form.reset();
+      } else {
+        msg.textContent = (res.body && res.body.error) || 'Something went wrong.';
+        msg.classList.add('text-red-400');
+      }
+    });
+  });
+})();
+</script>
 {% endblock %}
