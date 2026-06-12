@@ -21,6 +21,19 @@
     return m ? m.getAttribute('content') : '';
   }
 
+  function showEditorWarning(text) {
+    if (document.getElementById('editor-warn-banner')) return;
+    var banner = document.createElement('div');
+    banner.id = 'editor-warn-banner';
+    banner.style.cssText =
+      'margin: .5rem 0 .75rem; padding: .75rem 1rem; border-radius: 10px;' +
+      'background: var(--warn-bg, #fef3c7); color: var(--warn-text, #92400e);' +
+      'border: 1px solid rgba(0,0,0,0.06); font-size: .85rem; line-height: 1.5;';
+    banner.innerHTML = '<strong>Heads up:</strong> ' + text;
+    var anchor = holder.parentNode;
+    if (anchor) anchor.insertBefore(banner, holder);
+  }
+
   function jsonFetch(url, body) {
     return fetch(url, {
       method: 'POST',
@@ -61,6 +74,11 @@
   // ──────────────── TinyMCE init ────────────────
   if (typeof window.tinymce === 'undefined') {
     console.warn('TinyMCE not loaded; falling back to plain textarea.');
+    showEditorWarning(
+      "The rich-text editor couldn't load (CDN blocked or the TinyMCE API key " +
+      "is missing). Set it at Dashboard → Settings → WYSIWYG editor. You can " +
+      "still write below in plain text / HTML."
+    );
   } else {
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
@@ -161,6 +179,23 @@
         });
         // Make sure submit-time content is always saved to the textarea.
         editor.on('change keyup undo redo', function () { editor.save(); });
+
+        // If TinyMCE locks the editor (invalid origin / wrong key) show a
+        // clear in-page banner so the admin doesn't have to check the
+        // browser console to understand why typing isn't working.
+        editor.on('init', function () {
+          setTimeout(function () {
+            try {
+              var locked = editor.mode && editor.mode.get && editor.mode.get() === 'readonly';
+              if (locked) showEditorWarning(
+                "TinyMCE refused to start. The most common cause is a missing domain " +
+                "in your tiny.cloud account — log in at tiny.cloud → API keys, and " +
+                "add this site's domain (e.g. ahantapulse.online) to the Approved " +
+                "Domains list, then reload."
+              );
+            } catch (e) { /* noop */ }
+          }, 800);
+        });
       },
     });
   }

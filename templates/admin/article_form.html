@@ -146,7 +146,7 @@
 {% if TINYMCE_API_KEY %}
 <script src="https://cdn.tiny.cloud/1/{{ TINYMCE_API_KEY }}/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
 {% endif %}
-<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<script src="{{ static_v('js/editor.js') }}"></script>
 <style>
   /* Highlight the currently-selected tab. */
   [data-ai-tab].active-tab { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }

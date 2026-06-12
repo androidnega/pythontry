@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}?v={{ ASSET_VERSION }}" />
+  <link rel="stylesheet" href="{{ static_v('css/theme.css') }}" />
   {% block head_extra %}{% endblock %}
 </head>
 <body class="min-h-full bg-elevated text-fg">
@@ -161,7 +161,7 @@
   </section>
 </div>
 
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ static_v('js/app.js') }}"></script>
 <script>
   (function () {
     var btn = document.getElementById('admin-nav-btn');
