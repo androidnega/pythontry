@@ -56,6 +56,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             "SITE_REGION": app.config["SITE_REGION"],
             "ALLOW_REGISTRATION": app.config["ALLOW_REGISTRATION"],
             "TINYMCE_API_KEY": _safe_tinymce_key(),
+            "ASSET_VERSION": _asset_version(),
             "now_year": lambda: datetime.now(timezone.utc).year,
         }
 
@@ -65,6 +66,22 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             return get_tinymce_key()
         except Exception:
             return app.config.get("TINYMCE_API_KEY", "") or ""
+
+    # mtime-based version string so CSS/JS updates bust the browser cache
+    # without manual deploy steps. Computed once per process start.
+    _ASSET_VERSION_CACHE = {}
+
+    def _asset_version() -> str:
+        if "v" in _ASSET_VERSION_CACHE:
+            return _ASSET_VERSION_CACHE["v"]
+        try:
+            css_path = os.path.join(app.static_folder, "css", "theme.css")
+            mtime = int(os.path.getmtime(css_path))
+        except OSError:
+            mtime = 0
+        v = str(mtime or int(datetime.now(timezone.utc).timestamp()))
+        _ASSET_VERSION_CACHE["v"] = v
+        return v
 
     @app.errorhandler(403)
     def forbidden(_e):
