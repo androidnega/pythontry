@@ -8,8 +8,8 @@
   <p class="text-sm text-muted">Configure the writing editor, outgoing email and your team accounts.</p>
 </header>
 
-{# Big, impossible-to-miss notice when no TinyMCE key is configured. #}
-{% if not tinymce_key_set %}
+{# Top-of-page alerts for missing keys. #}
+{% if not tinymce_key_set or not ai_key_set %}
   <div class="mb-5 flex items-start gap-3 rounded-2xl border-l-4 border-amber-500 bg-amber-50 p-4 text-sm
               dark:bg-amber-900/20 dark:border-amber-400">
     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -19,17 +19,24 @@
       <line x1="12" y1="9" x2="12" y2="13"/>
       <line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>
-    <div class="text-amber-900 dark:text-amber-100">
-      <strong class="font-semibold">No WYSIWYG editor key is set yet.</strong>
-      Without it the article-edit page falls back to a plain textarea.
-      Paste your TinyMCE Cloud key in the <em>"WYSIWYG editor"</em> card below
-      to enable rich formatting, image upload and AI assistance.
+    <div class="text-amber-900 dark:text-amber-100 space-y-1">
+      {% if not tinymce_key_set %}
+        <p><strong class="font-semibold">No WYSIWYG editor key is set yet.</strong>
+        Paste your TinyMCE Cloud key in the <em>"WYSIWYG editor"</em> card below
+        to enable rich formatting, image upload and AI assistance.</p>
+      {% endif %}
+      {% if not ai_key_set %}
+        <p><strong class="font-semibold">No AI key is configured.</strong>
+        The "AI assist" button on the article editor needs a DeepSeek (or any
+        OpenAI-compatible) API key — paste one in the <em>"AI assistant"</em>
+        card below to turn it on.</p>
+      {% endif %}
     </div>
   </div>
 {% endif %}
 
-{# ───────────────────────────── Row 1: editor key + team ───────────────────────────── #}
-<div class="grid gap-5 lg:grid-cols-2 mb-6">
+{# ───────────────────────────── Row 1: editor + AI + team ───────────────────────────── #}
+<div class="grid gap-5 lg:grid-cols-3 mb-6">
   {# ── TinyMCE editor key ─────────────────────────────────────────── #}
   <form method="post" id="tinymce-card" class="card p-5 space-y-4
               {% if not tinymce_key_set %}ring-2 ring-amber-500/60 dark:ring-amber-400/50{% endif %}">
@@ -64,6 +71,60 @@
 
     <div class="pt-1">
       {{ tinymce_form.submit_tinymce(class_="btn-primary") }}
+    </div>
+  </form>
+
+  {# ── AI assistant (DeepSeek / OpenAI compatible) ────────────────── #}
+  <form method="post" id="ai-card" class="card p-5 space-y-4
+              {% if not ai_key_set %}ring-2 ring-amber-500/60 dark:ring-amber-400/50{% endif %}">
+    {{ ai_form.csrf_token }}
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-semibold">AI assistant</h2>
+        <p class="mt-0.5 text-xs text-subtle">
+          Powers the “AI ✨” button on the article editor (draft, polish, SEO).
+        </p>
+      </div>
+      <span class="chip {% if ai_key_set %}chip-success{% else %}chip-warn{% endif %}">
+        {% if ai_key_set %}Configured{% else %}Not set{% endif %}
+      </span>
+    </div>
+
+    <div>
+      <label class="lbl">{{ ai_form.api_key.label.text }}</label>
+      {{ ai_form.api_key(
+            class_="input w-full font-mono text-sm",
+            placeholder="sk-…  (we never display the saved key)",
+            autocomplete="new-password") }}
+      <p class="mt-1 text-[11px] text-subtle">
+        {{ ai_form.api_key.description }}
+      </p>
+      {% for e in ai_form.api_key.errors %}<p class="text-xs text-red-500">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div>
+        <label class="lbl">{{ ai_form.base.label.text }}</label>
+        {{ ai_form.base(class_="input w-full font-mono text-xs") }}
+        <p class="mt-1 text-[11px] text-subtle">{{ ai_form.base.description }}</p>
+        {% for e in ai_form.base.errors %}<p class="text-xs text-red-500">{{ e }}</p>{% endfor %}
+      </div>
+      <div>
+        <label class="lbl">{{ ai_form.model.label.text }}</label>
+        {{ ai_form.model(class_="input w-full font-mono text-xs") }}
+        <p class="mt-1 text-[11px] text-subtle">{{ ai_form.model.description }}</p>
+        {% for e in ai_form.model.errors %}<p class="text-xs text-red-500">{{ e }}</p>{% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <label class="lbl">{{ ai_form.max_tokens.label.text }}</label>
+      {{ ai_form.max_tokens(class_="input w-32") }}
+      {% for e in ai_form.max_tokens.errors %}<p class="text-xs text-red-500">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div class="pt-1">
+      {{ ai_form.submit_ai(class_="btn-primary") }}
     </div>
   </form>
 

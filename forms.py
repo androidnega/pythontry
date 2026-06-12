@@ -379,6 +379,33 @@ class TinymceSettingsForm(FlaskForm):
     submit_tinymce = SubmitField("Save editor key")
 
 
+class AiSettingsForm(FlaskForm):
+    """Admin form for the AI writing assistant (DeepSeek / OpenAI-compatible)."""
+    api_key = PasswordField(
+        "API key (leave blank to keep existing)",
+        validators=[Optional(), Length(max=255)],
+        description="Get a key at platform.deepseek.com or platform.openai.com.",
+    )
+    base = StringField(
+        "API base URL",
+        validators=[Optional(), Length(max=255)],
+        default="https://api.deepseek.com/v1",
+        description="DeepSeek: https://api.deepseek.com/v1   ·   OpenAI: https://api.openai.com/v1",
+    )
+    model = StringField(
+        "Model",
+        validators=[Optional(), Length(max=80)],
+        default="deepseek-chat",
+        description="DeepSeek: deepseek-chat   ·   OpenAI: gpt-4o-mini, gpt-4o, etc.",
+    )
+    max_tokens = IntegerField(
+        "Max tokens per request",
+        validators=[Optional(), NumberRange(min=256, max=8000)],
+        default=1800,
+    )
+    submit_ai = SubmitField("Save AI settings")
+
+
 class TestEmailForm(FlaskForm):
     to_addr = StringField(
         "Send a test email to",

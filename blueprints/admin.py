@@ -30,6 +30,7 @@ from forms import (
     DeleteForm,
     MediaForm,
     PortraitForm,
+    AiSettingsForm,
     SmtpSettingsForm,
     TestEmailForm,
     TinymceSettingsForm,
@@ -59,6 +60,7 @@ from utils import (
     can_edit,
     delete_original,
     delete_upload,
+    get_ai_config,
     get_app_setting,
     get_smtp_config,
     get_tinymce_key,
@@ -229,7 +231,7 @@ def article_edit(article_id: int | None = None):
                     "admin/article_form.html",
                     form=form, article=article,
                     ai_ready=ai_configured(),
-                    ai_model=current_app.config.get("AI_MODEL", ""),
+                    ai_model=get_ai_config().get("model") or "",
                 )
             delete_upload(article.cover_image)
             article.cover_image = rel
@@ -254,7 +256,7 @@ def article_edit(article_id: int | None = None):
         "admin/article_form.html",
         form=form, article=article,
         ai_ready=ai_configured(),
-        ai_model=current_app.config.get("AI_MODEL", ""),
+        ai_model=get_ai_config().get("model") or "",
     )
 
 
@@ -855,6 +857,14 @@ def settings():
     test_form = TestEmailForm()
     tinymce_form = TinymceSettingsForm(api_key=get_app_setting("tinymce_api_key") or "")
 
+    ai_cfg = get_ai_config()
+    ai_form = AiSettingsForm(
+        base=ai_cfg["base"],
+        model=ai_cfg["model"],
+        max_tokens=ai_cfg["max_tokens"],
+        # api_key field is a password input — never seeded from DB.
+    )
+
     # TinyMCE editor key — handle first so its POST isn't swallowed by the
     # SMTP form (whose fields are all Optional and would otherwise validate).
     if "submit_tinymce" in request.form and tinymce_form.validate_on_submit():
@@ -862,7 +872,21 @@ def settings():
         flash("Editor key saved. Reload the article form to see it apply.", "success")
         return redirect(url_for("admin.settings"))
 
-    if form.submit.data and "submit_tinymce" not in request.form and form.validate_on_submit():
+    # AI assistant — same routing strategy.
+    if "submit_ai" in request.form and ai_form.validate_on_submit():
+        # Only overwrite the stored key when the admin types a new one.
+        if (ai_form.api_key.data or "").strip():
+            set_app_setting("ai_api_key", ai_form.api_key.data.strip())
+        set_app_setting("ai_base",       (ai_form.base.data or "").strip())
+        set_app_setting("ai_model",      (ai_form.model.data or "").strip())
+        set_app_setting("ai_max_tokens", str(ai_form.max_tokens.data or 1800))
+        flash("AI settings saved.", "success")
+        return redirect(url_for("admin.settings"))
+
+    if (form.submit.data
+            and "submit_tinymce" not in request.form
+            and "submit_ai"       not in request.form
+            and form.validate_on_submit()):
         set_app_setting("smtp_enabled",   "1" if form.enabled.data else "0")
         set_app_setting("smtp_host",      (form.host.data or "").strip())
         set_app_setting("smtp_port",      str(form.port.data or 0))
@@ -897,6 +921,9 @@ def settings():
         test_form=test_form,
         tinymce_form=tinymce_form,
         tinymce_key_set=bool((tinymce_form.api_key.data or "").strip()),
+        ai_form=ai_form,
+        ai_cfg=ai_cfg,
+        ai_key_set=bool((ai_cfg.get("api_key") or "").strip()),
         smtp_cfg=cfg,
         subscriber_count=subscriber_count,
         user_count=user_count,

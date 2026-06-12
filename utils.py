@@ -546,21 +546,48 @@ def new_download_token() -> str:
 
 # ───────────────────────── AI writing assistant ─────────────────────────
 
+def get_ai_config() -> dict:
+    """Return the active AI config: DB settings win over env / Flask config.
+
+    Keys: api_key, base, model, max_tokens. Used by ai_configured() and
+    _ai_chat() so an admin can rotate keys via /dashboard/settings without
+    a redeploy.
+    """
+    def _read(name: str, fallback: str | int = "") -> str | int:
+        try:
+            v = get_app_setting(f"ai_{name}")
+        except Exception:
+            v = None
+        return v if v not in (None, "") else fallback
+
+    try:
+        cfg = current_app.config
+    except Exception:
+        cfg = {}
+    return {
+        "api_key":    _read("api_key", cfg.get("AI_API_KEY", "")),
+        "base":       _read("base",    cfg.get("AI_API_BASE", "https://api.deepseek.com/v1")),
+        "model":      _read("model",   cfg.get("AI_MODEL", "deepseek-chat")),
+        "max_tokens": int(_read("max_tokens", cfg.get("AI_MAX_TOKENS", 1800)) or 1800),
+    }
+
+
 def ai_configured() -> bool:
-    return bool(current_app.config.get("AI_API_KEY"))
+    return bool((get_ai_config().get("api_key") or "").strip())
 
 
 def _ai_chat(messages: list[dict], *, max_tokens: int | None = None, json_mode: bool = False) -> str:
     """Call an OpenAI-compatible chat-completions endpoint. Returns the raw text."""
-    key = current_app.config.get("AI_API_KEY")
+    cfg = get_ai_config()
+    key = (cfg.get("api_key") or "").strip()
     if not key:
-        raise RuntimeError("AI is not configured. Set AI_API_KEY (or OPENAI_API_KEY).")
-    base = (current_app.config.get("AI_API_BASE") or "https://api.openai.com/v1").rstrip("/")
-    model = current_app.config.get("AI_MODEL", "gpt-4o-mini")
+        raise RuntimeError("AI is not configured. Add a key at Dashboard → Settings → AI assistant.")
+    base = (cfg.get("base") or "https://api.deepseek.com/v1").rstrip("/")
+    model = cfg.get("model") or "deepseek-chat"
     body: dict = {
         "model": model,
         "messages": messages,
-        "max_tokens": int(max_tokens or current_app.config.get("AI_MAX_TOKENS", 1800)),
+        "max_tokens": int(max_tokens or cfg.get("max_tokens") or 1800),
         "temperature": 0.7,
     }
     if json_mode:
