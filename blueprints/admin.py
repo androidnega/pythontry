@@ -60,6 +60,7 @@ from utils import (
     get_smtp_config,
     make_watermarked_preview,
     parse_tags,
+    render_markdown,
     save_original_image,
     save_upload,
     send_email,
@@ -174,6 +175,11 @@ def article_edit(article_id: int | None = None):
             form.category_id.data = article.category_id
         if article.tags:
             form.tags.data = ", ".join(t.name for t in article.tags)
+        # Older articles are stored as Markdown; Quill needs HTML to render
+        # them. Convert here on display only — the post-back will be HTML
+        # from the editor itself, so the body migrates to HTML on first save.
+        if article.body:
+            form.body.data = render_markdown(article.body)
 
     if form.validate_on_submit():
         if article is None:

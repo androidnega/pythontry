@@ -32,7 +32,9 @@
   var bodyInput = document.getElementById('body-input');
   if (!holder || !bodyInput) return;
 
-  var initialHTML = bodyInput.value || '';
+  // textarea.value is always the decoded text, which is exactly what we
+  // need: HTML markup ready to paste into Quill.
+  var initialHTML = (bodyInput.value || '').trim();
 
   // Traditional WYSIWYG toolbar — headings, formatting, lists, indents,
   // alignment, link + image + video, and our AI helper.
@@ -55,8 +57,22 @@
     modules: { toolbar: { container: toolbarOptions } },
   });
 
+  // Seed Quill with the existing article body. Quill 2 accepts both signatures
+  // (html) and (index, html); we use the 2-arg form for forward-compat and
+  // wrap it in a try/catch so any minor parse hiccup never leaves the
+  // editor visually blank — fall back to setText so the writer at least sees
+  // their work.
   if (initialHTML) {
-    quill.clipboard.dangerouslyPasteHTML(0, initialHTML);
+    try {
+      quill.clipboard.dangerouslyPasteHTML(0, initialHTML, 'silent');
+    } catch (err) {
+      try { quill.setText(initialHTML); } catch (e2) {}
+      console.warn('Quill paste failed, fell back to plain text:', err);
+    }
+    // Some users have very long pieces — make sure the editor scrolls to the
+    // top so they see the start of their article, not the middle.
+    quill.setSelection(0, 0, 'silent');
+    bodyInput.value = quill.root.innerHTML;
   }
 
   // ───────── Drag-to-resize for images and embedded videos ─────────
