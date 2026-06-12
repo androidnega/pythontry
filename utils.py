@@ -44,6 +44,7 @@ _ALLOWED_TAGS = sorted(
         "br", "hr", "img", "figure", "figcaption",
         "table", "thead", "tbody", "tr", "th", "td",
         "span", "div", "s", "u", "iframe",
+        "cite", "footer",  # for blockquote attributions
     }
 )
 # Only allow `style` when we can actually sanitise it; otherwise drop the

@@ -199,12 +199,63 @@ body, .bg-page, .bg-surface, .bg-elevated, .bg-muted, .border-app, .border-soft,
   margin-top: 0.4rem;
   margin-bottom: 0.4rem;
 }
+/* ───── Editorial blockquote (magazine pull-quote feel) ───── */
 .prose-news blockquote {
+  position: relative;
+  margin: 2rem 0;
+  padding: 1.5rem 1.75rem 1.5rem 3.5rem;
+  border: none;
   border-left: 3px solid var(--accent);
-  background: var(--bg-muted);
-  padding: 0.6rem 1rem; color: var(--text-muted); font-style: italic; margin: 1rem 0;
-  border-radius: 0 8px 8px 0;
+  background: var(--bg-elevated);
+  border-radius: 0 14px 14px 0;
+  color: var(--text-base);
+  font-size: 1.18rem;
+  line-height: 1.65;
+  font-weight: 500;
+  font-style: italic;
+  box-shadow: 0 1px 0 0 var(--border-soft) inset;
 }
+/* Big decorative opening curly quote, positioned over the left bar. */
+.prose-news blockquote::before {
+  content: "\201C";
+  position: absolute;
+  left: 0.65rem;
+  top: -0.35rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 4.5rem;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.prose-news blockquote p { margin: 0 0 0.55rem 0; }
+.prose-news blockquote p:last-child { margin-bottom: 0; }
+
+/* Attribution: render <cite>, <footer>, or a final em-dash line nicely. */
+.prose-news blockquote cite,
+.prose-news blockquote footer {
+  display: block;
+  margin-top: 0.85rem;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--text-subtle);
+}
+.prose-news blockquote cite::before,
+.prose-news blockquote footer::before { content: "— "; }
+
+/* Nested quote (quote inside a quote): drop the big mark to avoid stacking. */
+.prose-news blockquote blockquote { margin: 0.5rem 0 0; }
+.prose-news blockquote blockquote::before { content: none; }
+
+/* Dark mode: deeper background tone so the pill stays defined. */
+[data-theme="dark"] .prose-news blockquote {
+  background: var(--bg-muted);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.04) inset;
+}
+[data-theme="dark"] .prose-news blockquote::before { opacity: 0.7; }
 .prose-news pre, .prose-news code { background: var(--code-bg); border-radius: 0.4rem; padding: 0.15rem 0.4rem; font-size: 0.92em; }
 .prose-news pre { padding: 0.9rem 1rem; overflow-x: auto; }
 .prose-news ul { list-style: disc; padding-left: 1.25rem; }
