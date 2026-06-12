@@ -55,6 +55,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             "SITE_TAGLINE": app.config["SITE_TAGLINE"],
             "SITE_REGION": app.config["SITE_REGION"],
             "ALLOW_REGISTRATION": app.config["ALLOW_REGISTRATION"],
+            "TINYMCE_API_KEY": app.config.get("TINYMCE_API_KEY", ""),
             "now_year": lambda: datetime.now(timezone.utc).year,
         }
 

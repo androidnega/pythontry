@@ -81,4 +81,11 @@ class Config:
     AI_MODEL = os.environ.get("AI_MODEL", "deepseek-chat")
     AI_MAX_TOKENS = int(os.environ.get("AI_MAX_TOKENS", "1800"))
 
+    # ── TinyMCE Cloud (WYSIWYG editor) ────────────────────────────────
+    # Override via env var TINYMCE_API_KEY when rotating.
+    TINYMCE_API_KEY = os.environ.get(
+        "TINYMCE_API_KEY",
+        "ps3oq2yzvy43l968b2wgxtcegt0exfvjwv0hak1zqrkqszje",
+    )
+
     WTF_CSRF_TIME_LIMIT = None

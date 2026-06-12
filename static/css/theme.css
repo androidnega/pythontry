@@ -299,7 +299,7 @@ details > summary::-webkit-details-marker { display: none; }
 /* Smooth focus ring for keyboard users */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 
-/* ───── Quill output classes (used when articles are rendered publicly) ───── */
+/* ───── Legacy editor output classes (kept for older Quill articles in DB) ───── */
 .ql-align-center  { text-align: center; }
 .ql-align-right   { text-align: right; }
 .ql-align-justify { text-align: justify; }
@@ -308,125 +308,44 @@ details > summary::-webkit-details-marker { display: none; }
 .ql-indent-3 { padding-left: 9em; }
 .ql-indent-4 { padding-left: 12em; }
 
-/* ───── Quill editor (admin form) — themed wrapper ───── */
-.editor-wrap { border: 1px solid var(--border-base); border-radius: 12px; overflow: hidden; background: var(--bg-surface); }
-/* Reserve space for the editor before Quill mounts so the body card never
-   visually collapses while the CDN is still loading. */
-.editor-wrap > #editor:empty { min-height: 380px; display: block; }
-.editor-wrap .ql-toolbar.ql-snow,
-.editor-wrap .ql-container.ql-snow { border: 0; }
-.editor-wrap .ql-toolbar.ql-snow {
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-base) !important;
-  padding: 8px 10px;
-  position: sticky; top: 0; z-index: 1;
-}
-.editor-wrap .ql-editor {
-  min-height: 340px;
+/* ───── TinyMCE WYSIWYG (admin article form) ───── */
+/* Until the script loads the textarea is visible — give it a nice look. */
+#body-input {
+  display: block;
+  width: 100%;
+  min-height: 380px;
+  padding: 1rem 1.25rem;
   background: var(--bg-surface);
   color: var(--text-base);
-  font-size: 1.0625rem;
-  line-height: 1.7;
-  font-family: var(--font-sans);
-  padding: 1.25rem 1.5rem;
-}
-.editor-wrap .ql-editor.ql-blank::before { color: var(--text-subtle); font-style: italic; font-family: var(--font-sans); }
-.editor-wrap .ql-editor h2 { font-size: 1.5rem; margin: 1.2rem 0 0.5rem; font-weight: 700; }
-.editor-wrap .ql-editor h3 { font-size: 1.2rem; margin: 1.1rem 0 0.4rem; font-weight: 700; }
-.editor-wrap .ql-editor p  { margin: 0.7rem 0; }
-.editor-wrap .ql-editor a  { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-.editor-wrap .ql-editor blockquote { border-left: 3px solid var(--accent); background: var(--bg-muted); padding: 0.6rem 1rem; color: var(--text-muted); margin: 0.8rem 0; border-radius: 0 6px 6px 0; font-style: italic; }
-.editor-wrap .ql-editor pre  { background: var(--code-bg); border-radius: 6px; padding: 0.7rem 0.9rem; }
-.editor-wrap .ql-editor img,
-.editor-wrap .ql-editor iframe { max-width: 100%; border-radius: 6px; cursor: pointer; }
-.editor-wrap .ql-editor img { height: auto; }
-.editor-wrap .ql-editor iframe { display: block; background: #000; }
-
-/* Toolbar icons — flip in dark mode */
-.editor-wrap .ql-snow .ql-stroke { stroke: var(--text-muted); }
-.editor-wrap .ql-snow .ql-fill,
-.editor-wrap .ql-snow .ql-stroke.ql-fill { fill: var(--text-muted); }
-.editor-wrap .ql-snow .ql-picker { color: var(--text-muted); }
-.editor-wrap .ql-snow .ql-picker-options { background: var(--bg-surface); border-color: var(--border-base); color: var(--text-base); }
-.editor-wrap .ql-snow .ql-tooltip { background: var(--bg-surface); border-color: var(--border-base); color: var(--text-base); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
-.editor-wrap .ql-snow .ql-tooltip input[type=text] { background: var(--bg-page); color: var(--text-base); border: 1px solid var(--border-base); border-radius: 6px; }
-
-/* ───── Editor resize overlay (custom) ─────
-   Shown over an image or iframe inside the WYSIWYG when clicked. */
-.ql-resize {
-  position: fixed; z-index: 9999;
-  pointer-events: none;
-  box-sizing: border-box;
-}
-.ql-resize-frame {
-  position: absolute; inset: 0;
-  border: 2px solid var(--accent);
-  border-radius: 4px;
-  pointer-events: none;
-  box-shadow: 0 0 0 2px rgba(0, 132, 199, 0.15);
-}
-.ql-resize-handle {
-  position: absolute;
-  width: 12px; height: 12px;
-  background: #fff;
-  border: 2px solid var(--accent);
-  border-radius: 999px;
-  pointer-events: auto;
-}
-.ql-resize-handle[data-h="tl"] { top: -7px;   left: -7px;   cursor: nwse-resize; }
-.ql-resize-handle[data-h="tr"] { top: -7px;   right: -7px;  cursor: nesw-resize; }
-.ql-resize-handle[data-h="bl"] { bottom: -7px; left: -7px;  cursor: nesw-resize; }
-.ql-resize-handle[data-h="br"] { bottom: -7px; right: -7px; cursor: nwse-resize; }
-.ql-resize-size {
-  position: absolute;
-  left: 50%; transform: translateX(-50%);
-  bottom: -28px;
-  background: var(--text-base);
-  color: var(--bg-page);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-  white-space: nowrap;
-  pointer-events: none;
-}
-.ql-resize-bar {
-  position: absolute;
-  top: -42px; left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex;
-  gap: 2px;
-  padding: 4px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-base);
-  border-radius: 8px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
-  pointer-events: auto;
-}
-.ql-resize-bar button {
-  width: 28px; height: 28px;
-  display: grid; place-items: center;
-  background: transparent;
-  color: var(--text-muted);
   border: 0;
-  border-radius: 5px;
-  cursor: pointer;
+  border-top: 1px solid var(--border-base);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  resize: vertical;
 }
-.ql-resize-bar button:hover { background: var(--bg-hover); color: var(--text-base); }
-.ql-resize-bar button[data-act="delete"]:hover { background: #fee2e2; color: #b91c1c; }
-.editor-wrap .ql-snow.ql-toolbar button:hover .ql-stroke,
-.editor-wrap .ql-snow.ql-toolbar button.ql-active .ql-stroke,
-.editor-wrap .ql-snow.ql-toolbar button:hover .ql-fill,
-.editor-wrap .ql-snow.ql-toolbar button.ql-active .ql-fill { stroke: var(--accent); fill: var(--accent); }
-.editor-wrap .ql-snow.ql-toolbar button.ql-active { color: var(--accent); }
-
-/* Custom AI button in the toolbar */
-.editor-wrap .ql-snow.ql-toolbar button.ql-ai {
-  width: auto; padding: 0 8px; height: 28px; border-radius: 6px;
-  background: var(--accent-soft); color: var(--accent);
-  font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+/* TinyMCE renders an iframe — make sure its outer chrome blends with our card */
+.tox.tox-tinymce {
+  border: 0 !important;
+  border-top: 1px solid var(--border-base) !important;
+  border-radius: 0 !important;
+  background: var(--bg-surface);
 }
-.editor-wrap .ql-snow.ql-toolbar button.ql-ai:hover { background: var(--accent); color: var(--accent-on); }
+.tox .tox-edit-area__iframe { background: var(--bg-surface) !important; }
+.tox .tox-toolbar,
+.tox .tox-toolbar__overflow,
+.tox .tox-toolbar__primary { background: var(--bg-elevated) !important; }
+.tox .tox-statusbar { border-top-color: var(--border-base) !important; background: var(--bg-elevated) !important; }
+.tox .tox-toolbar__group { border-color: var(--border-base) !important; }
+/* Custom "AI" toolbar button — make it pop. */
+.tox .tox-tbtn[aria-label="AI writing assistant"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0 .5rem;
+}
+.tox .tox-tbtn[aria-label="AI writing assistant"]:hover { background: var(--accent); color: var(--accent-on); }
 
 /* ───── Generic modal (used by AI assistant) ───── */
 .modal-backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; padding: 1rem; }

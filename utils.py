@@ -50,6 +50,7 @@ _ALLOWED_TAGS = sorted(
         "table", "thead", "tbody", "tr", "th", "td",
         "span", "div", "s", "u", "iframe",
         "cite", "footer",  # for blockquote attributions
+        "video", "audio", "source",  # TinyMCE media plugin
     }
 )
 # Only allow `style` when we can actually sanitise it; otherwise drop the
@@ -74,8 +75,18 @@ _ALLOWED_ATTRS = {
     "img": ["src", "alt", "title", "width", "height", "loading"] + _STYLE_ATTRS,
     "iframe": [
         "src", "width", "height", "frameborder", "allow",
-        "allowfullscreen", "loading",
+        "allowfullscreen", "loading", "referrerpolicy",
     ] + _STYLE_ATTRS,
+    "video": [
+        "src", "width", "height", "controls", "autoplay",
+        "loop", "muted", "preload", "poster", "playsinline",
+    ] + _STYLE_ATTRS,
+    "audio": [
+        "src", "controls", "autoplay", "loop", "muted", "preload",
+    ] + _STYLE_ATTRS,
+    "source": ["src", "type", "media", "sizes", "srcset"],
+    "td": ["colspan", "rowspan", "scope"],
+    "th": ["colspan", "rowspan", "scope"],
 }
 
 # Quick check: does this look like HTML the editor produced (vs. plain markdown)?

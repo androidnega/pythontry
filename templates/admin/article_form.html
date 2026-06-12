@@ -4,7 +4,6 @@
 
 {% block head_extra %}
   <meta name="csrf-token" content="{{ csrf_token() }}" />
-  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
 {% endblock %}
 
 {% block admin_content %}
@@ -31,11 +30,8 @@
           ✨ AI assist
         </button>
       </div>
-      <div class="editor-wrap">
-        <div id="editor" data-upload-url="{{ url_for('admin.api_upload_image') }}"></div>
-      </div>
-      {# Fallback textarea: stays visible until editor.js mounts Quill, so the
-         author can always see and edit the body even if the CDN is blocked. #}
+      {# TinyMCE replaces this textarea in place. If TinyMCE's CDN is blocked
+         the textarea stays visible so the author can still write. #}
       {{ form.body(
             id='body-input',
             rows=18,
@@ -137,10 +133,24 @@
 {% endblock %}
 
 {% block body_extra %}
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script>
+  window.AHANTA_EDITOR = {
+    uploadUrl: {{ url_for('admin.api_upload_image')|tojson }},
+    aiUrls: {
+      draft:   {{ url_for('admin.api_ai_draft')|tojson }},
+      improve: {{ url_for('admin.api_ai_improve')|tojson }},
+      seo:     {{ url_for('admin.api_ai_seo')|tojson }}
+    }
+  };
+</script>
+{% if TINYMCE_API_KEY %}
+<script src="https://cdn.tiny.cloud/1/{{ TINYMCE_API_KEY }}/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+{% endif %}
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 <style>
   /* Highlight the currently-selected tab. */
   [data-ai-tab].active-tab { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  /* Make TinyMCE blend into our card edges. */
+  .tox-tinymce { border: 0 !important; border-top: 1px solid var(--border-base) !important; border-radius: 0 !important; }
 </style>
 {% endblock %}
