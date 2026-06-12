@@ -1130,6 +1130,22 @@ main > .hero-fullbleed:first-child {
   }
 }
 
+/* Soft-tinted row inside sidebar list cards — recessed feel.
+   In light mode it's a faint slate wash; in dark mode it's a touch
+   deeper than the surface so each row reads as its own pill. */
+.soft-row {
+  background-color: var(--bg-elevated);
+  transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+.soft-row:hover {
+  background-color: var(--bg-muted);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px -12px rgba(15, 23, 42, 0.25);
+}
+[data-theme="dark"] .soft-row:hover {
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.55);
+}
+
 /* ───── Section header (eyebrow + big title) ───── */
 .section-head {
   margin-bottom: 1.5rem;

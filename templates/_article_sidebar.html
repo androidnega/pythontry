@@ -4,9 +4,9 @@
 {% if popular %}
   <div class="rounded-2xl border border-app bg-surface p-5">
     <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Most read</h3>
-    <ol class="mt-4 space-y-4">
+    <ol class="mt-4 space-y-2.5">
       {% for p in popular %}
-        <li class="flex items-start gap-3">
+        <li class="soft-row flex items-start gap-3 rounded-xl p-3">
           <span class="font-serif-news text-2xl font-semibold leading-none text-accent">{{ loop.index }}</span>
           <div class="min-w-0">
             <a href="{{ url_for('public.article_detail', slug=p.slug) }}" class="line-clamp-2 text-sm font-medium leading-snug text-fg hover:text-accent">{{ p.title }}</a>
@@ -21,9 +21,9 @@
 {% if recent_articles %}
   <div class="rounded-2xl border border-app bg-surface p-5">
     <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Recent stories</h3>
-    <ul class="mt-4 space-y-3.5">
+    <ul class="mt-4 space-y-2.5">
       {% for a in recent_articles %}
-        <li class="flex items-start gap-3">
+        <li class="soft-row flex items-start gap-3 rounded-xl p-3">
           {% if a.cover_image %}
             <a href="{{ url_for('public.article_detail', slug=a.slug) }}" class="shrink-0">
               <img src="{{ a.cover_image|cover_url }}" alt="" class="h-14 w-14 rounded-lg object-cover" loading="lazy" />
