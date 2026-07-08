@@ -56,6 +56,12 @@ class Config:
     SITE_REGION = os.environ.get("SITE_REGION", "Ahanta, Ghana")
     CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "")
 
+    # Public site is served over HTTPS (cPanel / reverse proxy). Force
+    # Flask's url_for(..., _external=True) to emit https:// so Open Graph
+    # preview images are absolute & crawlable — http:// often gets rejected
+    # and crawlers fall back to the favicon/logo.
+    PREFERRED_URL_SCHEME = os.environ.get("PREFERRED_URL_SCHEME", "https")
+
     ALLOW_REGISTRATION = _as_bool(os.environ.get("ALLOW_REGISTRATION"), False)
 
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")

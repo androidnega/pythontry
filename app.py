@@ -20,7 +20,16 @@ from flask import Flask, render_template
 
 from config import Config
 from extensions import csrf, db, login_manager
-from utils import can_edit, cover_url, excerpt, google_oauth_enabled, render_markdown
+from utils import (
+    absolute_url,
+    can_edit,
+    cover_url,
+    excerpt,
+    google_oauth_enabled,
+    render_markdown,
+    share_image_url,
+    site_logo_url,
+)
 
 
 def create_app(config_object: type[Config] = Config) -> Flask:
@@ -28,6 +37,13 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     app.config.from_object(config_object)
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     os.makedirs(app.config["ORIGINALS_FOLDER"], exist_ok=True)
+
+    # Honour X-Forwarded-Proto / Host from the fronting proxy (cPanel Apache,
+    # Cloudflare, etc.) so external URLs — especially og:image — are https
+    # with the public hostname, not http://127.0.0.1.
+    from werkzeug.middleware.proxy_fix import ProxyFix
+
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -46,6 +62,9 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     app.jinja_env.filters["excerpt"] = excerpt
     app.jinja_env.filters["cover_url"] = cover_url
     app.jinja_env.globals["cover_url"] = cover_url
+    app.jinja_env.globals["share_image_url"] = share_image_url
+    app.jinja_env.globals["site_logo_url"] = site_logo_url
+    app.jinja_env.globals["absolute_url"] = absolute_url
     app.jinja_env.globals["can_edit"] = can_edit
 
     # Per-file mtime cache so each static asset can be cache-busted on its

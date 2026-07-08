@@ -4,16 +4,16 @@
 {% block description %}{{ ad.description|excerpt(160) if ad.description }}{% endblock %}
 
 {% block og_meta %}
-  {% set _share_image = cover_url(ad.image_path, external=True)
-                         if ad.image_path
-                         else url_for('static', filename='img/logo.png', _external=True) %}
+  {% set _share_image = share_image_url(ad.image_path) %}
   {% set _share_desc = (ad.description|excerpt(160)) if ad.description else SITE_TAGLINE %}
+  {% set _share_url = absolute_url(request.url) %}
   <meta property="og:site_name" content="{{ SITE_NAME }}" />
   <meta property="og:title" content="{{ ad.title }}" />
   <meta property="og:description" content="{{ _share_desc }}" />
   <meta property="og:image" content="{{ _share_image }}" />
+  <meta property="og:image:secure_url" content="{{ _share_image }}" />
   <meta property="og:type" content="product" />
-  <meta property="og:url" content="{{ request.url }}" />
+  <meta property="og:url" content="{{ _share_url }}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="{{ ad.title }}" />
   <meta name="twitter:description" content="{{ _share_desc }}" />

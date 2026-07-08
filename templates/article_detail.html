@@ -7,19 +7,21 @@
 {% block og_meta %}
   {% set _share_title = article.title %}
   {% set _share_desc  = article.summary or (article.body|excerpt(160)) %}
-  {% set _share_image = cover_url(article.cover_image, external=True)
-                         if article.cover_image
-                         else url_for('static', filename='img/logo.png', _external=True) %}
-  {% set _share_url = url_for('public.article_detail', slug=article.slug, _external=True) %}
+  {# Featured/cover image is the social preview for posts; site logo only
+     when the article has no cover. Always absolute https. #}
+  {% set _share_image = share_image_url(article.cover_image) %}
+  {% set _share_url = absolute_url(url_for('public.article_detail', slug=article.slug, _external=True)) %}
   <meta property="og:site_name" content="{{ SITE_NAME }}" />
   <meta property="og:title" content="{{ _share_title }}" />
   <meta property="og:description" content="{{ _share_desc }}" />
   <meta property="og:image" content="{{ _share_image }}" />
+  <meta property="og:image:secure_url" content="{{ _share_image }}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="{{ article.title }}" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="{{ _share_url }}" />
+  <link rel="canonical" href="{{ _share_url }}" />
   {% if article.published_at %}
     <meta property="article:published_time" content="{{ article.published_at.isoformat() }}" />
   {% endif %}

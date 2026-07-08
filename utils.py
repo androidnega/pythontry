@@ -311,6 +311,25 @@ def excerpt(text: str | None, limit: int = 180) -> str:
     return cleaned[: limit - 1].rstrip() + "\u2026"
 
 
+def _force_absolute_https(url: str) -> str:
+    """Normalise a URL for social crawlers (must be absolute https)."""
+    if not url:
+        return url
+    u = url.strip()
+    if u.startswith("//"):
+        return "https:" + u
+    if u.startswith("http://"):
+        return "https://" + u[len("http://") :]
+    return u
+
+
+def absolute_url(url: str | None) -> str:
+    """Return an absolute https URL suitable for og:url / share links."""
+    if not url:
+        return ""
+    return _force_absolute_https(str(url).strip())
+
+
 def cover_url(value: str | None, external: bool = False) -> str | None:
     """Resolve a stored image reference to a URL ready to use in `<img src>`.
 
@@ -318,9 +337,10 @@ def cover_url(value: str | None, external: bool = False) -> str | None:
       - a relative path inside the static folder (e.g. ``uploads/foo.jpg``), or
       - an absolute http(s) URL (e.g. an Unsplash photo).
 
-    Absolute URLs pass through unchanged. Relative paths are resolved with
-    Flask's ``url_for("static")``; pass ``external=True`` to receive an
-    absolute URL (useful for OpenGraph meta tags).
+    Absolute URLs pass through unchanged (protocol-relative ``//`` and
+    ``http://`` are upgraded to ``https://`` when ``external=True`` so
+    Open Graph / WhatsApp / Facebook can fetch the image). Relative paths
+    are resolved with Flask's ``url_for("static")``.
     Returns ``None`` when nothing is set.
     """
     if not value:
@@ -328,10 +348,34 @@ def cover_url(value: str | None, external: bool = False) -> str | None:
     v = str(value).strip()
     if not v:
         return None
-    if v.startswith(("http://", "https://", "//", "data:")):
+    if v.startswith("data:"):
         return v
+    if v.startswith(("http://", "https://", "//")):
+        return _force_absolute_https(v) if external else v
     from flask import url_for
-    return url_for("static", filename=v.lstrip("/"), _external=external)
+
+    resolved = url_for("static", filename=v.lstrip("/"), _external=external)
+    if external:
+        return _force_absolute_https(resolved)
+    return resolved
+
+
+def site_logo_url(external: bool = True) -> str:
+    """Absolute URL of the site logo — used for non-post share cards."""
+    from flask import url_for
+
+    url = url_for("static", filename="img/logo.png", _external=external)
+    return _force_absolute_https(url) if external else url
+
+
+def share_image_url(value: str | None) -> str:
+    """Image URL for Open Graph / Twitter cards.
+
+    Posts with a featured/cover image return that cover (absolute https).
+    Everything else falls back to the site logo.
+    """
+    cover = cover_url(value, external=True) if value else None
+    return cover or site_logo_url(external=True)
 
 
 def reading_time_minutes(text: str | None, wpm: int = 220) -> int:
@@ -982,11 +1026,7 @@ def broadcast_new_article(app, article_id: int) -> None:
             article_url = url_for(
                 "public.article_detail", slug=article.slug, _external=True
             )
-            cover_external = (
-                cover_url(article.cover_image, external=True)
-                if article.cover_image
-                else url_for("static", filename="img/logo.png", _external=True)
-            )
+            cover_external = share_image_url(article.cover_image)
             subject = f"{article.title} – {app.config.get('SITE_NAME', 'AhantaPulse')}"
 
             for sub in subs:

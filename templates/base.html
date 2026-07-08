@@ -16,12 +16,13 @@
   {% block og_meta %}
     {% set _og_title = self.title()|trim or SITE_NAME %}
     {% set _og_desc  = self.description()|trim or SITE_TAGLINE %}
-    {% set _og_image = url_for('static', filename='img/logo.png', _external=True) %}
-    {% set _og_url   = request.url %}
+    {% set _og_image = site_logo_url() %}
+    {% set _og_url   = absolute_url(request.url) %}
     <meta property="og:site_name" content="{{ SITE_NAME }}" />
     <meta property="og:title" content="{{ _og_title }}" />
     <meta property="og:description" content="{{ _og_desc }}" />
     <meta property="og:image" content="{{ _og_image }}" />
+    <meta property="og:image:alt" content="{{ SITE_NAME }}" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="{{ _og_url }}" />
 
