@@ -4,6 +4,7 @@
 
 {% block head_extra %}
   <meta name="csrf-token" content="{{ csrf_token() }}" />
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
 {% endblock %}
 
 {% block admin_content %}
@@ -58,13 +59,16 @@
         {% for e in form.summary.errors %}<p class="text-xs text-red-500 mt-1">{{ e }}</p>{% endfor %}
       </div>
 
-      {# TinyMCE replaces this textarea in place. If TinyMCE's CDN is blocked
-         the textarea stays visible so the author can still write. #}
+      {# Quill mounts on #editor. If the CDN is blocked the textarea below
+         stays visible so the author can still write and paste content. #}
       <div class="card p-0 overflow-hidden">
+        <div class="editor-wrap">
+          <div id="editor" data-upload-url="{{ url_for('admin.api_upload_image') }}"></div>
+        </div>
         {{ form.body(
               id='body-input',
               rows=20,
-              class_='input w-full rounded-none border-0 font-mono text-sm',
+              class_='input w-full rounded-none border-0 border-t border-app font-mono text-sm',
               style='display:block; min-height:520px;',
               placeholder='Tell the story…') }}
         {% for e in form.body.errors %}<p class="px-4 py-2 text-xs text-red-500 border-t border-app">{{ e }}</p>{% endfor %}
@@ -188,9 +192,7 @@
     }
   });
 </script>
-{% if TINYMCE_API_KEY %}
-<script src="https://cdn.tiny.cloud/1/{{ TINYMCE_API_KEY }}/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
-{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="{{ static_v('js/editor.js') }}"></script>
 <style>
   [data-ai-tab].active-tab { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }

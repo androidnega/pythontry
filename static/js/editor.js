@@ -1,13 +1,12 @@
-/* AhantaPulse article editor — TinyMCE 7 + AI assistant + image upload.
-   Initialised by templates/admin/article_form.html.
+/* AhantaPulse article editor — Quill 2 + AI assistant + image upload.
+   Initialized by templates/admin/article_form.html (Quill from jsDelivr).
 
-   If the TinyMCE script failed to load (CDN blocked, network down, etc.)
-   the page falls back to the plain textarea that's already in the DOM.
-   The AI modal still works against that textarea's .value. */
+   If Quill fails to load, the plain textarea stays visible so authors can
+   still write and paste HTML. The AI modal works against textarea.value. */
 
 (function () {
-  var holder = document.getElementById('body-input');
-  if (!holder) return;
+  var bodyInput = document.getElementById('body-input');
+  if (!bodyInput) return;
 
   var CFG = window.AHANTA_EDITOR || {};
   var UPLOAD_URL = CFG.uploadUrl || '/dashboard/api/upload-image';
@@ -15,11 +14,6 @@
   var URL_DRAFT   = AI.draft   || '/dashboard/api/ai/draft';
   var URL_IMPROVE = AI.improve || '/dashboard/api/ai/improve';
   var URL_SEO     = AI.seo     || '/dashboard/api/ai/seo';
-
-  function getCsrf() {
-    var m = document.querySelector('meta[name=csrf-token]');
-    return m ? m.getAttribute('content') : '';
-  }
 
   function showEditorWarning(text) {
     if (document.getElementById('editor-warn-banner')) return;
@@ -30,8 +24,22 @@
       'background: var(--warn-bg, #fef3c7); color: var(--warn-text, #92400e);' +
       'border: 1px solid rgba(0,0,0,0.06); font-size: .85rem; line-height: 1.5;';
     banner.innerHTML = '<strong>Heads up:</strong> ' + text;
-    var anchor = holder.parentNode;
-    if (anchor) anchor.insertBefore(banner, holder);
+    var anchor = bodyInput.parentNode;
+    if (anchor) anchor.insertBefore(banner, bodyInput);
+  }
+
+  if (typeof window.Quill !== 'function') {
+    console.warn('Quill not loaded; falling back to plain textarea.');
+    showEditorWarning(
+      "The rich-text editor couldn't load (CDN blocked or slow network). " +
+      "You can still write and paste below — plain text or HTML both work."
+    );
+    return;
+  }
+
+  function getCsrf() {
+    var m = document.querySelector('meta[name=csrf-token]');
+    return m ? m.getAttribute('content') : '';
   }
 
   function jsonFetch(url, body) {
@@ -49,237 +57,299 @@
     });
   }
 
-  // ──────────────── Content access helpers ────────────────
-  // Always go through these so the AI modal works the same whether
-  // TinyMCE mounted or not.
-  function getBody() {
-    if (window.tinymce && tinymce.activeEditor) {
-      return tinymce.activeEditor.getContent() || '';
+  // ───────── Init Quill ─────────
+  var holder = document.getElementById('editor');
+  if (!holder) return;
+
+  // textarea.value is always the decoded text, which is exactly what we
+  // need: HTML markup ready to paste into Quill.
+  var initialHTML = (bodyInput.value || '').trim();
+
+  // Traditional WYSIWYG toolbar — headings, formatting, lists, indents,
+  // alignment, link + image + video, and our AI helper.
+  var toolbarOptions = [
+    [{ header: [2, 3, 4, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ color: [] }, { background: [] }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ indent: '-1' }, { indent: '+1' }],
+    [{ align: [] }],
+    ['blockquote', 'code-block'],
+    ['link', 'image', 'video'],
+    ['clean'],
+    ['ai'],
+  ];
+
+  var icons = Quill.import('ui/icons');
+  icons.ai = 'AI ✨';
+
+  var quill = new Quill('#editor', {
+    theme: 'snow',
+    placeholder: 'Tell the story…',
+    modules: { toolbar: { container: toolbarOptions } },
+  });
+
+  // Quill mounted successfully — hide the plain-textarea fallback now.
+  // (We leave it in the DOM as a hidden field so submission still picks up
+  // syncBody() output.)
+  bodyInput.style.display = 'none';
+  bodyInput.classList.add('hidden');
+
+  // Seed Quill with the existing article body. Quill 2 accepts both signatures
+  // (html) and (index, html); we use the 2-arg form for forward-compat and
+  // wrap it in a try/catch so any minor parse hiccup never leaves the
+  // editor visually blank — fall back to setText so the writer at least sees
+  // their work.
+  if (initialHTML) {
+    try {
+      quill.clipboard.dangerouslyPasteHTML(0, initialHTML, 'silent');
+    } catch (err) {
+      try { quill.setText(initialHTML); } catch (e2) {}
+      console.warn('Quill paste failed, fell back to plain text:', err);
     }
-    return holder.value || '';
+    // Some users have very long pieces — make sure the editor scrolls to the
+    // top so they see the start of their article, not the middle.
+    quill.setSelection(0, 0, 'silent');
+    bodyInput.value = quill.root.innerHTML;
   }
-  function setBody(html) {
-    if (window.tinymce && tinymce.activeEditor) {
-      tinymce.activeEditor.setContent(html || '');
-      tinymce.activeEditor.save(); // sync to textarea
-    } else {
-      holder.value = html || '';
+
+  // ───────── Drag-to-resize for images and embedded videos ─────────
+  // Click an image or iframe inside the editor → an overlay frame appears
+  // with 4 corner handles and an alignment toolbar. Drag any handle to
+  // resize (aspect ratio preserved). Click outside or press Esc to deselect.
+  (function attachResize() {
+    var ICON_LEFT   = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="13" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+    var ICON_CENTER = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+    var ICON_RIGHT  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="11" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+    var ICON_FULL   = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="1"/></svg>';
+    var ICON_DEL    = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'ql-resize';
+    overlay.style.display = 'none';
+    overlay.innerHTML =
+      '<div class="ql-resize-frame">' +
+        '<span class="ql-resize-handle" data-h="tl"></span>' +
+        '<span class="ql-resize-handle" data-h="tr"></span>' +
+        '<span class="ql-resize-handle" data-h="bl"></span>' +
+        '<span class="ql-resize-handle" data-h="br"></span>' +
+        '<span class="ql-resize-size" data-size></span>' +
+      '</div>' +
+      '<div class="ql-resize-bar">' +
+        '<button type="button" data-act="left"   title="Float left">'   + ICON_LEFT   + '</button>' +
+        '<button type="button" data-act="center" title="Center">'      + ICON_CENTER + '</button>' +
+        '<button type="button" data-act="right"  title="Float right">' + ICON_RIGHT  + '</button>' +
+        '<button type="button" data-act="full"   title="Full width">'  + ICON_FULL   + '</button>' +
+        '<button type="button" data-act="delete" title="Remove">'      + ICON_DEL    + '</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    var target = null;
+    var sizeEl = overlay.querySelector('[data-size]');
+
+    function place() {
+      if (!target) return;
+      var r = target.getBoundingClientRect();
+      overlay.style.position = 'fixed';
+      overlay.style.top    = r.top + 'px';
+      overlay.style.left   = r.left + 'px';
+      overlay.style.width  = r.width + 'px';
+      overlay.style.height = r.height + 'px';
+      sizeEl.textContent = Math.round(r.width) + ' × ' + Math.round(r.height);
     }
-  }
-  function bodyIsBlank() {
-    var v = (getBody() || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim();
-    return v.length === 0;
-  }
+    function show(el) {
+      target = el;
+      overlay.style.display = 'block';
+      place();
+      syncBody();
+    }
+    function hide() {
+      target = null;
+      overlay.style.display = 'none';
+    }
 
-  // ──────────────── TinyMCE init ────────────────
-  if (typeof window.tinymce === 'undefined') {
-    console.warn('TinyMCE not loaded; falling back to plain textarea.');
-    showEditorWarning(
-      "The rich-text editor couldn't load (CDN blocked or the TinyMCE API key " +
-      "is missing). Set it at Dashboard → Settings → WYSIWYG editor. You can " +
-      "still write below in plain text / HTML."
-    );
-  } else {
-    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-
-    tinymce.init({
-      selector: '#body-input',
-      license_key: 'gpl',
-      menubar: 'edit view insert format tools table help',
-      branding: false,
-      promotion: false,
-      relative_urls: false,
-      convert_urls: false,
-      browser_spellcheck: true,
-      contextmenu: false,
-      object_resizing: 'img,table,iframe',
-      paste_data_images: true,
-      image_caption: true,
-      image_title: true,
-      image_advtab: true,
-      image_class_list: [
-        { title: 'Default', value: '' },
-        { title: 'Full width', value: 'w-full' },
-        { title: 'Left float', value: 'float-left' },
-        { title: 'Right float', value: 'float-right' },
-        { title: 'Rounded corners', value: 'rounded-lg' },
-      ],
-      media_alt_source: false,
-      media_poster: false,
-      media_dimensions: true,
-      automatic_uploads: true,
-
-      // Grow with the content; sticky toolbar so it's always reachable.
-      min_height: 540,
-      autoresize_bottom_margin: 60,
-      autoresize_overflow_padding: 24,
-      toolbar_sticky: true,
-      toolbar_sticky_offset: 120, /* admin header + writer top bar */
-      toolbar_mode: 'sliding',
-      toolbar_location: 'top',
-      statusbar: true,
-      elementpath: false,
-      resize: false,
-
-      // Editor visual: light or dark skin to match the dashboard theme.
-      skin: isDark ? 'oxide-dark' : 'oxide',
-      content_css: isDark ? 'dark' : 'default',
-      content_style:
-        "@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Source+Serif+4:wght@500;700&display=swap');" +
-        "body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;" +
-        "       font-size: 17px; line-height: 1.75; padding: 1.5rem 2rem; max-width: 780px; margin: 0 auto; color: #0f172a; }" +
-        "body.dark-mce { color: #e2e8f0; }" +
-        "h1, h2, h3, h4 { font-family: 'Source Serif 4', Georgia, serif; line-height: 1.3; }" +
-        "h2 { font-size: 1.65rem; font-weight: 700; margin: 1.5rem 0 .5rem; }" +
-        "h3 { font-size: 1.3rem; font-weight: 700; margin: 1.3rem 0 .4rem; }" +
-        "h4 { font-size: 1.1rem; font-weight: 700; margin: 1.1rem 0 .3rem; }" +
-        "p { margin: .75rem 0; }" +
-        "img, iframe, video { max-width: 100%; height: auto; border-radius: 8px; }" +
-        "iframe { background: #000; }" +
-        "blockquote { border-left: 4px solid #0ea5e9; padding: .6rem 1.1rem; margin: 1.2rem 0;" +
-        "             font-style: italic; background: rgba(14,165,233,0.06); border-radius: 0 10px 10px 0; }" +
-        "pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }" +
-        "pre { background: #f1f5f9; padding: .75rem 1rem; border-radius: 8px; overflow:auto; }" +
-        "code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: .92em; }" +
-        "table { border-collapse: collapse; width: 100%; margin: 1rem 0; }" +
-        "table th, table td { border: 1px solid #e2e8f0; padding: .55rem .75rem; }" +
-        "table th { background: #f8fafc; font-weight: 600; text-align: left; }" +
-        "hr { border: 0; border-top: 1px solid #e2e8f0; margin: 1.4rem 0; }" +
-        "a { color: #0284c7; text-decoration: underline; text-underline-offset: 3px; }",
-
-      plugins: [
-        'advlist', 'autolink', 'autoresize', 'autosave', 'lists', 'link',
-        'image', 'media', 'charmap', 'preview', 'anchor', 'searchreplace',
-        'visualblocks', 'visualchars', 'code', 'fullscreen', 'insertdatetime',
-        'table', 'wordcount', 'emoticons', 'codesample', 'quickbars',
-        'pagebreak', 'nonbreaking', 'directionality', 'help', 'accordion',
-      ].join(' '),
-
-      // 3-row sliding toolbar. The "Insert" group is grouped under a dropdown
-      // (toolbar_groups) for less visual noise.
-      toolbar: [
-        'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor',
-        'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent',
-        'link image media table | blockquote codesample hr | removeformat | aibtn | searchreplace fullscreen preview code help',
-      ].join(' | '),
-
-      block_formats:
-        'Paragraph=p;' +
-        'Heading 2=h2;' +
-        'Heading 3=h3;' +
-        'Heading 4=h4;' +
-        'Pull-quote=blockquote;' +
-        'Pre-formatted=pre',
-
-      // Word-count goal in the statusbar.
-      statusbar_elements: 'wordcount',
-
-      // Better autosave — TinyMCE's built-in autosave handles restore prompts.
-      autosave_ask_before_unload: true,
-      autosave_interval: '20s',
-      autosave_prefix: window.AHANTA_EDITOR && window.AHANTA_EDITOR.autosaveKey
-        ? window.AHANTA_EDITOR.autosaveKey + '-'
-        : 'ahanta-tinymce-',
-      autosave_restore_when_empty: false,
-      autosave_retention: '60m',
-
-      // Quick floating toolbars (image + selection).
-      quickbars_selection_toolbar: 'bold italic underline | h2 h3 | blockquote | link forecolor',
-      quickbars_image_toolbar: 'alignleft aligncenter alignright | imageoptions | rotateleft rotateright | flipv fliph',
-      quickbars_insert_toolbar: 'quickimage quicktable hr',
-
-      // Upload images to our Flask endpoint instead of inlining base64.
-      images_upload_handler: function (blobInfo) {
-        return new Promise(function (resolve, reject) {
-          var fd = new FormData();
-          fd.append('file', blobInfo.blob(), blobInfo.filename());
-          fetch(UPLOAD_URL, {
-            method: 'POST',
-            body: fd,
-            headers: { 'X-CSRFToken': getCsrf() },
-            credentials: 'same-origin',
-          })
-            .then(function (r) { return r.json(); })
-            .then(function (j) {
-              if (j && j.ok && j.url) {
-                resolve(j.url);
-              } else {
-                reject({ message: (j && j.error) || 'Upload failed', remove: true });
-              }
-            })
-            .catch(function (err) {
-              reject({ message: err.message || 'Network error', remove: true });
-            });
-        });
-      },
-
-      // Custom AI button that opens our existing modal.
-      setup: function (editor) {
-        editor.ui.registry.addButton('aibtn', {
-          text: 'AI ✨',
-          tooltip: 'AI writing assistant',
-          onAction: function () {
-            var m = document.getElementById('ai-modal');
-            if (m) m.classList.remove('hidden');
-          },
-        });
-
-        // Show "Saved … ago" status in the writer top bar.
-        var statusEl = document.getElementById('autosave-status');
-        var lastSaved = null;
-        function updateStatus() {
-          if (!statusEl) return;
-          if (!lastSaved) { statusEl.textContent = ''; statusEl.classList.add('hidden'); return; }
-          var s = Math.max(1, Math.round((Date.now() - lastSaved) / 1000));
-          var label = s < 60 ? s + 's ago' : (Math.floor(s / 60) + 'm ago');
-          statusEl.textContent = '✓ Draft saved ' + label;
-          statusEl.classList.remove('hidden');
+    // Click to select (images and iframes)
+    quill.root.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && (t.tagName === 'IMG' || t.tagName === 'IFRAME')) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Place the cursor right after the element so other actions still work.
+        var blot = Quill.find(t);
+        if (blot) {
+          var idx = quill.getIndex(blot);
+          quill.setSelection(idx + 1, 0, 'silent');
         }
-        setInterval(updateStatus, 15000);
+        show(t);
+      } else if (target && !overlay.contains(t)) {
+        hide();
+      }
+    }, true);
 
-        // Push to the hidden textarea on every change so a manual submit
-        // always grabs the latest content.
-        editor.on('change keyup undo redo', function () { editor.save(); });
-        // Mark "saved" each time TinyMCE's autosave plugin writes to storage.
-        editor.on('StoreDraft', function () { lastSaved = Date.now(); updateStatus(); });
+    // Click anywhere else dismisses
+    document.addEventListener('mousedown', function (e) {
+      if (!target) return;
+      if (overlay.contains(e.target)) return;
+      if (e.target === target) return;
+      hide();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && target) hide();
+    });
 
-        // If TinyMCE locks the editor (invalid origin / wrong key) we
-        // destroy the broken instance and reveal the textarea fallback so
-        // the author can ALWAYS see and edit their article content. A
-        // banner explains exactly what's wrong.
-        editor.on('init', function () {
-          setTimeout(function () {
-            try {
-              var locked = editor.mode && editor.mode.get && editor.mode.get() === 'readonly';
-              if (!locked) return;
-              // 1. show the warning above the editor
-              showEditorWarning(
-                "TinyMCE refused to start (invalid origin or key). Falling back to " +
-                "a plain HTML editor so you can still see and edit your article. " +
-                "Fix: log in at tiny.cloud → API keys, add this site's domain " +
-                "(e.g. ahantapulse.online) to the Approved Domains list, then reload."
-              );
-              // 2. nuke the broken editor and show the raw textarea
-              editor.remove();
-              holder.style.display = 'block';
-              holder.classList.remove('hidden');
-            } catch (e) { /* noop */ }
-          }, 700);
-        });
-      },
+    // Keep the frame attached when the page scrolls or resizes
+    window.addEventListener('scroll',  place, true);
+    window.addEventListener('resize',  place);
+
+    // Hide while the user types text edits
+    quill.on('text-change', function (delta, _old, source) {
+      // Don't hide for our own resize-driven width/height changes
+      if (source === 'silent') return;
+      hide();
+    });
+
+    // ── Drag-to-resize from each corner ──
+    Array.prototype.forEach.call(overlay.querySelectorAll('[data-h]'), function (handle) {
+      handle.addEventListener('mousedown', function (e) {
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        var which = handle.getAttribute('data-h');
+        var startX = e.clientX;
+        var startRect = target.getBoundingClientRect();
+        var startW = startRect.width;
+        var startH = startRect.height;
+        var ratio  = startW / Math.max(1, startH);
+        var growsRight = (which === 'br' || which === 'tr');
+
+        function onMove(ev) {
+          var dx = ev.clientX - startX;
+          var newW = growsRight ? (startW + dx) : (startW - dx);
+          newW = Math.max(64, newW);
+          // Constrain to the editor's content width so users can't push it past the page.
+          var editorWidth = quill.root.clientWidth;
+          if (newW > editorWidth) newW = editorWidth;
+          var newH = Math.round(newW / ratio);
+          target.setAttribute('width',  Math.round(newW));
+          target.setAttribute('height', newH);
+          target.style.width  = Math.round(newW) + 'px';
+          target.style.height = newH + 'px';
+          place();
+        }
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          syncBody();
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',  onUp);
+      });
+    });
+
+    // ── Alignment / delete buttons ──
+    overlay.querySelectorAll('[data-act]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        if (!target) return;
+        e.preventDefault();
+        var act = btn.getAttribute('data-act');
+        if (act === 'delete') {
+          var blot = Quill.find(target);
+          if (blot) {
+            var idx = quill.getIndex(blot);
+            quill.deleteText(idx, 1, 'user');
+          }
+          hide();
+          syncBody();
+          return;
+        }
+        // Reset all alignment-related styles before applying the new one
+        target.style.float = '';
+        target.style.display = '';
+        target.style.marginLeft = '';
+        target.style.marginRight = '';
+
+        if (act === 'left') {
+          target.style.float = 'left';
+          target.style.marginRight = '1rem';
+          target.style.marginBottom = '0.5rem';
+        } else if (act === 'right') {
+          target.style.float = 'right';
+          target.style.marginLeft = '1rem';
+          target.style.marginBottom = '0.5rem';
+        } else if (act === 'center') {
+          target.style.display = 'block';
+          target.style.marginLeft = 'auto';
+          target.style.marginRight = 'auto';
+        } else if (act === 'full') {
+          target.style.display = 'block';
+          target.style.width = '100%';
+          target.style.height = 'auto';
+          target.style.marginLeft = '0';
+          target.style.marginRight = '0';
+          target.removeAttribute('width');
+          target.removeAttribute('height');
+        }
+        place();
+        syncBody();
+      });
+    });
+  })();
+
+  // Sync editor → hidden textarea on every change and on submit.
+  function syncBody() {
+    bodyInput.value = quill.root.innerHTML;
+  }
+  quill.on('text-change', syncBody);
+  var form = document.getElementById('article-form');
+  if (form) form.addEventListener('submit', syncBody);
+
+  // ───────── Custom image handler (upload to server, not base64) ─────────
+  var uploadUrl = holder.getAttribute('data-upload-url') || UPLOAD_URL;
+  if (uploadUrl) {
+    quill.getModule('toolbar').addHandler('image', function () {
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var fd = new FormData();
+        fd.append('file', file);
+        var range = quill.getSelection(true);
+        // Insert a temporary placeholder so the user sees something happen.
+        quill.insertText(range.index, 'Uploading…', { italic: true });
+        fetch(uploadUrl, { method: 'POST', body: fd, headers: { 'X-CSRFToken': getCsrf() }, credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            quill.deleteText(range.index, 'Uploading…'.length);
+            if (j && j.ok && j.url) {
+              quill.insertEmbed(range.index, 'image', j.url);
+              quill.setSelection(range.index + 1);
+            } else {
+              alert('Upload failed: ' + ((j && j.error) || 'unknown error'));
+            }
+          })
+          .catch(function (err) {
+            quill.deleteText(range.index, 'Uploading…'.length);
+            alert('Upload failed: ' + err.message);
+          });
+      };
+      input.click();
     });
   }
 
-  // ──────────────── AI modal wiring ────────────────
+  // ───────── AI modal ─────────
   var modal = document.getElementById('ai-modal');
+  function openModal()  { if (modal) modal.classList.remove('hidden'); }
   function closeModal() { if (modal) modal.classList.add('hidden'); }
   if (modal) {
-    modal.querySelectorAll('[data-ai-close]').forEach(function (b) {
-      b.addEventListener('click', closeModal);
-    });
+    modal.querySelectorAll('[data-ai-close]').forEach(function (b) { b.addEventListener('click', closeModal); });
   }
+  // Hook the custom toolbar AI button.
+  quill.getModule('toolbar').addHandler('ai', openModal);
 
-  // Tab switching.
+  // Tab switching inside the modal.
   document.querySelectorAll('[data-ai-tab]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var target = btn.getAttribute('data-ai-tab');
@@ -292,12 +362,14 @@
     });
   });
 
+  // Run buttons
   function setStatus(html) {
     var s = document.getElementById('ai-status');
     if (s) s.innerHTML = html || '';
   }
   function ensureNotBlank() {
-    if (bodyIsBlank()) {
+    var v = (bodyInput.value || '').replace(/<[^>]*>/g, '').trim();
+    if (!v) {
       setStatus('<span style="color:var(--danger-text)">Write or paste something first.</span>');
       return false;
     }
@@ -316,7 +388,10 @@
     jsonFetch(URL_DRAFT, { brief: brief }).then(function (res) {
       btnDraft.disabled = false;
       if (!res.ok) { setStatus('<span style="color:var(--danger-text)">' + (res.body.error || 'AI request failed.') + '</span>'); return; }
-      setBody(res.body.html || '');
+      // Replace editor content with the draft.
+      quill.setContents([]);
+      quill.clipboard.dangerouslyPasteHTML(0, res.body.html || '');
+      syncBody();
       setStatus('<span style="color:var(--success-text)">Draft inserted. Edit before publishing.</span>');
       setTimeout(closeModal, 600);
     }).catch(function (err) {
@@ -330,10 +405,12 @@
     var focus = (document.getElementById('ai-focus-keyword').value || '').trim();
     setStatus('<span class="spinner"></span> Polishing & adding SEO touches…');
     btnImprove.disabled = true;
-    jsonFetch(URL_IMPROVE, { body: getBody(), focus_keyword: focus }).then(function (res) {
+    jsonFetch(URL_IMPROVE, { body: bodyInput.value, focus_keyword: focus }).then(function (res) {
       btnImprove.disabled = false;
       if (!res.ok) { setStatus('<span style="color:var(--danger-text)">' + (res.body.error || 'AI request failed.') + '</span>'); return; }
-      setBody(res.body.html || '');
+      quill.setContents([]);
+      quill.clipboard.dangerouslyPasteHTML(0, res.body.html || '');
+      syncBody();
       setStatus('<span style="color:var(--success-text)">Article rewritten. Review carefully.</span>');
       setTimeout(closeModal, 600);
     }).catch(function (err) {
@@ -346,7 +423,7 @@
     if (!ensureNotBlank()) return;
     setStatus('<span class="spinner"></span> Generating headline ideas, summary and tags…');
     btnSEO.disabled = true;
-    jsonFetch(URL_SEO, { body: getBody() }).then(function (res) {
+    jsonFetch(URL_SEO, { body: bodyInput.value }).then(function (res) {
       btnSEO.disabled = false;
       if (!res.ok) { setStatus('<span style="color:var(--danger-text)">' + (res.body.error || 'AI request failed.') + '</span>'); return; }
       var out = document.getElementById('ai-seo-output');
@@ -371,11 +448,14 @@
       if (data.tags && data.tags.length) {
         html += '<p class="mt-3 text-xs uppercase tracking-[0.16em] text-muted">Suggested tags</p>';
         html += '<div class="mt-1 flex flex-wrap gap-1.5">';
-        data.tags.forEach(function (t) { html += '<span class="chip">' + escapeHTML(t) + '</span>'; });
+        data.tags.forEach(function (t) {
+          html += '<span class="chip">' + escapeHTML(t) + '</span>';
+        });
         html += '</div>';
         html += '<button type="button" id="ai-apply-tags" class="btn-secondary mt-2 text-xs">Add these to my tags</button>';
       }
       out.innerHTML = html;
+      // Wire up apply buttons.
       out.querySelectorAll('[data-apply-title]').forEach(function (b) {
         b.addEventListener('click', function () {
           var titleInput = document.querySelector('input[name=title]');
